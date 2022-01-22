@@ -2524,7 +2524,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             switch (field.layer().toolSelector.selectedToolName())
             {
                 case("spraycan"):
-                this.field.layer().state.lineWidth = this.sprayCanTool.tbSize.asNumber.get()?this.sprayCanTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
+                this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
                 field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                 break;
                 case("eraser"):
@@ -2683,7 +2683,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 }
                 break;
                 case("eraser"):
-                    field.layer().handleTap(touchPos[0], touchPos[1], field.layer());
+                    field.layer().handleTap(touchPos[0], touchPos[1]);
                     field.state.color.copy(colorBackup);
                 break;
                 case("rotate"):
@@ -3008,51 +3008,51 @@ class DrawingScreen {
         }
     }
 
-    handleTap(px:number, py:number, drawingScreen:DrawingScreen):void
+    handleTap(px:number, py:number):void
     {
-        const gx:number = Math.floor((px-drawingScreen.offset.first)/drawingScreen.bounds.first*drawingScreen.dimensions.first);
-        const gy:number = Math.floor((py-drawingScreen.offset.second)/drawingScreen.bounds.second*drawingScreen.dimensions.second);
-        if(gx < drawingScreen.dimensions.first && gy < drawingScreen.dimensions.second && drawingScreen.state.screenBufUnlocked){
-            drawingScreen.state.screenBufUnlocked = false;
-            const radius:number = drawingScreen.state.lineWidth * 0.5;
-            if(drawingScreen.state.drawCircular)
+        const gx:number = Math.floor((px-this.offset.first)/this.bounds.first*this.dimensions.first);
+        const gy:number = Math.floor((py-this.offset.second)/this.bounds.second*this.dimensions.second);
+        if(gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked){
+            this.state.screenBufUnlocked = false;
+            const radius:number = this.state.lineWidth * 0.5;
+            if(this.state.drawCircular)
             {
-                const radius:number = drawingScreen.state.lineWidth * 0.5;
-                for(let i = -0.5*drawingScreen.state.lineWidth; i < radius; i++)
+                const radius:number = this.state.lineWidth * 0.5;
+                for(let i = -0.5*this.state.lineWidth; i < radius; i++)
                 {
-                    for(let j = -0.5*drawingScreen.state.lineWidth;  j < radius; j++)
+                    for(let j = -0.5*this.state.lineWidth;  j < radius; j++)
                     {
                         const ngx:number = gx+Math.round(j);
                         const ngy:number = (gy+Math.round(i));
                         const dx:number = ngx - gx;
                         const dy:number = ngy - gy;
-                        const pixel:RGB = drawingScreen.screenBuffer[ngx + ngy*drawingScreen.dimensions.first];
-                        if(pixel && !pixel.compare(drawingScreen.state.color) && Math.sqrt(dx*dx+dy*dy) <= radius){
-                            drawingScreen.updatesStack.get(drawingScreen.updatesStack.length()-1).push(new Pair(ngx + ngy*drawingScreen.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
-                            pixel.copy(drawingScreen.state.color);
+                        const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
+                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx*dx+dy*dy) <= radius){
+                            this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
+                            pixel.copy(this.state.color);
                         }
                     }
                 }
             }
             else
             {
-                const radius:number = drawingScreen.state.lineWidth * 0.5;
-                for(let i = -0.5*drawingScreen.state.lineWidth; i < radius; i++)
+                const radius:number = this.state.lineWidth * 0.5;
+                for(let i = -0.5*this.state.lineWidth; i < radius; i++)
                 {
-                    for(let j = -0.5*drawingScreen.state.lineWidth;  j < radius; j++)
+                    for(let j = -0.5*this.state.lineWidth;  j < radius; j++)
                     {
                         const ngx:number = gx+Math.round(j);
                         const ngy:number = (gy+Math.round(i));
-                        const pixel:RGB = drawingScreen.screenBuffer[ngx + ngy*drawingScreen.dimensions.first];
-                        if(pixel && !pixel.compare(drawingScreen.state.color)){
-                            drawingScreen.updatesStack.get(drawingScreen.updatesStack.length()-1).push(new Pair(ngx + ngy*drawingScreen.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
-                            pixel.copy(drawingScreen.state.color);
+                        const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
+                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color)){
+                            this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
+                            pixel.copy(this.state.color);
                         }
                     }
                 }
             }
-            drawingScreen.repaint = true;
-            drawingScreen.state.screenBufUnlocked = true;
+            this.repaint = true;
+            this.state.screenBufUnlocked = true;
         }
     }
     handleTapSprayPaint(px:number, py:number):void
@@ -3074,7 +3074,7 @@ class DrawingScreen {
                         const dx:number = ngx - gx;
                         const dy:number = ngy - gy;
                         const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
-                        if(pixel && !pixel.compare(this.state.color) && Math.sqrt(dx*dx+dy*dy) <= radius && Math.random() < this.sprayProbability){
+                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx*dx+dy*dy) <= radius && Math.random() < this.sprayProbability){
                             this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
                             pixel.copy(this.state.color);
                         }
@@ -3091,7 +3091,7 @@ class DrawingScreen {
                         const ngx:number = gx+Math.round(j);
                         const ngy:number = (gy+Math.round(i));
                         const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
-                        if(pixel && !pixel.compare(this.state.color) && Math.random() < this.sprayProbability){
+                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.random() < this.sprayProbability){
                             this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
                             pixel.copy(this.state.color);
                         }
@@ -3173,6 +3173,7 @@ class DrawingScreen {
                 {
                     checkedMap[cur] = true;
                     this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
+                    
                     //top left
                     data.push(cur % this.dimensions.first);
                     data.push(Math.floor(cur / this.dimensions.first));
@@ -3263,18 +3264,18 @@ class DrawingScreen {
         }
         this.dragData.second = data;
     }
-    drawRect(start:Array<number>, end:Array<number>, drawPoint:(x:number, y:number, screen:DrawingScreen) => void = this.handleTap):void
+    drawRect(start:Array<number>, end:Array<number>, drawPoint:(x:number, y:number, screen:DrawingScreen) => void = (x,y,screen) => screen.handleTap(x, y)):void
     {
         this.drawLine(start, [start[0], end[1]], drawPoint);
         this.drawLine(start, [end[0], start[1]], drawPoint);
         this.drawLine([start[0], end[1]], end, drawPoint);
         this.drawLine([end[0], start[1]], end, drawPoint);
     }
-    drawLine(start:Array<number>, end:Array<number>, drawPoint:(x:number, y:number, screen:DrawingScreen) => void = this.handleTap):void
+    drawLine(start:Array<number>, end:Array<number>, drawPoint:(x:number, y:number, screen:DrawingScreen) => void = (x,y,screen) => screen.handleTap(x, y)):void
     {
         this.handleDraw(start[0], end[0], start[1], end[1], drawPoint);
     }
-    handleDraw(x1:number, x2:number, y1:number, y2:number, drawPoint:(x:number, y:number, screen:DrawingScreen) => void = this.handleTap):void
+    handleDraw(x1:number, x2:number, y1:number, y2:number, drawPoint:(x:number, y:number, screen:DrawingScreen) => void = (x,y,screen) => screen.handleTap(x, y)):void
     {
         //draw line from current touch pos to the touchpos minus the deltas
         //calc equation for line
