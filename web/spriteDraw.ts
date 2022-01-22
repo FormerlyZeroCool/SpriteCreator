@@ -2744,8 +2744,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack:(tb:GuiTextBox) => void = (tbprob)=>{
-            this.field.layer().sprayProbability = tbprob.asNumber.get()?tbprob.asNumber.get():this.field.layer().sprayProbability;
-            this.field.layer().state.lineWidth = this.sprayCanTool.tbSize.asNumber.get()?this.sprayCanTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
+            this.field.layer().sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get() <= 1 && tbprob.asNumber.get() > 0?tbprob.asNumber.get():this.field.layer().sprayProbability;
+            this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
+            tbprob.setText(this.field.layer().sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen","images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
