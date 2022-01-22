@@ -1858,18 +1858,18 @@ class RotateTool extends ExtendedTool {
 
     }
 };
-class UndoRedoTool extends SingleCheckBoxTool {
+class UndoRedoTool extends ExtendedTool {
     stackFrameCountLabel:GuiLabel;
     constructor(toolSelector:ToolSelector, name:string, imagePath:string, callback: () => void)
     {
-        super("Slow mode(undo/redo):", name, imagePath, callback);
-        this.stackFrameCountLabel = new GuiLabel(`Redoable actions: ${0}\nUndoable actions: ${0}`, 200, 16, GuiTextBox.bottom, 40), 15;
-        this.getOptionPanel().matrixDim[1] += 5;
-        this.getOptionPanel().setHeight(this.stackFrameCountLabel.height() + this.getOptionPanel().height());
-        this.getOptionPanel().addElement(this.stackFrameCountLabel);
+        super(name, imagePath, [], [200,100], [4,12]);
+        this.localLayout.addElement(new GuiLabel("Slow mode(undo/redo):", 200));
+        this.localLayout.addElement(new GuiCheckBox(callback, 40, 40));
+        this.stackFrameCountLabel = new GuiLabel(`Redo: ${0}\nUndo: ${0}`, 100, 16, GuiTextBox.bottom, 40);
+        this.localLayout.addElement(this.stackFrameCountLabel);
     }
     updateLabel(redo:number, undo:number):void{
-        this.stackFrameCountLabel.setText(`Redoable actions: ${redo}\nUndoable actions: ${undo}`);
+        this.stackFrameCountLabel.setText(`Redo: ${redo}\nUndo: ${undo}`);
     }
 };
 class FillTool extends ExtendedTool {
@@ -1957,7 +1957,7 @@ class SprayCanTool extends PenTool {
             this.tbSize.setText(String(this.lineWidth));
             callBack(this.tbProbability);
         };
-        this.tbProbability.setText(0.5.toString());
+        this.tbProbability.setText((1).toString());
         this.localLayout.addElement(new GuiLabel("Spray\nprob:", 99, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.tbProbability);
     }
@@ -1968,7 +1968,7 @@ class ColorPickerTool extends ExtendedTool {
     btUpdate:GuiButton;
     constructor(field:LayeredDrawingScreen, toolName:string = "colorPicker", pathToImage:string = "images/colorPickerSprite.png", optionPanes:SimpleGridLayoutManager[] = [])
     {
-        super(toolName, pathToImage, optionPanes, [200, 100], [1, 3]);
+        super(toolName, pathToImage, optionPanes, [200, 100], [1, 30]);
         this.field = field;
         this.tbColor = new GuiTextBox(true, 200, null, 16);
         this.tbColor.promptText = "Enter RGBA color here (RGB 0-255 A 0-1):";
@@ -2354,7 +2354,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     drawingScreenListener:SingleTouchListener;
     keyboardHandler:KeyboardHandler;
     toolPixelDim:number[];
-    penTool:PenTool;
+    penTool:SprayCanTool;
     eraserTool:PenTool;
     settingsTool:DrawingScreenSettingsTool;
     colorPickerTool:ColorPickerTool;
@@ -2369,7 +2369,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     transformTool:ScreenTransformationTool;
     sprayPaint:boolean;
     field:LayeredDrawingScreen;
-    sprayCanTool:SprayCanTool;
+    //sprayCanTool:SprayCanTool;
     constructor(pallette:Pallette, keyboardHandler:KeyboardHandler, drawingScreenListener:SingleTouchListener, imgWidth:number = 50, imgHeight:number = 50)
     {
         this.lastDrawTime = Date.now();
@@ -2595,12 +2595,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.zoom.offsetY -= e.deltaY;
                 repaint = false;
                 break;
+                case("pen"):
                 case("spraycan"):
                 field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                
-                break;
-                case("pen"):
-                field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
                 break;
                 case("eraser"):
                 field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
@@ -2677,12 +2674,12 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 const min_y:number = Math.min(touchPos[1] - deltaY, touchPos[1]);
                 const max_y:number = Math.max(touchPos[1] - deltaY, touchPos[1]);
                 field.layer().selectionRect = [0,0,0,0];
-                field.layer().handleEllipse(start_x, end_x, min_y, max_y);
+                field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
                 break;
                 case("pen"):
                 if(deltaX === 0 && deltaY === 0)
                 {
-                    field.layer().handleTap(touchPos[0], touchPos[1], field.layer());
+                    field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                 }
                 break;
                 case("eraser"):
@@ -2709,9 +2706,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 case("line"):
                     if(deltaX === 0 && deltaY === 0)
                     {
-                        field.layer().handleTap(touchPos[0], touchPos[1], field.layer());
+                        field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                     }
-                    field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
+                    field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
                     field.layer().selectionRect = [0,0,0,0];
                 break;
                 case("copy"):
@@ -2723,7 +2720,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     field.layer().paste();
                 break;
                 case("rect"):
-                    field.layer().drawRect([field.layer().selectionRect[0], field.layer().selectionRect[1]], [field.layer().selectionRect[0]+field.layer().selectionRect[2], field.layer().selectionRect[1]+ field.layer().selectionRect[3]]);
+                    field.layer().drawRect([field.layer().selectionRect[0], field.layer().selectionRect[1]], [field.layer().selectionRect[0]+field.layer().selectionRect[2], field.layer().selectionRect[1]+ field.layer().selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
                     field.layer().selectionRect = [0,0,0,0];
                 break;
                 case("colorPicker"):
@@ -2746,11 +2743,12 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
-        this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", (tbprob)=>{
+        const sprayCallBack:(tb:GuiTextBox) => void = (tbprob)=>{
             this.field.layer().sprayProbability = tbprob.asNumber.get()?tbprob.asNumber.get():this.field.layer().sprayProbability;
             this.field.layer().state.lineWidth = this.sprayCanTool.tbSize.asNumber.get()?this.sprayCanTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
-        }, [this.colorPickerTool.localLayout, this.transformTool.localLayout]);
-        this.penTool = new PenTool(field.layer().suggestedLineWidth(), "pen","images/penSprite.png", [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        };
+        //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen","images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.penTool.activateOptionPanel();
         this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser","images/eraserSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
 
@@ -2761,7 +2759,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             });
         this.toolBar.tools = [];
         this.toolBar.tools.push(this.penTool);
-        this.toolBar.tools.push(this.sprayCanTool);
+        //this.toolBar.tools.push(this.sprayCanTool);
         this.toolBar.tools.push(this.fillTool);
         this.toolBar.tools.push(new PenViewTool(this.penTool, "line", "images/LineDrawSprite.png"));
         this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", "images/rectSprite.png"));
@@ -2891,7 +2889,7 @@ class DrawingScreen {
     constructor(canvas:HTMLCanvasElement, keyboardHandler:KeyboardHandler, palette:Pallette, offset:Array<number>, dimensions:Array<number>, toolSelector:ToolSelector, state:DrawingScreenState, clipBoard:ClipBoard)
     {
         const bounds:Array<number> = [dim[0], dim[1]];
-        this.sprayProbability = 0.5;
+        this.sprayProbability = 1;
         this.clipBoard = clipBoard;
         this.palette = palette;
         this.noColor = new RGB(255, 255, 255, 0);
@@ -4735,6 +4733,7 @@ class Sprite {
         }
     }
 };
+
 class SpriteAnimation {
     sprites:Sprite[];
     x:number;
