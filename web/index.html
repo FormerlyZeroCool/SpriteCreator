@@ -1,0 +1,68 @@
+<html>
+    <head>
+    <link rel="stylesheet" href="style.css">
+    <script src="gifjsLib/gif.js"></script>
+    </head>
+<body id="body">
+    <h2 id="site_name">Sprite Draw</h2>
+    <div style="display: inline-block;">
+        <canvas id="screen" width="512" height="512"
+        style="border:1px solid #c3c3c3;">
+    </canvas>
+    <canvas id="tool_selector_screen" width="50" height="500"
+    style="border:1px solid #000000;">
+</canvas>
+
+    <div id="post-drawing-field" style="display: inline-block;">
+
+        
+    </div>
+    </div>
+    <div>
+        <canvas id="pallette_screen" width="500" height="50"
+        style="border:1px solid #000000;">
+        </canvas>
+    </div>
+
+    <div id="sprites_group" style="display: inline;">
+        <h3>Sprites/Frames:</h3>
+        <button id="save_local_drawing_screen">Save working sprite locally</button> <input type = text id="screen_sprite_file_name" value="myfirstSprite.png"><br>
+
+        <button id="save_local_selected_animation">Save selected animation locally</button> <input type = text id="animation_file_name" value="myfirstGif.gif"><br>
+
+        <input type="file" id="file-selector" multiple><br>
+        <div id="sprites" style="display: inline-block;">
+            <canvas id="sprites_canvas" width="500" height="100"            
+            style="border:1px solid #000000;"></canvas>
+            <br>
+            <button id="add_sprite">Add Sprite</button>
+            <button id="save_sprite">Save Sprite</button><br><br>
+            <button id="delete_sprite">Delete Sprite</button><br><br>
+        </div>
+    </div>
+    <h3>Animations:</h3>
+    <br><canvas id="animations" style="border:1px solid #c3c3c3"></canvas>
+    <br>
+        
+    <button id="add_animation">Add Animation</button>
+    <button id="clone_animation">Clone Animation</button><br><br>
+    <button id="delete_animation">Delete Animation</button>
+        <br>
+    <div id="animations_group" style="display: inline-block;">
+    <p>
+</p>
+    </div><br>
+
+    <div style="display: inline-block;">
+        <h3>Animation Groups</h3>
+        <canvas id="animation_group_selector" width="500" height="50" 
+        style="border:1px solid #c3c3c3"></canvas><p>
+        <button id="add_animationGroup">Add Animation Group</button>
+        <button id="clone_animationGroup">Clone Animation Group</button><br><br>
+        <button id="delete_animationGroup">Delete Animation Group</button>
+        </p></div>
+    <br>
+    <script src="spritedraw.js"></script>
+</body>
+
+</html>
