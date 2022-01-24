@@ -416,8 +416,7 @@ class SimpleGridLayoutManager {
         }
     }
     refreshCanvas(ctx = this.ctx, x = 0, y = 0) {
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.elementsPositions.forEach(el => el.element.draw(ctx, el.x, el.y, x, y));
     }
     active() {
@@ -1070,7 +1069,6 @@ class GuiTextBox {
     }
     setCtxState() {
         this.ctx.strokeStyle = "#000000";
-        this.ctx.fillStyle = "#FFFFFF";
         this.ctx.font = this.fontSize + `px ${this.fontName}`;
     }
     width() {
@@ -1203,7 +1201,7 @@ class GuiTextBox {
     }
     drawInternalAndClear() {
         this.setCtxState();
-        this.ctx.fillRect(0, 0, this.width(), this.height());
+        this.ctx.clearRect(0, 0, this.width(), this.height());
         this.ctx.fillStyle = "#000000";
         this.rows.splice(0, this.rows.length);
         this.refreshMetaData();
@@ -1260,14 +1258,12 @@ class GuiToolBar {
         this.canvas.height = this.height();
         this.canvas.width = this.width();
         this.ctx = this.canvas.getContext("2d");
-        this.ctx.fillStyle = "#FFFFFF";
         this.ctx.strokeStyle = "#000000";
     }
     resize(width = this.width(), height = this.height()) {
         this.canvas.width = width;
         this.canvas.height = height;
         this.ctx = this.canvas.getContext("2d");
-        this.ctx.fillStyle = "#FFFFFF";
         this.ctx.strokeStyle = "#000000";
     }
     active() {
@@ -1292,7 +1288,7 @@ class GuiToolBar {
             return this.toolRenderDim[1] * (1 + Math.floor(this.tools.length / this.toolsPerRow));
     }
     refresh() {
-        this.ctx.fillRect(0, 0, this.width(), this.height());
+        this.ctx.clearRect(0, 0, this.width(), this.height());
         for (let i = 0; i < this.tools.length; i++) {
             let gridX = 0;
             let gridY = 0;
@@ -1911,6 +1907,12 @@ class ScreenTransformationTool extends ExtendedTool {
     }
 }
 ;
+class OutlineTool extends ExtendedTool {
+    constructor(name, path, optionPanes) {
+        super(name, path, optionPanes, [200, 100], [2, 5]);
+    }
+}
+;
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {
     constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 50, imgHeight = 50) {
@@ -2335,7 +2337,6 @@ class ToolSelector {
             this.toolPixelDim[1] = this.toolBar.toolRenderDim[1] * 10;
             this.canvas.height = this.toolPixelDim[1] > this.tool().height() ? this.toolPixelDim[1] : this.tool().height();
             this.ctx = this.canvas.getContext("2d");
-            this.ctx.fillStyle = "#FFFFFF";
         }
     }
     draw() {
@@ -2345,7 +2346,7 @@ class ToolSelector {
             this.resizeCanvas();
             const imgPerColumn = (this.toolPixelDim[1] / this.toolBar.toolRenderDim[1]);
             const imgPerRow = (this.toolPixelDim[0] / this.toolBar.toolRenderDim[0]);
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.toolBar.refresh();
             this.toolBar.draw(this.ctx, 0, 0);
             if (this.tool()) {
@@ -2656,6 +2657,73 @@ class DrawingScreen {
                         stack.push(cur - this.dimensions.first - 1);
                     if (!checkedMap[cur - this.dimensions.first + 1])
                         stack.push(cur - this.dimensions.first + 1);
+                }
+            }
+            this.updatesStack.push([]);
+            this.state.screenBufUnlocked = true;
+        }
+        return new Pair(new Pair(0, 0), data);
+    }
+    //Pair<offset point>, Map of colors encoded as numbers by location>
+    autoOutline(startCoordinate, countColor) {
+        const data = [];
+        if (this.state.screenBufUnlocked &&
+            startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
+            startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second) {
+            this.state.screenBufUnlocked = false;
+            const stack = [];
+            const defaultColor = this.noColor;
+            const checkedMap = new Array(this.dimensions.first * this.dimensions.second).fill(false);
+            const startIndex = startCoordinate.first + startCoordinate.second * this.dimensions.first;
+            const startPixel = this.screenBuffer[startIndex];
+            const spc = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
+            stack.push(startIndex);
+            this.dragDataMaxPoint = 0;
+            this.dragDataMinPoint = this.dimensions.first * this.dimensions.second;
+            while (stack.length > 0) {
+                const cur = stack.pop();
+                const pixelColor = this.screenBuffer[cur];
+                if (cur >= 0 && cur < this.dimensions.first * this.dimensions.second &&
+                    (pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color)) && !checkedMap[cur]) {
+                    checkedMap[cur] = true;
+                    this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
+                    //top left
+                    data.push(cur % this.dimensions.first);
+                    data.push(Math.floor(cur / this.dimensions.first));
+                    //top right
+                    data.push(cur % this.dimensions.first + 1);
+                    data.push(Math.floor(cur / this.dimensions.first));
+                    //bottom left
+                    data.push(cur % this.dimensions.first);
+                    data.push(Math.floor(cur / this.dimensions.first) + 1);
+                    //bottom right
+                    data.push(cur % this.dimensions.first + 1);
+                    data.push(Math.floor(cur / this.dimensions.first) + 1);
+                    data.push(pixelColor.color);
+                    //pixelColor.copy(defaultColor);
+                    if (cur > this.dragDataMaxPoint)
+                        this.dragDataMaxPoint = cur;
+                    if (cur < this.dragDataMinPoint)
+                        this.dragDataMinPoint = cur;
+                    if (!checkedMap[cur + 1])
+                        stack.push(cur + 1);
+                    if (!checkedMap[cur - 1])
+                        stack.push(cur - 1);
+                    if (!checkedMap[cur + this.dimensions.first])
+                        stack.push(cur + this.dimensions.first);
+                    if (!checkedMap[cur - this.dimensions.first])
+                        stack.push(cur - this.dimensions.first);
+                    if (!checkedMap[cur + this.dimensions.first - 1])
+                        stack.push(cur + this.dimensions.first - 1);
+                    if (!checkedMap[cur + this.dimensions.first + 1])
+                        stack.push(cur + this.dimensions.first + 1);
+                    if (!checkedMap[cur - this.dimensions.first - 1])
+                        stack.push(cur - this.dimensions.first - 1);
+                    if (!checkedMap[cur - this.dimensions.first + 1])
+                        stack.push(cur - this.dimensions.first + 1);
+                }
+                else {
+                    pixelColor.blendAlphaCopy(this.state.color);
                 }
             }
             this.updatesStack.push([]);
@@ -3193,13 +3261,12 @@ class LayeredDrawingScreen {
             const ctx = this.canvasTransparency.getContext("2d");
             ctx.fillStyle = "#DCDCDF";
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
-            ctx.fillStyle = "#FFFFFF";
             let i = 0;
             const squareSize = 50;
             for (let y = 0; y < bounds[1] + 100; y += squareSize) {
                 let offset = +(i % 2 === 0);
                 for (let x = offset * squareSize; x < bounds[0] + 200; x += squareSize << 1) {
-                    ctx.fillRect(x, y, squareSize, squareSize);
+                    ctx.clearRect(x, y, squareSize, squareSize);
                 }
                 i++;
             }
@@ -3687,8 +3754,7 @@ class Pallette {
                 const width = (this.canvas.width / this.colors.length);
                 const height = this.canvas.height;
                 this.ctx.strokeStyle = "#000000";
-                ctx.fillStyle = "#FFFFFF";
-                ctx.fillRect(i * width, 0, width, height);
+                ctx.clearRect(i * width, 0, width, height);
                 ctx.fillStyle = this.calcColor(i).htmlRBGA();
                 ctx.fillRect(i * width, 0, width, height);
                 ctx.strokeRect(i * width, 0, width, height);
@@ -3870,8 +3936,7 @@ class Sprite {
         idata.data.set(this.pixels);
         canvas.width = this.width;
         canvas.height = this.height;
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, this.width, this.height);
+        ctx.clearRect(0, 0, this.width, this.height);
         ctx.putImageData(idata, 0, 0);
         this.image = new Image();
         this.image.src = canvas.toDataURL();
@@ -3914,8 +3979,7 @@ class Sprite {
     draw(ctx, x, y, width, height) {
         if (this.pixels) {
             if (this.fillBackground) {
-                ctx.fillStyle = "#FFFFFF";
-                ctx.fillRect(x, y, width, height);
+                ctx.clearRect(x, y, width, height);
             }
             ctx.drawImage(this.image, x, y, width, height);
         }
@@ -4025,8 +4089,7 @@ class SpriteSelector {
         });
         listener.registerCallBack("touchend", e => true, e => {
             const clickedSprite = Math.floor(e.touchPos[0] / canvas.width * this.spritesPerRow) + spritesPerRow * Math.floor(e.touchPos[1] / this.spriteHeight);
-            this.ctx.fillStyle = "#FFFFFF";
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             if (clickedSprite >= 0 && this.dragSprite !== null) {
                 this.sprites().splice(clickedSprite, 0, this.dragSprite);
                 this.spritesCount = this.sprites().length;
@@ -4062,7 +4125,7 @@ class SpriteSelector {
         if (this.sprites()) {
             const position = this.canvas.getBoundingClientRect();
             if (position.top < window.innerHeight && position.bottom >= 0) {
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 const touchX = Math.floor(this.listener.touchPos[0] / this.canvas.width * this.spritesPerRow);
                 const touchY = Math.floor(this.listener.touchPos[1] / this.canvas.height * Math.floor(this.canvas.height / this.spriteHeight));
                 let setOffForDragSprite = 0;
@@ -4317,8 +4380,7 @@ class AnimationGroup {
         }
         if (position.top < window.innerHeight && position.bottom >= 0) {
             const ctx = this.animationCanvas.getContext("2d");
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, this.animationCanvas.width, this.animationCanvas.height);
+            ctx.clearRect(0, 0, this.animationCanvas.width, this.animationCanvas.height);
             let dragSpriteAdjustment = 0;
             const touchX = Math.floor(this.listener.touchPos[0] / this.animationCanvas.width * this.animationsPerRow);
             const touchY = Math.floor((this.listener.touchPos[1]) / this.animationCanvas.height * Math.floor(this.animationCanvas.height / this.animationHeight));
@@ -4510,8 +4572,7 @@ class AnimationGroupsSelector {
         const position = this.canvas.getBoundingClientRect();
         if (position.top < window.innerHeight && position.bottom >= 0) {
             const ctx = this.ctx;
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             const clickedIndex = Math.floor(this.listener.touchPos[0] / this.renderWidth) + Math.floor(this.listener.touchPos[1] / this.renderHeight);
             let offSetI = 0;
             for (let i = 0; i < this.animationGroups.length; i++, offSetI++) {

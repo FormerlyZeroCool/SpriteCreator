@@ -538,8 +538,7 @@ class SimpleGridLayoutManager implements GuiElement {
     }
     refreshCanvas(ctx:CanvasRenderingContext2D = this.ctx, x:number = 0, y:number = 0):void
     {
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.elementsPositions.forEach(el => 
             el.element.draw(ctx, el.x, el.y, x, y));
     }
@@ -1361,7 +1360,6 @@ class GuiTextBox implements GuiElement {
     setCtxState():void
     {
         this.ctx.strokeStyle = "#000000";
-        this.ctx.fillStyle = "#FFFFFF";
         this.ctx.font = this.fontSize + `px ${this.fontName}`;
     }
     width(): number {
@@ -1523,7 +1521,7 @@ class GuiTextBox implements GuiElement {
     drawInternalAndClear():void
     {
         this.setCtxState();
-        this.ctx.fillRect(0, 0, this.width(), this.height());
+        this.ctx.clearRect(0, 0, this.width(), this.height());
         this.ctx.fillStyle = "#000000";
         this.rows.splice(0,this.rows.length);
         this.refreshMetaData();
@@ -1575,7 +1573,6 @@ class GuiToolBar implements GuiElement {
         this.canvas.height = this.height();
         this.canvas.width = this.width();
         this.ctx = this.canvas.getContext("2d");
-        this.ctx.fillStyle = "#FFFFFF";
         this.ctx.strokeStyle = "#000000";
     }
     resize(width:number = this.width(), height:number = this.height()):void
@@ -1583,7 +1580,6 @@ class GuiToolBar implements GuiElement {
         this.canvas.width = width;
         this.canvas.height = height;
         this.ctx = this.canvas.getContext("2d");
-        this.ctx.fillStyle = "#FFFFFF";
         this.ctx.strokeStyle = "#000000";
     }
     active():boolean {
@@ -1608,7 +1604,7 @@ class GuiToolBar implements GuiElement {
             return this.toolRenderDim[1] * (1+Math.floor(this.tools.length / this.toolsPerRow));
     }
     refresh():void {
-        this.ctx.fillRect(0, 0, this.width(), this.height());
+        this.ctx.clearRect(0, 0, this.width(), this.height());
         for(let i = 0; i < this.tools.length; i++)
         {
             let gridX:number = 0;
@@ -2341,6 +2337,11 @@ class ScreenTransformationTool extends ExtendedTool {
         this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
     }
 };
+class OutlineTool extends ExtendedTool {
+    constructor(name, path, optionPanes){
+        super(name, path, optionPanes, [200, 100], [2, 5]);
+    }
+};
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {// clean up class code remove fields made redundant by GuiToolBar
     toolBar:GuiToolBar;
@@ -2825,7 +2826,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
 
             this.canvas.height = this.toolPixelDim[1] > this.tool().height() ? this.toolPixelDim[1] : this.tool().height();
             this.ctx = this.canvas.getContext("2d");
-            this.ctx.fillStyle = "#FFFFFF";
         }
     }
     draw()
@@ -2837,7 +2837,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             this.resizeCanvas();
             const imgPerColumn:number = (this.toolPixelDim[1] / this.toolBar.toolRenderDim[1]);
             const imgPerRow:number = (this.toolPixelDim[0] / this.toolBar.toolRenderDim[0]);
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.toolBar.refresh();
             this.toolBar.draw(this.ctx, 0, 0);
             if(this.tool()){
@@ -3232,6 +3232,80 @@ class DrawingScreen {
                         stack.push(cur - this.dimensions.first - 1);
                     if(!checkedMap[cur - this.dimensions.first + 1])
                         stack.push(cur - this.dimensions.first + 1);
+                }
+            }
+            this.updatesStack.push([]);
+            this.state.screenBufUnlocked = true;
+        }
+        return new Pair(new Pair(0,0), data);
+    }
+    //Pair<offset point>, Map of colors encoded as numbers by location>
+    autoOutline(startCoordinate:Pair<number>, countColor:boolean):Pair<Pair<number>, number[] >
+    {
+        const data:number[] = [];
+        if(this.state.screenBufUnlocked && 
+            startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
+            startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second)
+        {
+            this.state.screenBufUnlocked = false;
+            const stack:number[] = [];
+            const defaultColor = this.noColor;
+            const checkedMap:Array<boolean> = new Array<boolean>(this.dimensions.first * this.dimensions.second).fill(false);
+            
+            const startIndex:number = startCoordinate.first + startCoordinate.second*this.dimensions.first;
+            const startPixel:RGB = this.screenBuffer[startIndex];
+            const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
+            stack.push(startIndex);
+            this.dragDataMaxPoint = 0;
+            this.dragDataMinPoint = this.dimensions.first*this.dimensions.second;
+            while(stack.length > 0)
+            {
+                const cur:number = stack.pop();
+                const pixelColor:RGB = this.screenBuffer[cur];
+                if(cur >= 0 && cur < this.dimensions.first * this.dimensions.second && 
+                    (pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color)) && !checkedMap[cur])
+                {
+                    checkedMap[cur] = true;
+                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
+                    
+                    //top left
+                    data.push(cur % this.dimensions.first);
+                    data.push(Math.floor(cur / this.dimensions.first));
+                    //top right
+                    data.push(cur % this.dimensions.first + 1);
+                    data.push(Math.floor(cur / this.dimensions.first));
+                    //bottom left
+                    data.push(cur % this.dimensions.first);
+                    data.push(Math.floor(cur / this.dimensions.first) + 1);
+                    //bottom right
+                    data.push(cur % this.dimensions.first + 1);
+                    data.push(Math.floor(cur / this.dimensions.first) + 1);
+
+                    data.push(pixelColor.color);
+                    //pixelColor.copy(defaultColor);
+                    if(cur > this.dragDataMaxPoint)
+                        this.dragDataMaxPoint = cur;
+                    if(cur < this.dragDataMinPoint)
+                        this.dragDataMinPoint = cur;
+                    if(!checkedMap[cur+1])
+                        stack.push(cur+1);
+                    if(!checkedMap[cur-1])
+                        stack.push(cur-1);
+                    if(!checkedMap[cur + this.dimensions.first])
+                        stack.push(cur + this.dimensions.first);
+                    if(!checkedMap[cur - this.dimensions.first])
+                        stack.push(cur - this.dimensions.first);
+                    if(!checkedMap[cur + this.dimensions.first - 1])
+                        stack.push(cur + this.dimensions.first - 1);
+                    if(!checkedMap[cur + this.dimensions.first + 1])
+                        stack.push(cur + this.dimensions.first + 1);
+                    if(!checkedMap[cur - this.dimensions.first - 1])
+                        stack.push(cur - this.dimensions.first - 1);
+                    if(!checkedMap[cur - this.dimensions.first + 1])
+                        stack.push(cur - this.dimensions.first + 1);
+                }
+                else{
+                    pixelColor.blendAlphaCopy(this.state.color);
                 }
             }
             this.updatesStack.push([]);
@@ -3876,7 +3950,6 @@ class LayeredDrawingScreen {
             const ctx:CanvasRenderingContext2D = this.canvasTransparency.getContext("2d");
             ctx.fillStyle = "#DCDCDF";
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
-            ctx.fillStyle = "#FFFFFF";
             let i = 0;
             const squareSize:number = 50;
             for(let y = 0; y < bounds[1] + 100; y += squareSize)
@@ -3884,7 +3957,7 @@ class LayeredDrawingScreen {
                 let offset = +(i % 2 === 0);
                 for(let x = offset*squareSize ; x < bounds[0] + 200; x += squareSize<<1)
                 {
-                    ctx.fillRect(x,  y, squareSize, squareSize);
+                    ctx.clearRect(x,  y, squareSize, squareSize);
                 }
                 i++;
             }
@@ -4498,8 +4571,7 @@ class Pallette {
             const width:number = (this.canvas.width/this.colors.length);
             const height:number = this.canvas.height;
             this.ctx.strokeStyle = "#000000";
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(i * width, 0, width, height);
+            ctx.clearRect(i * width, 0, width, height);
             ctx.fillStyle = this.calcColor(i).htmlRBGA();
             ctx.fillRect(i * width, 0, width, height);
             ctx.strokeRect(i * width, 0, width, height);
@@ -4711,8 +4783,7 @@ class Sprite {
         idata.data.set(this.pixels);
         canvas.width = this.width;
         canvas.height = this.height;
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, this.width, this.height);
+        ctx.clearRect(0, 0, this.width, this.height);
         ctx.putImageData(idata, 0, 0);
     
         this.image = new Image();
@@ -4762,8 +4833,7 @@ class Sprite {
     {
         if(this.pixels){ 
             if(this.fillBackground){
-                ctx.fillStyle = "#FFFFFF";
-                ctx.fillRect(x, y, width, height);
+                ctx.clearRect(x, y, width, height);
             }
             ctx.drawImage(this.image, x, y, width, height);
         }
@@ -4912,8 +4982,8 @@ class SpriteSelector {
         });
         listener.registerCallBack("touchend", e => true, e => {
             const clickedSprite:number = Math.floor(e.touchPos[0]/canvas.width*this.spritesPerRow) + spritesPerRow*Math.floor(e.touchPos[1] / this.spriteHeight);
-            this.ctx.fillStyle = "#FFFFFF";
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             if(clickedSprite >= 0 && this.dragSprite !== null)
             {
                 this.sprites().splice(clickedSprite, 0, this.dragSprite);
@@ -4960,7 +5030,7 @@ class SpriteSelector {
             const position = this.canvas.getBoundingClientRect();
 	        if(position.top < window.innerHeight && position.bottom >= 0) 
             {
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 const touchX:number = Math.floor(this.listener.touchPos[0] / this.canvas.width * this.spritesPerRow);
                 const touchY:number = Math.floor(this.listener.touchPos[1] / this.canvas.height * Math.floor(this.canvas.height / this.spriteHeight));
                 let setOffForDragSprite:number = 0;
@@ -5281,8 +5351,7 @@ class AnimationGroup {
         if(position.top < window.innerHeight && position.bottom >= 0) 
         {
             const ctx:CanvasRenderingContext2D = this.animationCanvas.getContext("2d");
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, this.animationCanvas.width, this.animationCanvas.height);
+            ctx.clearRect(0, 0, this.animationCanvas.width, this.animationCanvas.height);
             let dragSpriteAdjustment:number = 0;
             const touchX:number = Math.floor(this.listener.touchPos[0] / this.animationCanvas.width * this.animationsPerRow);
             const touchY:number = Math.floor((this.listener.touchPos[1]) / this.animationCanvas.height * Math.floor(this.animationCanvas.height / this.animationHeight));
@@ -5533,8 +5602,7 @@ class AnimationGroupsSelector {
         if(position.top < window.innerHeight && position.bottom >= 0) 
         {
             const ctx:CanvasRenderingContext2D = this.ctx;
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             const clickedIndex:number = Math.floor(this.listener.touchPos[0] / this.renderWidth) + Math.floor(this.listener.touchPos[1] / this.renderHeight);
             let offSetI = 0;
             for(let i = 0; i < this.animationGroups.length; i++, offSetI++)
