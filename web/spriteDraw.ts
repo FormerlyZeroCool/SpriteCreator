@@ -167,10 +167,10 @@ function blendAlphaCopy(color0:RGB, color:RGB):void
     const alphanc:number = color.alphaNormal();
     const a:number = (1 - alphanc);
     const a0:number = (alphanc + alphant * a);
-    const a1:number = 1/a0;
-    color0.color = (((alphanc*color.red() +   alphant*color0.red() * a ) *a1) << 24) |
-        (((alphanc*color.green() + alphant*color0.green() * a)*a1) << 16) | 
-        (((alphanc*color.blue() +  alphant*color0.blue() * a) *a1) << 8) |
+    const a1:number = 1 / a0;
+    color0.color = (((alphanc * color.red() + alphant * color0.red() * a) * a1) << 24) |
+        (((alphanc * color.green() + alphant * color0.green() * a) * a1) << 16) | 
+        (((alphanc * color.blue() +  alphant * color0.blue() * a) * a1) << 8) |
         (a0 * 255);
     /*this.setRed  ((alphanc*color.red() +   alphant*this.red() * a ) *a1);
     this.setBlue ((alphanc*color.blue() +  alphant*this.blue() * a) *a1);
@@ -306,16 +306,16 @@ class Pair<T,U = T> {
         this.first = first;
         this.second = second;
     }
-
 };
 class ImageContainer {
     image:HTMLImageElement;
     name:string;
-    constructor(imageName:string, imagePath:string)
+    constructor(imageName:string, imagePath:string, callBack:(HTMLImageElement) => void = (img) => console.log(imageName + " loaded."))
     {
         this.image = null;
         fetchImage(imagePath).then(img => { 
             this.image = img;
+            callBack(img);
         });
         this.name = imageName;
     }
@@ -3478,13 +3478,16 @@ class DrawingScreen {
                 counter++;
                 const x:number = Math.floor(dragDataColors[i + 0] + this.dragData.first.first);
                 const y:number = Math.floor(dragDataColors[i + 1] + this.dragData.first.second);
-                let key:number = this.reboundKey(x + y * this.dimensions.first);
-                color.color = dragDataColors[i + 8];
-                this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(key, new RGB(this.screenBuffer[key].red(), this.screenBuffer[key].green(), this.screenBuffer[key].blue(), this.screenBuffer[key].alpha())));
-                if(color.alpha() !== 255 && this.state.blendAlphaOnPutSelectedPixels)
-                    this.screenBuffer[key].blendAlphaCopy(color);
-                else
-                    this.screenBuffer[key].color = color.color;
+                if(this.inBufferBounds(x, y))
+                {
+                    const key:number = (x + y * this.dimensions.first);
+                    color.color = dragDataColors[i + 8];
+                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(key, new RGB(this.screenBuffer[key].red(), this.screenBuffer[key].green(), this.screenBuffer[key].blue(), this.screenBuffer[key].alpha())));
+                    if(color.alpha() !== 255 && this.state.blendAlphaOnPutSelectedPixels)
+                        this.screenBuffer[key].blendAlphaCopy(color);
+                    else
+                        this.screenBuffer[key].color = color.color;
+                }
                 
             }
             this.repaint = true;
@@ -3501,7 +3504,7 @@ class DrawingScreen {
             const map:Map<number, number[]> = new Map<number,number[]>();
             for(let i = 0; i < this.dragData.second.length; i += 9){
                 counter++;
-                if((counter & ((2<<20) - 1)) === 0)
+                if((counter & ((2<<18) - 1)) === 0)
                     await sleep(1);
                 const x1:number = dragDataColors[i + 0] + Math.floor(this.dragData.first.first);
                 const y1:number = dragDataColors[i + 1] + Math.floor(this.dragData.first.second);
@@ -3515,7 +3518,7 @@ class DrawingScreen {
                 const deltaY2:number = Math.max(y1,y3) - Math.min(y1, y3);
 
                     color0.color = dragDataColors[i + 8];
-                    const limit:number = 15;
+                    const limit:number = 10;
                     const ratio:number = 1/limit;
                     const percent = 1/(limit*limit);
                     for(let j = 0; j <= limit; j++)
@@ -3526,7 +3529,7 @@ class DrawingScreen {
                             const sub_x:number = Math.floor(k*ratio * deltaX + j*ratio * deltaX2 + x1);
                             const sub_y:number = Math.floor(k*ratio * deltaY + j*ratio * deltaY2 + y1);
                             const pixelIndex = sub_x + sub_y * this.dimensions.first;
-                            let color:number[] = map.get(pixelIndex);
+                            let color:number[] = map.get((sub_x << 16) | sub_y);
                             if(!color)
                             {
                                 color = [0, 0, 0, 0, 0];
@@ -3539,7 +3542,7 @@ class DrawingScreen {
                                 color[3] += color0.alpha() * percent;
                                 color[4] += percent;
                             }
-                            map.set(pixelIndex, color);
+                            map.set((sub_x << 16) | sub_y, color);
                         }
                     }
                 
@@ -3550,10 +3553,11 @@ class DrawingScreen {
                 color0.setGreen(value[1]);
                 color0.setBlue(value[2]);
                 color0.setAlpha(value[3]);
-                
-                let newKey:number = this.reboundKey(key);
-                if(this.screenBuffer[newKey])
+                const x:number = key >> 16;
+                const y:number = key & (0x0000FFFF);
+                if(this.inBufferBounds(x, y))
                 {
+                    const newKey:number = x + y * this.dimensions.first;
                     this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(newKey, new RGB(this.screenBuffer[newKey].red(), this.screenBuffer[newKey].green(), this.screenBuffer[newKey].blue(), this.screenBuffer[newKey].alpha())));
                     this.screenBuffer[newKey].blendAlphaCopy(color0);
                 }
@@ -3929,7 +3933,6 @@ class LayeredDrawingScreen {
         this.offscreenCanvas.height = this.layer().dimensions.second;
         const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d");
         //rescale main canvas with offscreen canvas
-        //ctx.drawImage(this.canvas, 0, 0, this.layer().dimensions.first, this.layer().dimensions.second);
 
         for(let i = 0; i < this.layers.length; i++)
         {
