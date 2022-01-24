@@ -2705,7 +2705,7 @@ class DrawingScreen {
         const deltaX = x2 - x1;
         const m = deltaY / deltaX;
         const b = y2 - m * x2;
-        const delta = this.state.lineWidth <= 2 ? 0.1 : 1;
+        const delta = this.state.lineWidth <= 2 ? 0.1 : (this.state.drawCircular ? (this.state.lineWidth < 16 ? 1 : this.state.lineWidth / 16) : 1);
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
             const min = Math.min(x1, x2);
             const max = Math.max(x1, x2);
