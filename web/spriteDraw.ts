@@ -2405,6 +2405,8 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.layer().redoLast().then(() =>
                 field.layer().updateLabelUndoRedoCount());
                 break;
+                case("Space"):
+                event.preventDefault();
             }
         });
         this.keyboardHandler.registerCallBack("keydown", e => this.tool().getOptionPanel(), e => {this.tool().getOptionPanel().handleKeyBoardEvents("keydown", e); this.repaint = true;});
@@ -2520,7 +2522,12 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             {
                 field.layer().pasteRect = [touchPos[0] , touchPos[1], field.layer().clipBoard.currentDim[0] * (field.layer().bounds.first / field.layer().dimensions.first),field.layer().clipBoard.currentDim[1] * (field.layer().bounds.second / field.layer().dimensions.second)];
             }
-
+            if(keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"])
+            {
+                field.state.color.copy(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first]);
+                field.layer().toolSelector.updateColorPickerTextBox();
+            }
+            else
             switch (field.layer().toolSelector.selectedToolName())
             {
                 case("spraycan"):
@@ -2587,6 +2594,20 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             const gx:number = Math.floor((touchPos[0])/field.layer().bounds.first*field.layer().dimensions.first);
             const gy:number = Math.floor((touchPos[1])/field.layer().bounds.second*field.layer().dimensions.second);
             let repaint:boolean = true;
+            if(keyboardHandler.keysHeld["Space"])
+            {
+
+                field.zoom.offsetX -= e.deltaX;
+                field.zoom.offsetY -= e.deltaY;
+                repaint = false;
+            }
+            else if(keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"])
+            {
+                field.state.color.copy(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first]);
+                field.layer().toolSelector.updateColorPickerTextBox();
+                repaint = false;
+            }
+            else
             switch (field.toolSelector.selectedToolName())
             {
                 case("layers"):
@@ -2666,6 +2687,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             const gx:number = Math.floor((touchPos[0])/field.layer().bounds.first*field.layer().dimensions.first);
             const gy:number = Math.floor((touchPos[1])/field.layer().bounds.second*field.layer().dimensions.second);
             let repaint:boolean = true;
+            if(keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"])
+            {
+                field.state.color.copy(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first]);
+                field.layer().toolSelector.updateColorPickerTextBox();
+                repaint = false;
+            }
+            else
             switch (this.selectedToolName())
             {
                 case("oval"):
@@ -5688,17 +5716,20 @@ async function main()
         });
     }
     keyboardHandler.registerCallBack("keydown", e=> true, e => {
-        field.layer().state.color.copy(pallette.calcColor());
         if((document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)){
             if(e.code.substring(0,"Digit".length) === "Digit")
             {
                 const numTyped:string = e.code.substring("Digit".length, e.code.length);
                 pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
+                field.layer().state.color.copy(pallette.calcColor());
+            }
+            else if(e.code === "ShiftLeft" || e.code === "ShiftRight")
+            {
+                field.layer().state.color.copy(pallette.calcColor());
             }
         }
     });
     keyboardHandler.registerCallBack("keyup", e => true, e => {
-        field.layer().state.color.copy(pallette.calcColor());
     });
     interface FilesHaver{
         files:FileList;

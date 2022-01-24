@@ -1950,6 +1950,8 @@ class ToolSelector {
                 case ('KeyR'):
                     field.layer().redoLast().then(() => field.layer().updateLabelUndoRedoCount());
                     break;
+                case ("Space"):
+                    event.preventDefault();
             }
         });
         this.keyboardHandler.registerCallBack("keydown", e => this.tool().getOptionPanel(), e => { this.tool().getOptionPanel().handleKeyBoardEvents("keydown", e); this.repaint = true; });
@@ -2056,58 +2058,63 @@ class ToolSelector {
                 else {
                     field.layer().pasteRect = [touchPos[0], touchPos[1], field.layer().clipBoard.currentDim[0] * (field.layer().bounds.first / field.layer().dimensions.first), field.layer().clipBoard.currentDim[1] * (field.layer().bounds.second / field.layer().dimensions.second)];
                 }
-                switch (field.layer().toolSelector.selectedToolName()) {
-                    case ("spraycan"):
-                        this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get() ? this.penTool.tbSize.asNumber.get() : this.field.layer().state.lineWidth;
-                        field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
-                        break;
-                    case ("eraser"):
-                        colorBackup.copy(field.layer().state.color);
-                        {
-                            const eraser = field.layer().toolSelector.eraserTool;
-                            field.layer().state.lineWidth = eraser.lineWidth;
-                            eraser.tbSize.setText(String(field.layer().state.lineWidth));
-                            field.layer().state.color.copy(field.layer().noColor);
-                        }
-                        break;
-                    case ("fill"):
-                        break;
-                    case ("rotate"):
-                        if (field.layer().state.antiAliasRotation)
-                            field.layer().saveDragDataToScreenAntiAliased();
-                        else
-                            field.layer().saveDragDataToScreen();
-                        if (field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                            field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), true);
-                        else
-                            field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), false);
-                        break;
-                    case ("drag"):
-                        field.layer().saveDragDataToScreen();
-                        if (field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                            field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), true);
-                        else
-                            field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), false);
-                        break;
-                    case ("oval"):
-                    case ("rect"):
-                    case ("copy"):
-                    case ("line"):
-                        field.layer().selectionRect = [touchPos[0], touchPos[1], 0, 0];
-                    case ("pen"):
-                        {
-                            field.layer().setLineWidthPen();
-                        }
-                        break;
-                    case ("paste"):
-                        field.layer().pasteRect = [touchPos[0] - field.layer().pasteRect[2] / 2, touchPos[1] - field.layer().pasteRect[3] / 2, field.layer().pasteRect[2], field.layer().pasteRect[3]];
-                        break;
-                    case ("colorPicker"):
-                        field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
-                        // for Gui lib
-                        field.layer().toolSelector.updateColorPickerTextBox();
-                        break;
+                if (keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"]) {
+                    field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
+                    field.layer().toolSelector.updateColorPickerTextBox();
                 }
+                else
+                    switch (field.layer().toolSelector.selectedToolName()) {
+                        case ("spraycan"):
+                            this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get() ? this.penTool.tbSize.asNumber.get() : this.field.layer().state.lineWidth;
+                            field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
+                            break;
+                        case ("eraser"):
+                            colorBackup.copy(field.layer().state.color);
+                            {
+                                const eraser = field.layer().toolSelector.eraserTool;
+                                field.layer().state.lineWidth = eraser.lineWidth;
+                                eraser.tbSize.setText(String(field.layer().state.lineWidth));
+                                field.layer().state.color.copy(field.layer().noColor);
+                            }
+                            break;
+                        case ("fill"):
+                            break;
+                        case ("rotate"):
+                            if (field.layer().state.antiAliasRotation)
+                                field.layer().saveDragDataToScreenAntiAliased();
+                            else
+                                field.layer().saveDragDataToScreen();
+                            if (field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                                field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), true);
+                            else
+                                field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), false);
+                            break;
+                        case ("drag"):
+                            field.layer().saveDragDataToScreen();
+                            if (field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                                field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), true);
+                            else
+                                field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), false);
+                            break;
+                        case ("oval"):
+                        case ("rect"):
+                        case ("copy"):
+                        case ("line"):
+                            field.layer().selectionRect = [touchPos[0], touchPos[1], 0, 0];
+                        case ("pen"):
+                            {
+                                field.layer().setLineWidthPen();
+                            }
+                            break;
+                        case ("paste"):
+                            field.layer().pasteRect = [touchPos[0] - field.layer().pasteRect[2] / 2, touchPos[1] - field.layer().pasteRect[3] / 2, field.layer().pasteRect[2], field.layer().pasteRect[3]];
+                            break;
+                        case ("colorPicker"):
+                            field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
+                            // for Gui lib
+                            field.layer().toolSelector.updateColorPickerTextBox();
+                            break;
+                    }
             });
             this.drawingScreenListener.registerCallBack("touchmove", e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, e => {
                 const deltaX = this.field.zoom.invJustZoomX(e.deltaX);
@@ -2118,67 +2125,78 @@ class ToolSelector {
                 const gx = Math.floor((touchPos[0]) / field.layer().bounds.first * field.layer().dimensions.first);
                 const gy = Math.floor((touchPos[1]) / field.layer().bounds.second * field.layer().dimensions.second);
                 let repaint = true;
-                switch (field.toolSelector.selectedToolName()) {
-                    case ("layers"):
-                    case ("move"):
-                        field.zoom.offsetX -= e.deltaX;
-                        field.zoom.offsetY -= e.deltaY;
-                        repaint = false;
-                        break;
-                    case ("pen"):
-                    case ("spraycan"):
-                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                        break;
-                    case ("eraser"):
-                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
-                        break;
-                    case ("drag"):
-                        field.layer().dragData.first.first += (deltaX / field.layer().bounds.first) * field.layer().dimensions.first;
-                        field.layer().dragData.first.second += (deltaY / field.layer().bounds.second) * field.layer().dimensions.second;
-                        break;
-                    case ("rotate"):
-                        let angle = Math.PI / 2;
-                        let moveCountBeforeRotation = 10;
-                        if (field.state.antiAliasRotation) {
-                            angle = Math.PI / 32;
-                            moveCountBeforeRotation = 2;
-                        }
-                        if (e.moveCount % moveCountBeforeRotation === 0)
-                            if (e.deltaY > 0)
-                                field.layer().rotateSelectedPixelGroup(angle, [(this.drawingScreenListener.startTouchPos[0] / field.layer().bounds.first) * field.layer().dimensions.first,
-                                    (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
-                            else if (e.deltaY < 0)
-                                field.layer().rotateSelectedPixelGroup(-angle, [(this.drawingScreenListener.startTouchPos[0] / field.layer().bounds.first) * field.layer().dimensions.first,
-                                    (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
-                        if (field.state.antiAliasRotation) {
-                            field.layer().dragData.second;
-                        }
-                        break;
-                    case ("fill"):
-                        field.layer().fillArea(new Pair(gx, gy));
-                        break;
-                    case ("line"):
-                    case ("oval"):
-                    case ("rect"):
-                        field.layer().selectionRect[2] += (deltaX);
-                        field.layer().selectionRect[3] += (deltaY);
-                        break;
-                    case ("copy"):
-                        field.layer().selectionRect[2] += (deltaX);
-                        field.layer().selectionRect[3] += (deltaY);
-                        field.layer().pasteRect[2] = field.layer().selectionRect[2];
-                        field.layer().pasteRect[3] = field.layer().selectionRect[3];
-                        break;
-                    case ("paste"):
-                        field.layer().pasteRect[0] += (deltaX);
-                        field.layer().pasteRect[1] += (deltaY);
-                        break;
-                    case ("colorPicker"):
-                        field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
-                        field.layer().toolSelector.updateColorPickerTextBox();
-                        repaint = false;
-                        break;
+                if (keyboardHandler.keysHeld["Space"]) {
+                    field.zoom.offsetX -= e.deltaX;
+                    field.zoom.offsetY -= e.deltaY;
+                    repaint = false;
                 }
+                else if (keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"]) {
+                    field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
+                    field.layer().toolSelector.updateColorPickerTextBox();
+                    repaint = false;
+                }
+                else
+                    switch (field.toolSelector.selectedToolName()) {
+                        case ("layers"):
+                        case ("move"):
+                            field.zoom.offsetX -= e.deltaX;
+                            field.zoom.offsetY -= e.deltaY;
+                            repaint = false;
+                            break;
+                        case ("pen"):
+                        case ("spraycan"):
+                            field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                            break;
+                        case ("eraser"):
+                            field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
+                            break;
+                        case ("drag"):
+                            field.layer().dragData.first.first += (deltaX / field.layer().bounds.first) * field.layer().dimensions.first;
+                            field.layer().dragData.first.second += (deltaY / field.layer().bounds.second) * field.layer().dimensions.second;
+                            break;
+                        case ("rotate"):
+                            let angle = Math.PI / 2;
+                            let moveCountBeforeRotation = 10;
+                            if (field.state.antiAliasRotation) {
+                                angle = Math.PI / 32;
+                                moveCountBeforeRotation = 2;
+                            }
+                            if (e.moveCount % moveCountBeforeRotation === 0)
+                                if (e.deltaY > 0)
+                                    field.layer().rotateSelectedPixelGroup(angle, [(this.drawingScreenListener.startTouchPos[0] / field.layer().bounds.first) * field.layer().dimensions.first,
+                                        (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
+                                else if (e.deltaY < 0)
+                                    field.layer().rotateSelectedPixelGroup(-angle, [(this.drawingScreenListener.startTouchPos[0] / field.layer().bounds.first) * field.layer().dimensions.first,
+                                        (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
+                            if (field.state.antiAliasRotation) {
+                                field.layer().dragData.second;
+                            }
+                            break;
+                        case ("fill"):
+                            field.layer().fillArea(new Pair(gx, gy));
+                            break;
+                        case ("line"):
+                        case ("oval"):
+                        case ("rect"):
+                            field.layer().selectionRect[2] += (deltaX);
+                            field.layer().selectionRect[3] += (deltaY);
+                            break;
+                        case ("copy"):
+                            field.layer().selectionRect[2] += (deltaX);
+                            field.layer().selectionRect[3] += (deltaY);
+                            field.layer().pasteRect[2] = field.layer().selectionRect[2];
+                            field.layer().pasteRect[3] = field.layer().selectionRect[3];
+                            break;
+                        case ("paste"):
+                            field.layer().pasteRect[0] += (deltaX);
+                            field.layer().pasteRect[1] += (deltaY);
+                            break;
+                        case ("colorPicker"):
+                            field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
+                            field.layer().toolSelector.updateColorPickerTextBox();
+                            repaint = false;
+                            break;
+                    }
                 field.layer().repaint = repaint;
             });
             this.drawingScreenListener.registerCallBack("touchend", e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, e => {
@@ -2190,63 +2208,69 @@ class ToolSelector {
                 const gx = Math.floor((touchPos[0]) / field.layer().bounds.first * field.layer().dimensions.first);
                 const gy = Math.floor((touchPos[1]) / field.layer().bounds.second * field.layer().dimensions.second);
                 let repaint = true;
-                switch (this.selectedToolName()) {
-                    case ("oval"):
-                        const start_x = Math.min(touchPos[0] - deltaX, touchPos[0]);
-                        const end_x = Math.max(touchPos[0] - deltaX, touchPos[0]);
-                        const min_y = Math.min(touchPos[1] - deltaY, touchPos[1]);
-                        const max_y = Math.max(touchPos[1] - deltaY, touchPos[1]);
-                        field.layer().selectionRect = [0, 0, 0, 0];
-                        field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                        break;
-                    case ("pen"):
-                        if (deltaX === 0 && deltaY === 0) {
-                            field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
-                        }
-                        break;
-                    case ("eraser"):
-                        field.layer().handleTap(touchPos[0], touchPos[1]);
-                        field.state.color.copy(colorBackup);
-                        break;
-                    case ("rotate"):
-                        if (field.state.antiAliasRotation)
-                            field.layer().saveDragDataToScreenAntiAliased();
-                        else
-                            field.layer().saveDragDataToScreen();
-                        field.layer().dragData = null;
-                        break;
-                    case ("drag"):
-                        field.layer().saveDragDataToScreen();
-                        field.layer().dragData = null;
-                        break;
-                    case ("fill"):
-                        const gx = Math.floor((touchPos[0] - field.layer().offset.first) / field.layer().bounds.first * field.layer().dimensions.first);
-                        const gy = Math.floor((touchPos[1] - field.layer().offset.second) / field.layer().bounds.second * field.layer().dimensions.second);
-                        field.layer().fillArea(new Pair(gx, gy));
-                        break;
-                    case ("line"):
-                        if (deltaX === 0 && deltaY === 0) {
-                            field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
-                        }
-                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                        field.layer().selectionRect = [0, 0, 0, 0];
-                        break;
-                    case ("copy"):
-                        const bounds = field.layer().saveToBuffer(field.layer().selectionRect, field.layer().clipBoard.clipBoardBuffer);
-                        field.layer().clipBoard.refreshImageFromBuffer(bounds.first, bounds.second);
-                        field.layer().selectionRect = [0, 0, 0, 0];
-                        break;
-                    case ("paste"):
-                        field.layer().paste();
-                        break;
-                    case ("rect"):
-                        field.layer().drawRect([field.layer().selectionRect[0], field.layer().selectionRect[1]], [field.layer().selectionRect[0] + field.layer().selectionRect[2], field.layer().selectionRect[1] + field.layer().selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                        field.layer().selectionRect = [0, 0, 0, 0];
-                        break;
-                    case ("colorPicker"):
-                        repaint = false;
-                        break;
+                if (keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"]) {
+                    field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
+                    field.layer().toolSelector.updateColorPickerTextBox();
+                    repaint = false;
                 }
+                else
+                    switch (this.selectedToolName()) {
+                        case ("oval"):
+                            const start_x = Math.min(touchPos[0] - deltaX, touchPos[0]);
+                            const end_x = Math.max(touchPos[0] - deltaX, touchPos[0]);
+                            const min_y = Math.min(touchPos[1] - deltaY, touchPos[1]);
+                            const max_y = Math.max(touchPos[1] - deltaY, touchPos[1]);
+                            field.layer().selectionRect = [0, 0, 0, 0];
+                            field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                            break;
+                        case ("pen"):
+                            if (deltaX === 0 && deltaY === 0) {
+                                field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
+                            }
+                            break;
+                        case ("eraser"):
+                            field.layer().handleTap(touchPos[0], touchPos[1]);
+                            field.state.color.copy(colorBackup);
+                            break;
+                        case ("rotate"):
+                            if (field.state.antiAliasRotation)
+                                field.layer().saveDragDataToScreenAntiAliased();
+                            else
+                                field.layer().saveDragDataToScreen();
+                            field.layer().dragData = null;
+                            break;
+                        case ("drag"):
+                            field.layer().saveDragDataToScreen();
+                            field.layer().dragData = null;
+                            break;
+                        case ("fill"):
+                            const gx = Math.floor((touchPos[0] - field.layer().offset.first) / field.layer().bounds.first * field.layer().dimensions.first);
+                            const gy = Math.floor((touchPos[1] - field.layer().offset.second) / field.layer().bounds.second * field.layer().dimensions.second);
+                            field.layer().fillArea(new Pair(gx, gy));
+                            break;
+                        case ("line"):
+                            if (deltaX === 0 && deltaY === 0) {
+                                field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
+                            }
+                            field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                            field.layer().selectionRect = [0, 0, 0, 0];
+                            break;
+                        case ("copy"):
+                            const bounds = field.layer().saveToBuffer(field.layer().selectionRect, field.layer().clipBoard.clipBoardBuffer);
+                            field.layer().clipBoard.refreshImageFromBuffer(bounds.first, bounds.second);
+                            field.layer().selectionRect = [0, 0, 0, 0];
+                            break;
+                        case ("paste"):
+                            field.layer().paste();
+                            break;
+                        case ("rect"):
+                            field.layer().drawRect([field.layer().selectionRect[0], field.layer().selectionRect[1]], [field.layer().selectionRect[0] + field.layer().selectionRect[2], field.layer().selectionRect[1] + field.layer().selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                            field.layer().selectionRect = [0, 0, 0, 0];
+                            break;
+                        case ("colorPicker"):
+                            repaint = false;
+                            break;
+                    }
                 field.layer().updateLabelUndoRedoCount();
                 field.layer().repaint = repaint;
             });
@@ -4640,16 +4664,18 @@ async function main() {
         });
     }
     keyboardHandler.registerCallBack("keydown", e => true, e => {
-        field.layer().state.color.copy(pallette.calcColor());
         if ((document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)) {
             if (e.code.substring(0, "Digit".length) === "Digit") {
                 const numTyped = e.code.substring("Digit".length, e.code.length);
                 pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
+                field.layer().state.color.copy(pallette.calcColor());
+            }
+            else if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+                field.layer().state.color.copy(pallette.calcColor());
             }
         }
     });
     keyboardHandler.registerCallBack("keyup", e => true, e => {
-        field.layer().state.color.copy(pallette.calcColor());
     });
     ;
     const fileSelector = document.getElementById('file-selector');
