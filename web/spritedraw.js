@@ -3104,23 +3104,22 @@ class ZoomState {
     constructor() {
         this.zoomX = 1;
         this.zoomY = 1;
-        this.zoomCanvasCompensation = [1, 1];
         this.zoomedX = 0;
         this.zoomedY = 0;
         this.offsetX = 0;
         this.offsetY = 0;
     }
     invZoomX(x) {
-        return (1 / (this.zoomX)) * (x - this.zoomedX) * this.zoomCanvasCompensation[0];
+        return (1 / (this.zoomX)) * (x - this.zoomedX);
     }
     invZoomY(y) {
-        return (1 / (this.zoomY)) * (y - this.zoomedY) * this.zoomCanvasCompensation[1];
+        return (1 / (this.zoomY)) * (y - this.zoomedY);
     }
     invJustZoomX(x) {
-        return (1 / (this.zoomX)) * (x) * this.zoomCanvasCompensation[0];
+        return (1 / (this.zoomX)) * (x);
     }
     invJustZoomY(y) {
-        return (1 / (this.zoomY)) * (y) * this.zoomCanvasCompensation[1];
+        return (1 / (this.zoomY)) * (y);
     }
 }
 ;
@@ -3277,12 +3276,8 @@ class LayeredDrawingScreen {
             }
         }
         {
-            const wratio = this.canvas.width / width;
-            const hratio = this.canvas.height / height;
-            this.zoom.zoomCanvasCompensation[0] = wratio;
-            this.zoom.zoomCanvasCompensation[1] = hratio;
-            const zoomedWidth = width * this.zoom.zoomX;
-            const zoomedHeight = height * this.zoom.zoomY;
+            const zoomedWidth = this.width() * this.zoom.zoomX;
+            const zoomedHeight = this.height() * this.zoom.zoomY;
             this.zoom.zoomedX = x - this.zoom.offsetX + (width - zoomedWidth) / 2;
             this.zoom.zoomedY = y - this.zoom.offsetY + (height - zoomedHeight) / 2;
             ctx.fillRect(0, 0, this.zoom.zoomedX, height);
@@ -3635,6 +3630,11 @@ class Pallette {
             this.handleClick(e);
             this.repaint = true;
         });
+        this.listeners.registerCallBack("touchmove", e => true, e => {
+            document.activeElement.blur();
+            this.handleClick(e);
+            this.repaint = true;
+        });
         this.keyboardHandler.registerCallBack("keydown", e => true, e => this.repaint = true);
         this.keyboardHandler.registerCallBack("keyup", e => true, e => this.repaint = true);
     }
@@ -3674,13 +3674,13 @@ class Pallette {
                 this.ctx.font = '16px Calibri';
                 const visibleColor = (this.calcColor(i));
                 ctx.strokeStyle = "#000000";
-                this.ctx.strokeText((i + 1) % 10, i * width + width * 0.5, height / 3);
+                this.ctx.strokeText((i + 1) % 10, i * width + width * 0.5 - 3, height / 2 + 4);
                 visibleColor.setBlue(Math.floor(visibleColor.blue() / 2));
                 visibleColor.setRed(Math.floor(visibleColor.red() / 2));
                 visibleColor.setGreen(Math.floor(visibleColor.green() / 2));
                 visibleColor.setAlpha(255);
                 this.ctx.fillStyle = visibleColor.htmlRBGA();
-                this.ctx.fillText((i + 1) % 10, i * width + width * 0.5, height / 3);
+                this.ctx.fillText((i + 1) % 10, i * width + width * 0.5 - 3, height / 2 + 4);
                 if (i === this.highLightedCell) {
                     this.ctx.strokeStyle = "#000000";
                     for (let j = 0; j < height; j += 5)
@@ -4717,11 +4717,19 @@ async function main() {
     const fps = 35;
     const goalSleep = 1000 / fps;
     let counter = 0;
+    canvas.width = getWidth() - 350;
+    canvas.height = 500;
+    field.setDimOnCurrent([canvas.width, canvas.height]);
     while (true) {
         const start = Date.now();
         toolSelector.draw();
-        canvas.width = getWidth() / 2 - (getWidth() / 8) * +(!isTouchSupported());
-        canvas.height = canvas.width;
+        //if(canvas.width !== getWidth() / 2 - (getWidth() / 8) * +(!isTouchSupported()))
+        {
+            canvas.width = getWidth() - 350;
+            canvas.height = 500;
+            if (pallette.canvas.width !== canvas.width)
+                pallette.canvas.width = canvas.width;
+        }
         //if(field.repaint())
         {
             field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
