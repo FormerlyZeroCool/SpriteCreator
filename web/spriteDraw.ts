@@ -3659,13 +3659,16 @@ class DrawingScreen {
                 for(let i:number = 0; i < this.dragData.second.length; i += 9){
                     const bx:number = Math.floor(dragDataColors[i] + dragDataOffsetX);
                     const by:number = Math.floor(dragDataColors[i+1] + dragDataOffsetY);
-                    let key:number = this.reboundKey(bx + by * this.dimensions.first);
-                    toCopy.color = dragDataColors[i + 8];
-                    source.color = this.screenBuffer[key].color;
-                    source.blendAlphaCopy(toCopy);
-                    const sy:number = Math.floor(Math.floor(key / this.dimensions.first) * cellHeight);
-                    const sx:number = Math.floor((key % this.dimensions.first) * cellWidth);
-                    spriteScreenBuf.fillRect(source, sx, sy, cellWidth, cellHeight);
+                    if(this.inBufferBounds(bx, by))
+                    {
+                        const key:number = bx + by * this.dimensions.first;
+                        toCopy.color = dragDataColors[i + 8];
+                        source.color = this.screenBuffer[key].color;
+                        source.blendAlphaCopy(toCopy);
+                        const sy:number = Math.floor(Math.floor(key / this.dimensions.first) * cellHeight);
+                        const sx:number = Math.floor((key % this.dimensions.first) * cellWidth);
+                        spriteScreenBuf.fillRect(source, sx, sy, cellWidth, cellHeight);
+                    }
                              
                 };
     
@@ -3675,7 +3678,6 @@ class DrawingScreen {
                 const dest_x:number = Math.floor((this.pasteRect[0]-this.offset.first)/this.bounds.first*this.dimensions.first);
                 const dest_y:number = Math.floor((this.pasteRect[1]-this.offset.second)/this.bounds.second*this.dimensions.second);
                 const width:number = this.clipBoard.currentDim[0];
-                const height:number = this.clipBoard.currentDim[1];
                 const initialIndex:number = dest_x + dest_y*this.dimensions.first;
                 for(let i = 0; i < this.clipBoard.clipBoardBuffer.length; i++)
                 {
@@ -3685,7 +3687,7 @@ class DrawingScreen {
                     const x:number = destIndex % this.dimensions.first;
                     const y:number = Math.floor(destIndex/this.dimensions.first);
                     source.color = this.clipBoard.clipBoardBuffer[i].first.color;
-                    if(this.screenBuffer[destIndex] && source.alpha() > 0)
+                    if(this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && source.alpha() > 0)
                     {
                         toCopy.color = this.screenBuffer[destIndex].color;
                         if(this.state.blendAlphaOnPaste)
@@ -3841,7 +3843,7 @@ class LayeredDrawingScreen {
         this.layersState = [];
         this.keyboardHandler = keyboardHandler;
         this.pallette = pallette;
-        this.resizeTransparencyCanvas([4000,4000]);
+        this.resizeTransparencyCanvas([6000,6000]);
         this.setDimOnCurrent(this.dim);
         this.zoom = new ZoomState();
         this.clipBoard = new ClipBoard(<HTMLCanvasElement> document.getElementById("clipboard_canvas"), keyboardHandler, 128, 128);
@@ -3881,12 +3883,13 @@ class LayeredDrawingScreen {
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
             ctx.fillStyle = "#FFFFFF";
             let i = 0;
-            for(let y = 0; y < bounds[1] + 100; y += 10)
+            const squareSize:number = 50;
+            for(let y = 0; y < bounds[1] + 100; y += squareSize)
             {
                 let offset = +(i % 2 === 0);
-                for(let x = offset*10 ; x < bounds[0] + 200; x += 20)
+                for(let x = offset*squareSize ; x < bounds[0] + 200; x += squareSize<<1)
                 {
-                    ctx.fillRect(x,  y, 10, 10);
+                    ctx.fillRect(x,  y, squareSize, squareSize);
                 }
                 i++;
             }
