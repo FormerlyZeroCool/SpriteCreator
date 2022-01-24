@@ -3104,22 +3104,23 @@ class ZoomState {
     constructor() {
         this.zoomX = 1;
         this.zoomY = 1;
+        this.zoomCanvasCompensation = [1, 1];
         this.zoomedX = 0;
         this.zoomedY = 0;
         this.offsetX = 0;
         this.offsetY = 0;
     }
     invZoomX(x) {
-        return (1 / this.zoomX) * (x - this.zoomedX);
+        return (1 / (this.zoomX)) * (x - this.zoomedX) * this.zoomCanvasCompensation[0];
     }
     invZoomY(y) {
-        return (1 / this.zoomY) * (y - this.zoomedY);
+        return (1 / (this.zoomY)) * (y - this.zoomedY) * this.zoomCanvasCompensation[1];
     }
     invJustZoomX(x) {
-        return (1 / this.zoomX) * (x);
+        return (1 / (this.zoomX)) * (x) * this.zoomCanvasCompensation[0];
     }
     invJustZoomY(y) {
-        return (1 / this.zoomY) * (y);
+        return (1 / (this.zoomY)) * (y) * this.zoomCanvasCompensation[1];
     }
 }
 ;
@@ -3258,23 +3259,28 @@ class LayeredDrawingScreen {
         return sprite;
     }
     draw(canvas, ctx, x, y, width, height) {
-        if (width !== this.width() || height !== this.height()) {
+        /*if(width !== this.width() || height !== this.height())
+        {
             canvas.width = this.width();
             canvas.height = this.height();
             width = this.width();
             height = this.height();
-        }
+        }*/
         ctx.drawImage(this.canvasTransparency, 0, 0);
         if (this.repaint()) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             for (let i = 0; i < this.layers.length; i++) {
                 if (this.layersState[i]) {
                     const layer = this.layers[i];
-                    layer.drawToContext(this.ctx, 0, 0, width, height);
+                    layer.drawToContext(this.ctx, 0, 0, this.width(), this.height());
                 }
             }
         }
         {
+            const wratio = this.canvas.width / width;
+            const hratio = this.canvas.height / height;
+            this.zoom.zoomCanvasCompensation[0] = wratio;
+            this.zoom.zoomCanvasCompensation[1] = hratio;
             const zoomedWidth = width * this.zoom.zoomX;
             const zoomedHeight = height * this.zoom.zoomY;
             this.zoom.zoomedX = x - this.zoom.offsetX + (width - zoomedWidth) / 2;
@@ -3284,8 +3290,7 @@ class LayeredDrawingScreen {
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
             ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
             ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
-            ctx.strokeStyle = "#000000";
-            ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
+            //ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
         }
     }
 }
@@ -4538,8 +4543,15 @@ function saveBlob(blob, fileName) {
     a.download = fileName;
     a.click();
 }
+function getWidth() {
+    return Math.max(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
+}
+function getHeight() {
+    return Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight, document.documentElement.clientHeight);
+}
 async function main() {
     const canvas = document.getElementById("screen");
+    const ctx = canvas.getContext("2d");
     let field;
     /*const multiTouchHandler:MultiTouchListener =  new MultiTouchListener(canvas);
     multiTouchHandler.registerCallBack("pinchIn", e => true, e => {
@@ -4555,7 +4567,6 @@ async function main() {
     });*/
     const keyboardHandler = new KeyboardHandler();
     const pallette = new Pallette(document.getElementById("pallette_screen"), keyboardHandler);
-    const ctx = canvas.getContext("2d");
     const canvasListener = new SingleTouchListener(canvas, true, true);
     const toolSelector = new ToolSelector(pallette, keyboardHandler, canvasListener, 50, 50);
     field = toolSelector.field;
@@ -4709,6 +4720,8 @@ async function main() {
     while (true) {
         const start = Date.now();
         toolSelector.draw();
+        canvas.width = getWidth() / 2 - (getWidth() / 8) * +(!isTouchSupported());
+        canvas.height = canvas.width;
         //if(field.repaint())
         {
             field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
