@@ -2168,12 +2168,9 @@ class ClipBoard {
         {
             let x:number = rec[1].second % this.dim[0];
             let y:number = Math.floor(rec[1].second / this.dim[0]);
-            vec[0] = x;
-            vec[1] = y;
-            vec[2] = 1;
-            const transformed = matByVec(finalTransformationMatrix, vec);
-            x = Math.floor(transformed[0]);
-            y = Math.floor(transformed[1]);
+            const x_old:number = x;
+            x = -y;
+            y = x_old;
             rec[1].second = Math.floor((x) + (y) * this.dim[0]);
         }
         this.clipBoardBuffer.sort((a, b) => a.second - b.second);
@@ -2186,12 +2183,11 @@ class ClipBoard {
     //copies array of rgb values to canvas offscreen, centered within the canvas
     refreshImageFromBuffer(width:number = this.currentDim[0], height:number = this.currentDim[1]):void
     {
-        width = Math.floor(width + 0.5);
-        height = Math.floor(height + 0.5);
+        width = Math.round(width);
+        height = Math.round(height);
         this.currentDim = [width, height];
         const ctx = this.offscreenCanvas.getContext("2d");
-        ctx.fillStyle = "rgba(255,255,255,1)";
-        ctx.fillRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+        ctx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
         const start_x:number = this.dim[0] / 2 - this.currentDim[0] / 2;
         const start_y:number = this.dim[1] / 2 - this.currentDim[1] / 2;
         ctx.scale(this.canvas.width / this.offscreenCanvas.width, this.canvas.height / this.offscreenCanvas.height);
@@ -2369,7 +2365,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     transformTool:ScreenTransformationTool;
     sprayPaint:boolean;
     field:LayeredDrawingScreen;
-    //sprayCanTool:SprayCanTool;
     constructor(pallette:Pallette, keyboardHandler:KeyboardHandler, drawingScreenListener:SingleTouchListener, imgWidth:number = 50, imgHeight:number = 50)
     {
         this.lastDrawTime = Date.now();
@@ -2741,7 +2736,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 break;
                 case("copy"):
                     const bounds:Pair<number> = field.layer().saveToBuffer(field.layer().selectionRect, field.layer().clipBoard.clipBoardBuffer);
-                    field.layer().clipBoard.refreshImageFromBuffer(bounds.first, bounds.second);
+                    field.layer().clipBoard.refreshImageFromBuffer(field.layer().selectionRect[2], field.layer().selectionRect[3]);
                     field.layer().selectionRect = [0,0,0,0];
                 break;
                 case("paste"):

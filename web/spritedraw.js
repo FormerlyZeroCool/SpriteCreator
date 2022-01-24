@@ -1762,12 +1762,9 @@ class ClipBoard {
         for (const rec of this.clipBoardBuffer.entries()) {
             let x = rec[1].second % this.dim[0];
             let y = Math.floor(rec[1].second / this.dim[0]);
-            vec[0] = x;
-            vec[1] = y;
-            vec[2] = 1;
-            const transformed = matByVec(finalTransformationMatrix, vec);
-            x = Math.floor(transformed[0]);
-            y = Math.floor(transformed[1]);
+            const x_old = x;
+            x = -y;
+            y = x_old;
             rec[1].second = Math.floor((x) + (y) * this.dim[0]);
         }
         this.clipBoardBuffer.sort((a, b) => a.second - b.second);
@@ -1778,12 +1775,11 @@ class ClipBoard {
     }
     //copies array of rgb values to canvas offscreen, centered within the canvas
     refreshImageFromBuffer(width = this.currentDim[0], height = this.currentDim[1]) {
-        width = Math.floor(width + 0.5);
-        height = Math.floor(height + 0.5);
+        width = Math.round(width);
+        height = Math.round(height);
         this.currentDim = [width, height];
         const ctx = this.offscreenCanvas.getContext("2d");
-        ctx.fillStyle = "rgba(255,255,255,1)";
-        ctx.fillRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+        ctx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
         const start_x = this.dim[0] / 2 - this.currentDim[0] / 2;
         const start_y = this.dim[1] / 2 - this.currentDim[1] / 2;
         ctx.scale(this.canvas.width / this.offscreenCanvas.width, this.canvas.height / this.offscreenCanvas.height);
@@ -1917,7 +1913,6 @@ class ScreenTransformationTool extends ExtendedTool {
 ;
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {
-    //sprayCanTool:SprayCanTool;
     constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 50, imgHeight = 50) {
         this.lastDrawTime = Date.now();
         const field = new LayeredDrawingScreen(keyboardHandler, pallette);
@@ -2257,7 +2252,7 @@ class ToolSelector {
                             break;
                         case ("copy"):
                             const bounds = field.layer().saveToBuffer(field.layer().selectionRect, field.layer().clipBoard.clipBoardBuffer);
-                            field.layer().clipBoard.refreshImageFromBuffer(bounds.first, bounds.second);
+                            field.layer().clipBoard.refreshImageFromBuffer(field.layer().selectionRect[2], field.layer().selectionRect[3]);
                             field.layer().selectionRect = [0, 0, 0, 0];
                             break;
                         case ("paste"):
