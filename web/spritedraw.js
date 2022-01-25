@@ -2875,7 +2875,6 @@ class DrawingScreen {
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d");
-            this.imageDataBuffer = this.ctx.getImageData(0, 0, bounds[0], bounds[1]);
             this.dimensions = new Pair(newDim[0], newDim[1]);
             this.clipBoard.resize(newDim);
             this.repaint = true;
@@ -3076,7 +3075,7 @@ class DrawingScreen {
                     }
                 }
             }
-            spriteScreenBuf.putPixels(ctx, this.imageDataBuffer);
+            spriteScreenBuf.putPixels(ctx);
             if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
                 let touchStart = [this.selectionRect[0], this.selectionRect[1]];
                 ctx.lineWidth = 6;
@@ -3727,11 +3726,16 @@ class Pallette {
 class Sprite {
     constructor(pixels, width, height, fillBackground = true) {
         this.fillBackground = fillBackground;
+        this.width = width;
+        this.height = height;
         this.copy(pixels, width, height);
     }
     copy(pixels, width, height) {
         if (!this.pixels || this.pixels.length !== pixels.length) {
-            this.pixels = new Uint8ClampedArray(width * height * 4);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            this.imageData = ctx.createImageData(this.width, this.height);
+            this.pixels = this.imageData.data;
             this.width = width;
             this.height = height;
         }
@@ -3744,83 +3748,8 @@ class Sprite {
         if (pixels.length)
             this.refreshImage();
     }
-    putPixels(ctx, idata = ctx.getImageData(0, 0, this.width, this.height)) {
-        let i = 0;
-        const pview = new Uint32Array(this.pixels.buffer);
-        const iview = new Uint32Array(idata.data.buffer);
-        const limit = this.pixels.length >> 2;
-        const offsetLimit = limit - (32);
-        for (; i < offsetLimit;) {
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-            iview[i] = pview[i];
-            ++i;
-        }
-        for (; i < limit;) {
-            iview[i] = pview[i];
-            ++i;
-        }
-        ctx.putImageData(idata, 0, 0);
+    putPixels(ctx) {
+        ctx.putImageData(this.imageData, 0, 0);
     }
     fillRect(color, x, y, width, height) {
         const red = color.red();
@@ -3889,8 +3818,12 @@ class Sprite {
         this.image.src = canvas.toDataURL();
     }
     copySprite(sprite) {
-        if (this.pixels.length !== sprite.pixels.length)
-            this.pixels = new Uint8ClampedArray(sprite.pixels.length);
+        if (this.pixels.length !== sprite.pixels.length) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            this.imageData = ctx.createImageData(this.width, this.height);
+            this.pixels = this.imageData.data;
+        }
         this.width = sprite.width;
         this.height = sprite.height;
         for (let i = 0; i < this.pixels.length;) {
@@ -3901,8 +3834,12 @@ class Sprite {
         }
     }
     copySpriteBlendAlpha(sprite) {
-        if (this.pixels.length !== sprite.pixels.length)
-            this.pixels = new Uint8ClampedArray(sprite.pixels.length);
+        if (this.pixels.length !== sprite.pixels.length) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            this.imageData = ctx.createImageData(this.width, this.height);
+            this.pixels = this.imageData.data;
+        }
         this.width = sprite.width;
         this.height = sprite.height;
         const o = new RGB(0, 0, 0, 0);

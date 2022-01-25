@@ -2872,7 +2872,6 @@ class DrawingScreen {
     dragDataMaxPoint:number;
     dragDataMinPoint:number;
     state:DrawingScreenState;
-    imageDataBuffer:ImageData;
     sprayProbability:number;
     constructor(canvas:HTMLCanvasElement, keyboardHandler:KeyboardHandler, palette:Pallette, offset:Array<number>, dimensions:Array<number>, toolSelector:ToolSelector, state:DrawingScreenState, clipBoard:ClipBoard)
     {
@@ -3485,7 +3484,6 @@ class DrawingScreen {
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d");
-            this.imageDataBuffer = this.ctx.getImageData(0,0,bounds[0],bounds[1]);
             this.dimensions = new Pair(newDim[0], newDim[1]);
             this.clipBoard.resize(newDim);
             this.repaint = true;
@@ -3719,7 +3717,7 @@ class DrawingScreen {
                 }
             }
             
-            spriteScreenBuf.putPixels(ctx, this.imageDataBuffer);
+            spriteScreenBuf.putPixels(ctx);
             if(this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line")
             {
                 let touchStart = [this.selectionRect[0], this.selectionRect[1]];
@@ -4543,6 +4541,7 @@ class Pallette {
 };
 class Sprite {
     pixels:Uint8ClampedArray;
+    imageData:ImageData;
     image:HTMLImageElement;
     fillBackground:boolean;
     width:number;
@@ -4550,12 +4549,19 @@ class Sprite {
     constructor(pixels:Array<RGB>, width:number, height:number, fillBackground:boolean = true)
     {
         this.fillBackground = fillBackground;
+        this.width = width;
+        this.height = height;
         this.copy(pixels, width, height);
     }
     copy(pixels:Array<RGB>, width:number, height:number):void
     {
         if(!this.pixels || this.pixels.length !== pixels.length){
-            this.pixels = new Uint8ClampedArray(width * height * 4);
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            this.imageData = ctx.createImageData(this.width, this.height);
+            this.pixels = this.imageData.data;
             this.width = width;
             this.height = height;
 
@@ -4570,87 +4576,9 @@ class Sprite {
         if(pixels.length)
             this.refreshImage();
     }
-    putPixels(ctx:CanvasRenderingContext2D, idata:ImageData = ctx.getImageData(0, 0, this.width, this.height)):void
+    putPixels(ctx:CanvasRenderingContext2D):void
     {
-        let i = 0;
-        const pview:Uint32Array = new Uint32Array(this.pixels.buffer);
-        const iview:Uint32Array = new Uint32Array(idata.data.buffer);
-        const limit:number = this.pixels.length >> 2;
-        const offsetLimit:number = limit - (32)
-        for(; i < offsetLimit;)
-            {
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                iview[i] = pview[i];
-                ++i;
-                
-        }
-        for(; i < limit;)
-        {
-            iview[i] = pview[i];
-            ++i;
-        }
-        ctx.putImageData(idata, 0, 0);
+        ctx.putImageData(this.imageData, 0, 0);
     }
     fillRect(color:RGB, x:number, y:number, width:number, height:number)
     {
@@ -4735,7 +4663,13 @@ class Sprite {
     copySprite(sprite:Sprite):void
     {
         if(this.pixels.length !== sprite.pixels.length)
-            this.pixels = new Uint8ClampedArray(sprite.pixels.length);
+        {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            this.imageData = ctx.createImageData(this.width, this.height);
+            this.pixels = this.imageData.data;
+        }
         this.width = sprite.width;
         this.height = sprite.height;
         for(let i = 0; i < this.pixels.length;)
@@ -4748,8 +4682,13 @@ class Sprite {
     }
     copySpriteBlendAlpha(sprite:Sprite):void
     {
-        if(this.pixels.length !== sprite.pixels.length)
-            this.pixels = new Uint8ClampedArray(sprite.pixels.length);
+        if(this.pixels.length !== sprite.pixels.length){
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            this.imageData = ctx.createImageData(this.width, this.height);
+            this.pixels = this.imageData.data;
+        }
         this.width = sprite.width;
         this.height = sprite.height;
         const o:RGB = new RGB(0, 0, 0, 0);
