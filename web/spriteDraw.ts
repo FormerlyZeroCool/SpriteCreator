@@ -2170,8 +2170,10 @@ class ClipBoard {
         {
             this.repaint = false;
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.drawImage(this.sprite.image, 0, 
-                0, this.canvas.width, this.canvas.height);
+            const width:number = this.canvas.width / (this.sprite.width / this.canvas.width);
+            const height:number = this.canvas.height / (this.sprite.height / this.canvas.height);
+            this.ctx.drawImage(this.sprite.image, this.canvas.width / 2 - width / 2, 
+                this.canvas.height / 2 - width / 2, width, height);
         }
         ctx.drawImage(this.canvas, x, y);
     }
@@ -3495,19 +3497,20 @@ class DrawingScreen {
         const frac:number = a - Math.floor(a);
         return 1 - frac;
     }
-    reboundKey(key:number):number
-    {
-        /*let newKey:number = (key) % (this.dimensions.first * this.dimensions.second);
-        if(newKey < 0)
-            newKey += this.dimensions.first * this.dimensions.second;*/
-        return (key) % (this.screenBuffer.length) + +(key<0) * this.screenBuffer.length;
-    }
     loadSprite(sprite:Sprite):void {
         sprite.copyToBuffer(this.screenBuffer);
         this.undoneUpdatesStack.empty();
         this.updatesStack.empty();
         this.updateLabelUndoRedoCount();
         this.repaint = true;
+    }
+    setPixel(index:number, color:RGB)
+    {
+        index <<= 2;
+        this.spriteScreenBuf[index++] = color.red();
+        this.spriteScreenBuf[index++] = color.green();
+        this.spriteScreenBuf[index++] = color.blue();
+        this.spriteScreenBuf[index++] = color.alpha();
     }
     saveDragDataToScreen():void
     {
