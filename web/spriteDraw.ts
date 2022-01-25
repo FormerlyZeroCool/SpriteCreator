@@ -3708,7 +3708,7 @@ class DrawingScreen {
                     source.setGreen(this.clipBoard.sprite.pixels[(i << 2)+1]);
                     source.setBlue(this.clipBoard.sprite.pixels[(i << 2)+2]);
                     source.setAlpha(this.clipBoard.sprite.pixels[(i << 2)+3]);
-                    if(this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && source.alpha() > 0)
+                    if(this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY))
                     {
                         toCopy.color = this.screenBuffer[destIndex].color;
                         if(this.state.blendAlphaOnPaste)
