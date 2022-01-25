@@ -1836,6 +1836,16 @@ class DragTool extends ExtendedTool {
         this.localLayout.addElement(this.checkBox_blendAlpha);
     }
 };
+class OutlineTool extends ExtendedTool {
+    checkBoxignoreAlphaInFill:GuiCheckBox;
+    constructor(name:string, imagePath:string, onlyOneColor:(x, y) => void, toolSelector:ToolSelector, optionPanes:SimpleGridLayoutManager[] = [])
+    {
+        super(name, imagePath, optionPanes, [200, 200]);
+        this.checkBoxignoreAlphaInFill = new GuiCheckBox(() => onlyOneColor(toolSelector.drawingScreenListener.touchPos[0], toolSelector.drawingScreenListener.touchPos[1]), 40, 40);
+        this.localLayout.addElement(new GuiLabel("Only drag\none color:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
+        this.localLayout.addElement(this.checkBoxignoreAlphaInFill);
+    }
+};
 class RotateTool extends ExtendedTool {
     checkBox:GuiCheckBox;
     checkBoxAntiAlias:GuiCheckBox;
@@ -2337,11 +2347,6 @@ class ScreenTransformationTool extends ExtendedTool {
         this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
     }
 };
-class OutlineTool extends ExtendedTool {
-    constructor(name, path, optionPanes){
-        super(name, path, optionPanes, [200, 100], [2, 5]);
-    }
-};
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {// clean up class code remove fields made redundant by GuiToolBar
     toolBar:GuiToolBar;
@@ -2366,6 +2371,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     transformTool:ScreenTransformationTool;
     sprayPaint:boolean;
     field:LayeredDrawingScreen;
+    outLineTool:OutlineTool;
     constructor(pallette:Pallette, keyboardHandler:KeyboardHandler, drawingScreenListener:SingleTouchListener, imgWidth:number = 50, imgHeight:number = 50)
     {
         this.lastDrawTime = Date.now();
@@ -2526,6 +2532,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             else
             switch (field.layer().toolSelector.selectedToolName())
             {
+                case("outline"):
+                field.layer().autoOutline(new Pair<number>(gx, gy), false);
+                break;
                 case("spraycan"):
                 this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
                 field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
@@ -2755,6 +2764,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             field.layer().repaint = repaint;
         });
         }
+        this.outLineTool = new OutlineTool("outline", "images/favicon.ico", (x,y) => { this.field.layer().state.ignoreAlphaInFill = this.outLineTool.checkBoxignoreAlphaInFill.checked }, this, []);
         this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
@@ -2789,6 +2799,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.toolBar.tools.push(new PenViewTool(this.penTool, "line", "images/LineDrawSprite.png"));
         this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", "images/rectSprite.png"));
         this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", "images/ovalSprite.png"));
+        this.toolBar.tools.push(this.outLineTool);
         this.toolBar.tools.push(this.copyTool);
         this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel(), "paste", "images/pasteSprite.png"));
         this.toolBar.tools.push(this.dragTool);
@@ -2909,7 +2920,6 @@ class DrawingScreen {
     state:DrawingScreenState;
     imageDataBuffer:ImageData;
     sprayProbability:number;
-
     constructor(canvas:HTMLCanvasElement, keyboardHandler:KeyboardHandler, palette:Pallette, offset:Array<number>, dimensions:Array<number>, toolSelector:ToolSelector, state:DrawingScreenState, clipBoard:ClipBoard)
     {
         const bounds:Array<number> = [dim[0], dim[1]];
@@ -3240,9 +3250,8 @@ class DrawingScreen {
         return new Pair(new Pair(0,0), data);
     }
     //Pair<offset point>, Map of colors encoded as numbers by location>
-    autoOutline(startCoordinate:Pair<number>, countColor:boolean):Pair<Pair<number>, number[] >
+    autoOutline(startCoordinate:Pair<number>, countColor:boolean):void
     {
-        const data:number[] = [];
         if(this.state.screenBufUnlocked && 
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second)
@@ -3256,37 +3265,14 @@ class DrawingScreen {
             const startPixel:RGB = this.screenBuffer[startIndex];
             const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
             stack.push(startIndex);
-            this.dragDataMaxPoint = 0;
-            this.dragDataMinPoint = this.dimensions.first*this.dimensions.second;
             while(stack.length > 0)
             {
                 const cur:number = stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
-                if(cur >= 0 && cur < this.dimensions.first * this.dimensions.second && 
-                    (pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color)) && !checkedMap[cur])
+                if(pixelColor && 
+                    pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color) && !checkedMap[cur])
                 {
                     checkedMap[cur] = true;
-                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
-                    
-                    //top left
-                    data.push(cur % this.dimensions.first);
-                    data.push(Math.floor(cur / this.dimensions.first));
-                    //top right
-                    data.push(cur % this.dimensions.first + 1);
-                    data.push(Math.floor(cur / this.dimensions.first));
-                    //bottom left
-                    data.push(cur % this.dimensions.first);
-                    data.push(Math.floor(cur / this.dimensions.first) + 1);
-                    //bottom right
-                    data.push(cur % this.dimensions.first + 1);
-                    data.push(Math.floor(cur / this.dimensions.first) + 1);
-
-                    data.push(pixelColor.color);
-                    //pixelColor.copy(defaultColor);
-                    if(cur > this.dragDataMaxPoint)
-                        this.dragDataMaxPoint = cur;
-                    if(cur < this.dragDataMinPoint)
-                        this.dragDataMinPoint = cur;
                     if(!checkedMap[cur+1])
                         stack.push(cur+1);
                     if(!checkedMap[cur-1])
@@ -3304,14 +3290,16 @@ class DrawingScreen {
                     if(!checkedMap[cur - this.dimensions.first + 1])
                         stack.push(cur - this.dimensions.first + 1);
                 }
-                else{
-                    pixelColor.blendAlphaCopy(this.state.color);
+                else if(pixelColor && !checkedMap[cur]) {
+                    checkedMap[cur] = true;
+                    this.updatesStack.get(this.updatesStack.length()-1).push(
+                        new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
+
+                    pixelColor.copy(this.state.color);
                 }
             }
-            this.updatesStack.push([]);
             this.state.screenBufUnlocked = true;
         }
-        return new Pair(new Pair(0,0), data);
     }
     rotateSelectedPixelGroup(theta:number, centerPoint:number[]):void
     {
@@ -3380,7 +3368,7 @@ class DrawingScreen {
         const deltaX = x2 - x1;
         const m:number = deltaY/deltaX;
         const b:number = y2-m*x2;
-        const delta:number = this.state.lineWidth <= 2? 0.1 :(this.state.drawCircular ? (this.state.lineWidth < 16? 1 : this.state.lineWidth / 16) : 1);
+        const delta:number = this.state.lineWidth <= 4? 0.1 :(this.state.drawCircular ? (this.state.lineWidth < 16? 1 : this.state.lineWidth / 16) : 1);
         if(Math.abs(deltaX) > Math.abs(deltaY))
         {
             const min:number = Math.min(x1, x2);
