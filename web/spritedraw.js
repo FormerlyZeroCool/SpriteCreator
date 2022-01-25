@@ -1696,14 +1696,9 @@ class ClipBoard {
         this.canvas = document.createElement("canvas");
         this.focused = false;
         this.ctx = this.canvas.getContext("2d");
-        this.dim = [pixelCountX, pixelCountY];
-        this.canvas.height = this.dim[0];
-        this.canvas.width = this.dim[1];
-        this.currentDim = [0, 0];
-        this.offscreenCanvas = document.createElement("canvas");
-        this.clipBoardBuffer = new Array();
-        this.offscreenCanvas.width = pixelCountX;
-        this.offscreenCanvas.height = pixelCountY;
+        this.canvas.height = pixelCountX;
+        this.canvas.width = pixelCountY;
+        this.sprite = new Sprite([new RGB(0, 0, 0, 0)], pixelCountX, pixelCountY);
         this.angle = 0;
     }
     active() {
@@ -1728,7 +1723,8 @@ class ClipBoard {
     }
     handleTouchEvents(type, e) {
         if (this.active() && type === "touchstart") {
-            if (this.clipBoardBuffer.length) {
+            //if(this.clipBoardBuffer.length)
+            {
                 this.rotate(Math.PI / 2);
                 this.repaint = true;
             }
@@ -1739,72 +1735,34 @@ class ClipBoard {
     }
     resize(dim) {
         if (dim.length === 2) {
-            this.dim[0] = dim[0];
-            this.dim[1] = dim[1];
-            this.offscreenCanvas.width = dim[0];
-            this.offscreenCanvas.height = dim[1];
             this.repaint = true;
-            this.refreshImageFromBuffer(this.currentDim[0], this.currentDim[1]);
+            this.refreshImageFromBuffer();
         }
     }
     //only really works for rotation by pi/2
     rotate(theta) {
-        const dx = this.dim[0] / 2;
-        const dy = this.dim[1] / 2;
-        const initTransMatrix = [1, 0, dx * -1,
-            0, 1, dy * -1,
-            0, 0, 1];
-        const cos = Math.cos(theta);
-        const sin = Math.sin(theta);
-        const rotationMatrix = [cos, -sin, 0,
-            sin, cos, 0,
-            0, 0, 1];
-        const revertTransMatrix = [1, 0, dx,
-            0, 1, dy,
-            0, 0, 1];
-        const finalTransformationMatrix = threeByThreeMat(threeByThreeMat(initTransMatrix, rotationMatrix), revertTransMatrix);
-        const vec = [0, 0, 0];
-        for (const rec of this.clipBoardBuffer.entries()) {
-            let x = rec[1].second % this.dim[0];
-            let y = Math.floor(rec[1].second / this.dim[0]);
+        const newSprite = new Sprite([], this.sprite.height, this.sprite.width);
+        for (let i = 0; i < this.sprite.pixels.length >> 2; i++) {
+            let x = i % this.sprite.width;
+            let y = Math.floor(i / this.sprite.width);
             const x_old = x;
-            x = -y;
-            y = x_old;
-            rec[1].second = Math.floor((x) + (y) * this.dim[0]);
+            x = Math.floor(-y);
+            y = Math.floor(x_old);
+            newSprite.fillRect(new RGB(this.sprite.pixels[i << 2], this.sprite.pixels[(i << 2) + 1], this.sprite.pixels[(i << 2) + 2], this.sprite.pixels[(i << 2) + 3]), x, y, 1, 1);
         }
-        this.clipBoardBuffer.sort((a, b) => a.second - b.second);
-        const width = this.offscreenCanvas.width;
-        this.offscreenCanvas.width = this.offscreenCanvas.height;
-        this.offscreenCanvas.height = width;
-        this.refreshImageFromBuffer(this.currentDim[1], this.currentDim[0]);
+        this.sprite = newSprite;
+        this.refreshImageFromBuffer();
     }
     //copies array of rgb values to canvas offscreen, centered within the canvas
-    refreshImageFromBuffer(width = this.currentDim[0], height = this.currentDim[1]) {
-        width = Math.round(width);
-        height = Math.round(height);
-        this.currentDim = [width, height];
-        const ctx = this.offscreenCanvas.getContext("2d");
-        ctx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
-        const start_x = this.dim[0] / 2 - this.currentDim[0] / 2;
-        const start_y = this.dim[1] / 2 - this.currentDim[1] / 2;
-        ctx.scale(this.canvas.width / this.offscreenCanvas.width, this.canvas.height / this.offscreenCanvas.height);
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const sx = ((x + start_x));
-                const sy = ((y + start_y));
-                ctx.fillStyle = this.clipBoardBuffer[Math.floor(x + y * width)].first.htmlRBGA();
-                ctx.fillRect(sx, sy, 1, 1);
-            }
-        }
-        ctx.scale(this.offscreenCanvas.width / this.canvas.width, this.offscreenCanvas.height / this.canvas.height);
+    refreshImageFromBuffer() {
+        this.sprite.refreshImage();
         this.repaint = true;
     }
     draw(ctx = this.ctx, x = 0, y = 0) {
         if (this.repaint) {
             this.repaint = false;
-            this.ctx.fillStyle = "rgba(255,255,255,1)";
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.drawImage(this.offscreenCanvas, 0, 0);
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(this.sprite.image, 0, 0, this.canvas.width, this.canvas.height);
         }
         ctx.drawImage(this.canvas, x, y);
     }
@@ -2056,7 +2014,7 @@ class ToolSelector {
                     field.layer().pasteRect = [0, 0, 0, 0];
                 }
                 else {
-                    field.layer().pasteRect = [touchPos[0], touchPos[1], field.layer().clipBoard.currentDim[0] * (field.layer().bounds.first / field.layer().dimensions.first), field.layer().clipBoard.currentDim[1] * (field.layer().bounds.second / field.layer().dimensions.second)];
+                    field.layer().pasteRect = [touchPos[0], touchPos[1], field.layer().clipBoard.sprite.width * (field.layer().bounds.first / field.layer().dimensions.first), field.layer().clipBoard.sprite.width * (field.layer().bounds.second / field.layer().dimensions.second)];
                 }
                 if (keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"]) {
                     field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
@@ -2259,8 +2217,9 @@ class ToolSelector {
                             field.layer().selectionRect = [0, 0, 0, 0];
                             break;
                         case ("copy"):
-                            const bounds = field.layer().saveToBuffer(field.layer().selectionRect, field.layer().clipBoard.clipBoardBuffer);
-                            field.layer().clipBoard.refreshImageFromBuffer(field.layer().selectionRect[2], field.layer().selectionRect[3]);
+                            const clipBoardSprite = field.layer().selectionToSprite(field.layer().selectionRect);
+                            field.layer().clipBoard.sprite = clipBoardSprite;
+                            field.layer().clipBoard.refreshImageFromBuffer();
                             field.layer().selectionRect = [0, 0, 0, 0];
                             break;
                         case ("paste"):
@@ -2434,7 +2393,7 @@ class DrawingScreen {
         this.state.lineWidth = pen.penSize();
         pen.tbSize.setText(String(this.state.lineWidth));
     }
-    saveToBuffer(selectionRect, buffer) {
+    selectionToSprite(selectionRect) {
         if (selectionRect[2] < 0) {
             selectionRect[0] += selectionRect[2];
             selectionRect[2] *= -1;
@@ -2443,38 +2402,44 @@ class DrawingScreen {
             selectionRect[1] += selectionRect[3];
             selectionRect[3] *= -1;
         }
-        buffer.length = 0;
         const source_x = Math.floor((selectionRect[0] - this.offset.first) / this.bounds.first * this.dimensions.first);
         const source_y = Math.floor((selectionRect[1] - this.offset.second) / this.bounds.second * this.dimensions.second);
         const width = Math.floor((selectionRect[2] - this.offset.first) / this.bounds.first * this.dimensions.first);
         const height = Math.floor((selectionRect[3] - this.offset.second) / this.bounds.second * this.dimensions.second);
         const area = width * height;
+        const asSprite = new Sprite([], width, height);
         for (let i = 0; i < area; i++) {
             const copyAreaX = i % width;
             const copyAreaY = Math.floor(i / width);
             const sourceIndex = source_x + source_y * this.dimensions.first + copyAreaX + copyAreaY * this.dimensions.first;
             if (this.inBufferBounds(source_x + copyAreaX, source_y + copyAreaY)) {
                 const pixel = this.screenBuffer[sourceIndex];
-                buffer.push(new Pair(new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha()), sourceIndex));
+                asSprite.fillRect(pixel, copyAreaX, copyAreaY, 1, 1);
             }
         }
-        return new Pair(width, height);
+        asSprite.refreshImage();
+        return asSprite;
     }
     paste() {
         if (this.state.screenBufUnlocked) {
             this.state.screenBufUnlocked = false;
             const dest_x = Math.floor((this.pasteRect[0] - this.offset.first) / this.bounds.first * this.dimensions.first);
             const dest_y = Math.floor((this.pasteRect[1] - this.offset.second) / this.bounds.second * this.dimensions.second);
-            const width = this.clipBoard.currentDim[0];
-            const height = this.clipBoard.currentDim[1];
+            const width = this.clipBoard.sprite.width;
+            const height = this.clipBoard.sprite.height;
             const initialIndex = dest_x + dest_y * this.dimensions.first;
             const blendAlpha = this.state.blendAlphaOnPaste;
-            for (let i = 0; i < this.clipBoard.clipBoardBuffer.length; i++) {
+            const color = new RGB(0, 0, 0);
+            for (let i = 0; i < this.clipBoard.sprite.pixels.length >> 2; i++) {
                 const copyAreaX = i % width;
                 const copyAreaY = Math.floor(i / width);
                 const destIndex = initialIndex + copyAreaX + copyAreaY * this.dimensions.first;
                 const dest = this.screenBuffer[destIndex];
-                const source = this.clipBoard.clipBoardBuffer[i].first;
+                color.setRed(this.clipBoard.sprite.pixels[i << 2]);
+                color.setGreen(this.clipBoard.sprite.pixels[(i << 2) + 1]);
+                color.setBlue(this.clipBoard.sprite.pixels[(i << 2) + 2]);
+                color.setAlpha(this.clipBoard.sprite.pixels[(i << 2) + 3]);
+                const source = color;
                 if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && (!dest.compare(source) || source.alpha() != 255)) {
                     const oldColor = dest.color;
                     if (blendAlpha)
@@ -3087,18 +3052,21 @@ class DrawingScreen {
                 }
                 ;
             }
-            if (this.pasteRect[3] !== 0 && this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "paste") {
-                const dest_x = Math.floor((this.pasteRect[0] - this.offset.first) / this.bounds.first * this.dimensions.first);
-                const dest_y = Math.floor((this.pasteRect[1] - this.offset.second) / this.bounds.second * this.dimensions.second);
-                const width = this.clipBoard.currentDim[0];
+            if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "paste") {
+                const dest_x = Math.floor(((this.pasteRect[0]) - this.offset.first) / this.bounds.first * this.dimensions.first);
+                const dest_y = Math.floor(((this.pasteRect[1]) - this.offset.second) / this.bounds.second * this.dimensions.second);
+                const width = this.clipBoard.sprite.width;
                 const initialIndex = dest_x + dest_y * this.dimensions.first;
-                for (let i = 0; i < this.clipBoard.clipBoardBuffer.length; i++) {
+                for (let i = 0; i < this.clipBoard.sprite.pixels.length >> 2; i++) {
                     const copyAreaX = i % width;
                     const copyAreaY = Math.floor(i / width);
                     const destIndex = initialIndex + copyAreaX + copyAreaY * this.dimensions.first;
                     const x = destIndex % this.dimensions.first;
                     const y = Math.floor(destIndex / this.dimensions.first);
-                    source.color = this.clipBoard.clipBoardBuffer[i].first.color;
+                    source.setRed(this.clipBoard.sprite.pixels[i << 2]);
+                    source.setGreen(this.clipBoard.sprite.pixels[(i << 2) + 1]);
+                    source.setBlue(this.clipBoard.sprite.pixels[(i << 2) + 2]);
+                    source.setAlpha(this.clipBoard.sprite.pixels[(i << 2) + 3]);
                     if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && source.alpha() > 0) {
                         toCopy.color = this.screenBuffer[destIndex].color;
                         if (this.state.blendAlphaOnPaste)
@@ -3158,13 +3126,6 @@ class DrawingScreen {
                     ctx.ellipse(this.selectionRect[0] + xr, this.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
                     ctx.stroke();
                 }
-            }
-            if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.pasteRect[3] !== 0) {
-                ctx.lineWidth = 6;
-                ctx.strokeStyle = "#FFFFFF";
-                ctx.strokeRect(this.pasteRect[0] + 2, this.pasteRect[1] + 2, this.pasteRect[2] - 4, this.pasteRect[3] - 4);
-                ctx.strokeStyle = "#0000FF";
-                ctx.strokeRect(this.pasteRect[0], this.pasteRect[1], this.pasteRect[2], this.pasteRect[3]);
             }
         }
     }

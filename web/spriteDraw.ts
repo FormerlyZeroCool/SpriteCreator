@@ -2080,10 +2080,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
 class ClipBoard {
     canvas:HTMLCanvasElement;
     ctx:CanvasRenderingContext2D;
-    offscreenCanvas:HTMLCanvasElement;
-    clipBoardBuffer:Pair<RGB, number>[];
-    currentDim:number[];
-    dim:number[];
+    sprite:Sprite;
     touchListener:SingleTouchListener;
     angle:number;
     repaint:boolean;
@@ -2094,16 +2091,10 @@ class ClipBoard {
         this.canvas = document.createElement("canvas");
         this.focused = false;
         this.ctx = this.canvas.getContext("2d");
-        this.dim = [pixelCountX,pixelCountY];
-        this.canvas.height = this.dim[0];
-        this.canvas.width = this.dim[1];
-        this.currentDim = [0, 0];
-        this.offscreenCanvas = document.createElement("canvas");
-        this.clipBoardBuffer = new Array<Pair<RGB, number>>();
-        this.offscreenCanvas.width = pixelCountX;
-        this.offscreenCanvas.height = pixelCountY;
+        this.canvas.height = pixelCountX;
+        this.canvas.width = pixelCountY;
+        this.sprite = new Sprite([new RGB(0,0,0,0)], pixelCountX, pixelCountY);
         this.angle = 0;
-
     }    
     active():boolean{
         return this.focused;
@@ -2129,7 +2120,7 @@ class ClipBoard {
     handleTouchEvents(type:string, e:any):void{
         if(this.active() && type === "touchstart")
         {
-            if(this.clipBoardBuffer.length)
+            //if(this.clipBoardBuffer.length)
             {
                 this.rotate(Math.PI / 2);
                 this.repaint = true;
@@ -2144,71 +2135,32 @@ class ClipBoard {
     {
         if(dim.length === 2)
         {
-            this.dim[0] = dim[0];
-            this.dim[1] = dim[1];
-            this.offscreenCanvas.width = dim[0];
-            this.offscreenCanvas.height = dim[1];
             this.repaint = true;
-            this.refreshImageFromBuffer(this.currentDim[0], this.currentDim[1]);
+            this.refreshImageFromBuffer();
         }
     }
     //only really works for rotation by pi/2
     rotate(theta:number):void
     {
-        const dx:number = this.dim[0]/2;
-        const dy:number = this.dim[1]/2;
-        const initTransMatrix:number[] = [1,0,dx*-1,
-                                 0,1,dy*-1,
-                                 0,0,1];
-        const cos:number = Math.cos(theta);
-        const sin:number = Math.sin(theta);
-        const rotationMatrix:number[] = [cos, -sin, 0, 
-                                         sin, cos, 0,
-                                         0, 0, 1];
-        const revertTransMatrix:number[] = [1,0,dx,
-                                 0,1,dy,
-                                 0,0,1];
-        const finalTransformationMatrix:number[] = threeByThreeMat(threeByThreeMat(initTransMatrix, rotationMatrix), revertTransMatrix);
-        const vec:number[] = [0,0,0];
-        for(const rec of this.clipBoardBuffer.entries())
+        const newSprite:Sprite = new Sprite([], this.sprite.height, this.sprite.width);
+        for(let i = 0; i < this.sprite.pixels.length >> 2; i++)
         {
-            let x:number = rec[1].second % this.dim[0];
-            let y:number = Math.floor(rec[1].second / this.dim[0]);
+            let x:number = i % this.sprite.width;
+            let y:number = Math.floor(i/ this.sprite.width);
             const x_old:number = x;
-            x = -y;
-            y = x_old;
-            rec[1].second = Math.floor((x) + (y) * this.dim[0]);
+            x = Math.floor(-y );
+            y = Math.floor(x_old);
+            newSprite.fillRect(new RGB(this.sprite.pixels[i << 2], this.sprite.pixels[(i << 2)+1], this.sprite.pixels[(i << 2)+2], this.sprite.pixels[(i << 2)+3]), 
+                x, y, 1, 1);
         }
-        this.clipBoardBuffer.sort((a, b) => a.second - b.second);
-        const width:number = this.offscreenCanvas.width;
-        this.offscreenCanvas.width = this.offscreenCanvas.height;
-        this.offscreenCanvas.height = width;
-        this.refreshImageFromBuffer(this.currentDim[1], this.currentDim[0]);
+        this.sprite = newSprite;
+        this.refreshImageFromBuffer();
     }
     
     //copies array of rgb values to canvas offscreen, centered within the canvas
-    refreshImageFromBuffer(width:number = this.currentDim[0], height:number = this.currentDim[1]):void
+    refreshImageFromBuffer():void
     {
-        width = Math.round(width);
-        height = Math.round(height);
-        this.currentDim = [width, height];
-        const ctx = this.offscreenCanvas.getContext("2d");
-        ctx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
-        const start_x:number = this.dim[0] / 2 - this.currentDim[0] / 2;
-        const start_y:number = this.dim[1] / 2 - this.currentDim[1] / 2;
-        ctx.scale(this.canvas.width / this.offscreenCanvas.width, this.canvas.height / this.offscreenCanvas.height);
-           
-        for(let y = 0; y < height; y++)
-        {
-            for(let x = 0; x < width; x++)
-            {
-                const sx:number = ((x + start_x));
-                const sy:number = ((y + start_y));
-                ctx.fillStyle = this.clipBoardBuffer[Math.floor(x + y * width)].first.htmlRBGA();
-                ctx.fillRect(sx, sy, 1, 1);
-            }
-        }        
-        ctx.scale(this.offscreenCanvas.width / this.canvas.width, this.offscreenCanvas.height / this.canvas.height);
+        this.sprite.refreshImage();
         this.repaint = true;
     }
 
@@ -2217,9 +2169,9 @@ class ClipBoard {
         if(this.repaint)
         {
             this.repaint = false;
-            this.ctx.fillStyle = "rgba(255,255,255,1)";
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.drawImage(this.offscreenCanvas, 0, 0);
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(this.sprite.image, 0, 
+                0, this.canvas.width, this.canvas.height);
         }
         ctx.drawImage(this.canvas, x, y);
     }
@@ -2522,7 +2474,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             }
             else
             {
-                field.layer().pasteRect = [touchPos[0] , touchPos[1], field.layer().clipBoard.currentDim[0] * (field.layer().bounds.first / field.layer().dimensions.first),field.layer().clipBoard.currentDim[1] * (field.layer().bounds.second / field.layer().dimensions.second)];
+                field.layer().pasteRect = [touchPos[0] , touchPos[1], field.layer().clipBoard.sprite.width * (field.layer().bounds.first / field.layer().dimensions.first),field.layer().clipBoard.sprite.width * (field.layer().bounds.second / field.layer().dimensions.second)];
             }
             if(keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"])
             {
@@ -2745,8 +2697,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     field.layer().selectionRect = [0,0,0,0];
                 break;
                 case("copy"):
-                    const bounds:Pair<number> = field.layer().saveToBuffer(field.layer().selectionRect, field.layer().clipBoard.clipBoardBuffer);
-                    field.layer().clipBoard.refreshImageFromBuffer(field.layer().selectionRect[2], field.layer().selectionRect[3]);
+                    const clipBoardSprite:Sprite = field.layer().selectionToSprite(field.layer().selectionRect);
+                    field.layer().clipBoard.sprite = clipBoardSprite;
+                    field.layer().clipBoard.refreshImageFromBuffer();
                     field.layer().selectionRect = [0,0,0,0];
                 break;
                 case("paste"):
@@ -2971,7 +2924,7 @@ class DrawingScreen {
         this.state.lineWidth = pen.penSize();
         pen.tbSize.setText(String(this.state.lineWidth));
     }
-    saveToBuffer(selectionRect:Array<number>, buffer:Array<Pair<RGB, number>>):Pair<number>
+    selectionToSprite(selectionRect:Array<number>):Sprite
     {
         if(selectionRect[2] < 0)
         {
@@ -2984,12 +2937,12 @@ class DrawingScreen {
             selectionRect[3] *= -1;
         }
         
-        buffer.length = 0;
         const source_x:number = Math.floor((selectionRect[0]-this.offset.first)/this.bounds.first*this.dimensions.first);
         const source_y:number = Math.floor((selectionRect[1]-this.offset.second)/this.bounds.second*this.dimensions.second);
         const width:number = Math.floor((selectionRect[2]-this.offset.first)/this.bounds.first*this.dimensions.first);
         const height:number = Math.floor((selectionRect[3]-this.offset.second)/this.bounds.second*this.dimensions.second);
         const area:number = width * height;
+        const asSprite:Sprite = new Sprite([], width, height);
         for(let i = 0; i < area; i++)
         {
             const copyAreaX:number = i%width;
@@ -2999,10 +2952,11 @@ class DrawingScreen {
             if(this.inBufferBounds(source_x + copyAreaX, source_y + copyAreaY))
             {
                 const pixel:RGB = this.screenBuffer[sourceIndex];
-                buffer.push(new Pair(new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha()), sourceIndex));
+                asSprite.fillRect(pixel ,copyAreaX, copyAreaY, 1, 1);
             }
         }
-        return new Pair(width, height);
+        asSprite.refreshImage();
+        return asSprite;
     }
     paste():void
     {
@@ -3011,17 +2965,22 @@ class DrawingScreen {
             this.state.screenBufUnlocked = false;
             const dest_x:number = Math.floor((this.pasteRect[0]-this.offset.first)/this.bounds.first*this.dimensions.first);
             const dest_y:number = Math.floor((this.pasteRect[1]-this.offset.second)/this.bounds.second*this.dimensions.second);
-            const width:number = this.clipBoard.currentDim[0];
-            const height:number = this.clipBoard.currentDim[1];
+            const width:number = this.clipBoard.sprite.width;
+            const height:number = this.clipBoard.sprite.height;
             const initialIndex:number = dest_x + dest_y*this.dimensions.first;
             const blendAlpha:boolean = this.state.blendAlphaOnPaste;
-            for(let i = 0; i < this.clipBoard.clipBoardBuffer.length; i++)
+            const color:RGB = new RGB(0,0,0);
+            for(let i = 0; i < this.clipBoard.sprite.pixels.length >> 2; i++)
             {
                 const copyAreaX:number = i%width;
                 const copyAreaY:number = Math.floor(i/width);
                 const destIndex:number = initialIndex + copyAreaX + copyAreaY*this.dimensions.first;
                 const dest:RGB = this.screenBuffer[destIndex];
-                const source:RGB = this.clipBoard.clipBoardBuffer[i].first;
+                color.setRed(this.clipBoard.sprite.pixels[i << 2]);
+                color.setGreen(this.clipBoard.sprite.pixels[(i << 2)+1]);
+                color.setBlue(this.clipBoard.sprite.pixels[(i << 2)+2]);
+                color.setAlpha(this.clipBoard.sprite.pixels[(i << 2)+3]);
+                const source:RGB = color;
                 if(this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && (!dest.compare(source) || source.alpha() != 255))
                 {
                     const oldColor:number = dest.color;
@@ -3731,20 +3690,23 @@ class DrawingScreen {
                 };
     
             }
-            if(this.pasteRect[3] !== 0 && this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "paste")
+            if(this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "paste")
             {
-                const dest_x:number = Math.floor((this.pasteRect[0]-this.offset.first)/this.bounds.first*this.dimensions.first);
-                const dest_y:number = Math.floor((this.pasteRect[1]-this.offset.second)/this.bounds.second*this.dimensions.second);
-                const width:number = this.clipBoard.currentDim[0];
+                const dest_x:number = Math.floor(((this.pasteRect[0])-this.offset.first)/this.bounds.first*this.dimensions.first);
+                const dest_y:number = Math.floor(((this.pasteRect[1])-this.offset.second)/this.bounds.second*this.dimensions.second);
+                const width:number = this.clipBoard.sprite.width;
                 const initialIndex:number = dest_x + dest_y*this.dimensions.first;
-                for(let i = 0; i < this.clipBoard.clipBoardBuffer.length; i++)
+                for(let i = 0; i < this.clipBoard.sprite.pixels.length >> 2; i++)
                 {
                     const copyAreaX:number = i%width;
                     const copyAreaY:number = Math.floor(i/width);
                     const destIndex:number = initialIndex + copyAreaX + copyAreaY*this.dimensions.first;
                     const x:number = destIndex % this.dimensions.first;
                     const y:number = Math.floor(destIndex/this.dimensions.first);
-                    source.color = this.clipBoard.clipBoardBuffer[i].first.color;
+                    source.setRed(this.clipBoard.sprite.pixels[i << 2]);
+                    source.setGreen(this.clipBoard.sprite.pixels[(i << 2)+1]);
+                    source.setBlue(this.clipBoard.sprite.pixels[(i << 2)+2]);
+                    source.setAlpha(this.clipBoard.sprite.pixels[(i << 2)+3]);
                     if(this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && source.alpha() > 0)
                     {
                         toCopy.color = this.screenBuffer[destIndex].color;
@@ -3816,14 +3778,6 @@ class DrawingScreen {
                     ctx.ellipse(this.selectionRect[0] + xr, this.selectionRect[1] - yr, xr, yr, 0, 0, 2*Math.PI);
                     ctx.stroke();
                 }
-            }
-            if(this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.pasteRect[3] !== 0)
-            {
-                ctx.lineWidth = 6;
-                ctx.strokeStyle = "#FFFFFF";
-                ctx.strokeRect(this.pasteRect[0]+2, this.pasteRect[1]+2, this.pasteRect[2]-4, this.pasteRect[3]-4);
-                ctx.strokeStyle = "#0000FF";
-                ctx.strokeRect(this.pasteRect[0], this.pasteRect[1], this.pasteRect[2], this.pasteRect[3]);
             }
         }
 
