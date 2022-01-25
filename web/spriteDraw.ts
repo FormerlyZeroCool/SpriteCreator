@@ -2964,8 +2964,8 @@ class DrawingScreen {
         if(this.state.screenBufUnlocked)
         {
             this.state.screenBufUnlocked = false;
-            const dest_x:number = Math.floor((this.pasteRect[0]-this.offset.first)/this.bounds.first*this.dimensions.first);
-            const dest_y:number = Math.floor((this.pasteRect[1]-this.offset.second)/this.bounds.second*this.dimensions.second);
+            const dest_x:number = Math.floor(((this.getTouchPosX() - this.clipBoard.sprite.width/2)-this.offset.first)/this.bounds.first*this.dimensions.first);
+            const dest_y:number = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height/2)-this.offset.second)/this.bounds.second*this.dimensions.second);
             const width:number = this.clipBoard.sprite.width;
             const height:number = this.clipBoard.sprite.height;
             const initialIndex:number = dest_x + dest_y*this.dimensions.first;
@@ -3611,6 +3611,12 @@ class DrawingScreen {
             this.repaint = true;
         }
     }
+    getTouchPosX():number {
+        return this.toolSelector.field.zoom.invZoomX(this.toolSelector.drawingScreenListener.touchPos[0]);
+    }
+    getTouchPosY():number {
+        return this.toolSelector.field.zoom.invZoomY(this.toolSelector.drawingScreenListener.touchPos[1]);
+    }
     draw():void
     {
         if(this.repaint)
@@ -3693,8 +3699,8 @@ class DrawingScreen {
             }
             if(this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "paste")
             {
-                const dest_x:number = Math.floor(((this.pasteRect[0])-this.offset.first)/this.bounds.first*this.dimensions.first);
-                const dest_y:number = Math.floor(((this.pasteRect[1])-this.offset.second)/this.bounds.second*this.dimensions.second);
+                const dest_x:number = Math.floor(((this.getTouchPosX() - this.clipBoard.sprite.width/2)-this.offset.first)/this.bounds.first*this.dimensions.first);
+                const dest_y:number = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height/2)-this.offset.second)/this.bounds.second*this.dimensions.second);
                 const width:number = this.clipBoard.sprite.width;
                 const initialIndex:number = dest_x + dest_y*this.dimensions.first;
                 for(let i = 0; i < this.clipBoard.sprite.pixels.length >> 2; i++)
