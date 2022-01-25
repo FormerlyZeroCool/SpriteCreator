@@ -2309,7 +2309,6 @@ class ToolSelector {
         this.toolBar.tools.push(new PenViewTool(this.penTool, "line", "images/LineDrawSprite.png"));
         this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", "images/rectSprite.png"));
         this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", "images/ovalSprite.png"));
-        this.toolBar.tools.push(this.outLineTool);
         this.toolBar.tools.push(this.copyTool);
         this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel(), "paste", "images/pasteSprite.png"));
         this.toolBar.tools.push(this.dragTool);
@@ -2318,6 +2317,7 @@ class ToolSelector {
         this.toolBar.tools.push(this.colorPickerTool);
         this.toolBar.tools.push(this.eraserTool);
         this.toolBar.tools.push(this.rotateTool);
+        this.toolBar.tools.push(this.outLineTool);
         this.toolBar.tools.push(this.layersTool);
         this.toolBar.tools.push(this.settingsTool);
         //this.toolBar.tools.push(this.transformTool);
