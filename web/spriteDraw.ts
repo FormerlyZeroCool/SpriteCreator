@@ -1562,7 +1562,10 @@ class GuiTextBox implements GuiElement {
     }
     drawRows(rows:TextRow[]):void
     {
-        rows.forEach(row => this.ctx.fillText(row.text, row.x, row.y, row.width));
+        rows.forEach(row => {
+            this.ctx.strokeText(row.text, row.x, row.y, row.width);
+            this.ctx.fillText(row.text, row.x, row.y, row.width);
+        });
     }
     drawCursor():void{
         if(this.active() && this.handleKeyEvents)
@@ -1588,6 +1591,7 @@ class GuiTextBox implements GuiElement {
         this.ctx.fillStyle = "#000000";
         this.rows.splice(0,this.rows.length);
         this.refreshMetaData();
+        this.ctx.strokeStyle = "#FFFFFF";
         this.drawRows(this.adjustScrollToCursor());
         this.drawCursor();
         this.ctx.strokeStyle = this.color().htmlRBG();
