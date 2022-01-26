@@ -787,7 +787,7 @@ class GuiButton {
 }
 ;
 class GuiCheckBox {
-    constructor(callBack, width = 50, height = 50, checked = false, unPressedColor = new RGB(255, 255, 255, 255), pressedColor = new RGB(150, 150, 200, 255), fontSize = height - 10) {
+    constructor(callBack, width = 50, height = 50, checked = false, unPressedColor = new RGB(255, 255, 255, 0), pressedColor = new RGB(150, 150, 200, 255), fontSize = height - 10) {
         this.checked = checked;
         this.fontSize = fontSize;
         this.dimensions = [width, height];
@@ -868,6 +868,7 @@ class GuiCheckBox {
     drawInternal(ctx = this.ctx) {
         const fs = ctx.fillStyle;
         this.setCtxState(ctx);
+        ctx.clearRect(0, 0, this.width(), this.height());
         ctx.fillRect(0, 0, this.width(), this.height());
         ctx.fillStyle = "#000000";
         ctx.fillText(this.checked ? "\u2713" : "", this.width() / 2 - this.ctx.measureText("\u2713").width / 2, 0 + this.fontSize, this.width());
@@ -1634,7 +1635,7 @@ PenTool.checkDrawCircular = new GuiCheckBox(null, 40, 40);
 ;
 class SprayCanTool extends PenTool {
     constructor(strokeWidth, toolName, pathToImage, callBack, optionPanes) {
-        super(strokeWidth, toolName, pathToImage, optionPanes, [200, 150]);
+        super(strokeWidth, toolName, pathToImage, optionPanes, [200, 155]);
         this.tbProbability = new GuiTextBox(true, 99, this.btUpdate, 16);
         this.btUpdate.callback = () => {
             this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get() <= 128 ? this.tbSize.asNumber.get() : 128) : this.lineWidth;
@@ -4797,4 +4798,5 @@ async function main() {
         }
     }
 }
+document.body.style.backgroundColor = "#808088";
 main();

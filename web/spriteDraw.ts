@@ -1010,7 +1010,7 @@ class GuiCheckBox implements GuiElement {
     pressed:boolean;
     focused:boolean;
     callback:(event) => void;
-    constructor(callBack:(event) => void, width:number = 50, height:number = 50, checked:boolean = false, unPressedColor:RGB = new RGB(255, 255, 255, 255), pressedColor:RGB = new RGB(150, 150, 200, 255), fontSize:number = height - 10)
+    constructor(callBack:(event) => void, width:number = 50, height:number = 50, checked:boolean = false, unPressedColor:RGB = new RGB(255, 255, 255, 0), pressedColor:RGB = new RGB(150, 150, 200, 255), fontSize:number = height - 10)
     {
         this.checked = checked;
         this.fontSize = fontSize;
@@ -1102,6 +1102,7 @@ class GuiCheckBox implements GuiElement {
     {
         const fs = ctx.fillStyle;
         this.setCtxState(ctx);
+        ctx.clearRect(0, 0, this.width(), this.height());
         ctx.fillRect(0, 0, this.width(), this.height());
         ctx.fillStyle = "#000000";
         ctx.fillText(this.checked?"\u2713":"", this.width()/2 - this.ctx.measureText("\u2713").width/2, 0 + this.fontSize, this.width());
@@ -2018,7 +2019,7 @@ class SprayCanTool extends PenTool {
     tbProbability:GuiTextBox;
     constructor(strokeWidth:number, toolName:string, pathToImage:string, callBack:(tbProbability:GuiTextBox)=>void, optionPanes:SimpleGridLayoutManager[])
     {
-        super(strokeWidth, toolName, pathToImage, optionPanes, [200, 150]);
+        super(strokeWidth, toolName, pathToImage, optionPanes, [200, 155]);
         this.tbProbability = new GuiTextBox(true, 99, this.btUpdate, 16);
         this.btUpdate.callback = () => { 
             this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get() <= 128 ? this.tbSize.asNumber.get() : 128):this.lineWidth; 
@@ -5649,7 +5650,7 @@ function saveBlob(blob:Blob, fileName:string){
     a.download = fileName;
     a.click();
 }
-    function getWidth() {
+function getWidth() {
     return Math.max(
       document.body.scrollWidth,
       document.documentElement.scrollWidth,
@@ -5659,7 +5660,7 @@ function saveBlob(blob:Blob, fileName:string){
     );
   }
   
-  function getHeight() {
+function getHeight() {
     return Math.max(
       document.body.scrollHeight,
       document.documentElement.scrollHeight,
@@ -5893,4 +5894,5 @@ async function main()
         }
     }
 }
+document.body.style.backgroundColor = "#808088";
 main();
