@@ -871,8 +871,12 @@ class GuiCheckBox {
         ctx.clearRect(0, 0, this.width(), this.height());
         ctx.fillRect(0, 0, this.width(), this.height());
         ctx.fillStyle = "#000000";
-        ctx.fillText(this.checked ? "\u2713" : "", this.width() / 2 - this.ctx.measureText("\u2713").width / 2, 0 + this.fontSize, this.width());
+        ctx.strokeStyle = "#000000";
         ctx.strokeRect(1, 1, this.canvas.width - 2, this.canvas.height - 2);
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.strokeRect(3, 3, this.canvas.width - 6, this.canvas.height - 6);
+        ctx.fillText(this.checked ? "\u2713" : "", this.width() / 2 - this.ctx.measureText("\u2713").width / 2, 0 + this.fontSize, this.width());
+        ctx.strokeText(this.checked ? "\u2713" : "", this.width() / 2 - this.ctx.measureText("\u2713").width / 2, 0 + this.fontSize, this.width());
         ctx.fillStyle = fs;
     }
     draw(ctx, x, y, offsetX = 0, offsetY = 0) {
