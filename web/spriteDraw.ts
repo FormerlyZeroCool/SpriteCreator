@@ -2370,20 +2370,22 @@ class FilesManagerTool extends ExtendedTool {
     saveGif:GuiButton;
     constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
-        super(name, path, optionPanes,[200, 200], [3, 8]);
-        this.savePng = new GuiButton(() => {field.saveToFile(this.pngName.text)}, "Save PNG", 65);
-        this.pngName = new GuiTextBox(true, 100, this.savePng);
+        super(name, path, optionPanes,[200, 400], [1, 22]);
+        this.savePng = new GuiButton(() => {field.saveToFile(this.pngName.text)}, "Save PNG", 85, 35, 16);
+        this.pngName = new GuiTextBox(true, 200, this.savePng, 16, 35, GuiTextBox.bottom);
         this.saveGif = new GuiButton(() => {
             field.toolSelector.animationsGroupsSelector.selectedAnimation().toGifBlob(blob => {
             saveBlob(blob, this.gifName.text);
         });
-        }, "Save Gif", 65);
-        this.gifName = new GuiTextBox(true, 100, this.saveGif);
+        }, "Save Gif", 85, 35, 16);
+        this.gifName = new GuiTextBox(true, 200, this.saveGif, 16, 35, GuiTextBox.bottom);
         this.pngName.setText("myFirst.png");
         this.localLayout.addElement(new GuiLabel("Save Screen as:", 200, 16, GuiTextBox.bottom));
         this.localLayout.addElement(this.pngName);
         this.localLayout.addElement(this.savePng);
         this.localLayout.addElement(new GuiLabel("Save selected\nanimation as gif:", 200, 16, GuiTextBox.bottom, 50));
+        this.localLayout.addElement(this.gifName);
+        this.localLayout.addElement(this.saveGif);
     }
 };
 // To do refactor tools to make sure they load in the same order every time
@@ -4095,13 +4097,6 @@ class LayeredDrawingScreen {
     }
     draw(canvas:HTMLCanvasElement, ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void 
     {
-        /*if(width !== this.width() || height !== this.height())
-        {
-            canvas.width = this.width();
-            canvas.height = this.height();
-            width = this.width();
-            height = this.height();
-        }*/
         ctx.drawImage(this.canvasTransparency, 0, 0);
         if(this.repaint())
         {
