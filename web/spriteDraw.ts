@@ -803,6 +803,68 @@ class GuiCheckList implements GuiElement {
         return false;
     }
 };
+class GuiSlider implements GuiElement {
+    state:number;//between 0.0, and 1.0
+    focused:boolean;
+    dim:number[];
+    canvas:HTMLCanvasElement;
+    constructor(state:number, dim:number){
+        this.state = state;
+        this.focused = false;
+        this.dim = [dim[0], dim[1]];
+        this.canvas = document.createElement("canvas");
+        this.canvas.width = this.width();
+        this.canvas.height = this.height();
+    }
+    active():boolean
+    {
+        return this.focused;
+    }
+    deactivate():void
+    {
+        this.focused = false;
+    }
+    activate():void
+    {
+        this.focused = true;
+    }
+    width():number
+    {
+        return this.dim[0];
+    }
+    height():number
+    {
+        return this.dim[1];
+    }
+    refresh():void
+    {
+        const ctx:CanvasRenderingContext2D = this.canvas.getContext("2d");
+        ctx.clearRect(0, 0, this.width(), this.height());
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
+        const bounds:number[] = [this.width() / 10, this.height()/ 10, this.width() - this.width() / 5, this.height() - this.height() / 5];
+        const center:number[] = [bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2];
+        ctx.fillRect(bounds[0], center[1], bounds[2], 4);
+        const displayLineX:number = this.state * bounds[2] + bounds[0];
+        ctx.fillRect(displayLineX, bounds[1], 4, bounds[3]);
+    }
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, offsetX:number, offsetY:number):void
+    {
+        ctx.drawImage(this.canvas, x + offsetX, y + offsetY);
+    }
+    handleKeyBoardEvents(type:string, e:any):void
+    {
+
+    }
+    handleTouchEvents(type:string, e:any):void
+    {
+
+    }
+    isLayoutManager():boolean
+    {
+        return false;
+    }
+};
 class GuiButton implements GuiElement {
 
     text:string;
@@ -2724,7 +2786,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
         this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         
-        this.outLineTool = new OutlineTool("outline", "images/favicon.ico", (x,y) => { }, this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", (x,y) => { }, this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, 
             () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,

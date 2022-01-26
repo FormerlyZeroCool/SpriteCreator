@@ -629,6 +629,53 @@ class GuiCheckList {
     }
 }
 ;
+class GuiSlider {
+    constructor(state, dim) {
+        this.state = state;
+        this.focused = false;
+        this.dim = [dim[0], dim[1]];
+        this.canvas = document.createElement("canvas");
+        this.canvas.width = this.width();
+        this.canvas.height = this.height();
+    }
+    active() {
+        return this.focused;
+    }
+    deactivate() {
+        this.focused = false;
+    }
+    activate() {
+        this.focused = true;
+    }
+    width() {
+        return this.dim[0];
+    }
+    height() {
+        return this.dim[1];
+    }
+    refresh() {
+        const ctx = this.canvas.getContext("2d");
+        ctx.clearRect(0, 0, this.width(), this.height());
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
+        const bounds = [this.width() / 10, this.height() / 10, this.width() - this.width() / 5, this.height() - this.height() / 5];
+        const center = [bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2];
+        ctx.fillRect(bounds[0], center[1], bounds[2], 4);
+        const displayLineX = this.state * bounds[2] + bounds[0];
+        ctx.fillRect(displayLineX, bounds[1], 4, bounds[3]);
+    }
+    draw(ctx, x, y, offsetX, offsetY) {
+        ctx.drawImage(this.canvas, x + offsetX, y + offsetY);
+    }
+    handleKeyBoardEvents(type, e) {
+    }
+    handleTouchEvents(type, e) {
+    }
+    isLayoutManager() {
+        return false;
+    }
+}
+;
 class GuiButton {
     constructor(callBack, text, width = 200, height = 50, fontSize = 12, pressedColor = new RGB(150, 150, 200, 1), unPressedColor = new RGB(255, 255, 255), fontName = "button_font") {
         this.text = text;
@@ -2243,7 +2290,7 @@ class ToolSelector {
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
         this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
-        this.outLineTool = new OutlineTool("outline", "images/favicon.ico", (x, y) => { }, this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", (x, y) => { }, this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBox_blendAlpha.checked, [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", "images/settingsSprite.png", [this.transformTool.getOptionPanel()]);
