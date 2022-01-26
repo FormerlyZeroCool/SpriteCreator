@@ -3299,9 +3299,10 @@ class LayeredDrawingScreen {
             this.canvasTransparency.height = bounds[0];
             const ctx = this.canvasTransparency.getContext("2d");
             ctx.fillStyle = "#DCDCDF";
+            ctx.globalAlpha = 0.7;
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
             let i = 0;
-            const squareSize = 50;
+            const squareSize = 15;
             for (let y = 0; y < bounds[1] + 100; y += squareSize) {
                 let offset = +(i % 2 === 0);
                 for (let x = offset * squareSize; x < bounds[0] + 200; x += squareSize << 1) {
