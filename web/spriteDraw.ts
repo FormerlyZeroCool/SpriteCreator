@@ -2379,6 +2379,7 @@ class FilesManagerTool extends ExtendedTool {
         });
         }, "Save Gif", 85, 35, 16);
         this.gifName = new GuiTextBox(true, 200, this.saveGif, 16, 35, GuiTextBox.bottom);
+        this.gifName.setText("myFirst.gif");
         this.pngName.setText("myFirst.png");
         this.localLayout.addElement(new GuiLabel("Save Screen as:", 200, 16, GuiTextBox.bottom));
         this.localLayout.addElement(this.pngName);
