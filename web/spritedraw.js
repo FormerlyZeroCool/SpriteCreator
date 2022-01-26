@@ -4798,5 +4798,4 @@ async function main() {
         }
     }
 }
-document.body.style.backgroundColor = "#808088";
 main();
