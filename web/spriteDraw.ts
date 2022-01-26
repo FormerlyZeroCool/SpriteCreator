@@ -2363,9 +2363,33 @@ class ScreenTransformationTool extends ExtendedTool {
         this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
     }
 };
+class FilesManagerTool extends ExtendedTool {
+    pngName:GuiTextBox;
+    savePng:GuiButton;
+    gifName:GuiTextBox;
+    saveGif:GuiButton;
+    constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
+    {
+        super(name, path, optionPanes,[200, 200], [3, 8]);
+        this.savePng = new GuiButton(() => {field.saveToFile(this.pngName.text)}, "Save PNG", 65);
+        this.pngName = new GuiTextBox(true, 100, this.savePng);
+        this.saveGif = new GuiButton(() => {
+            field.toolSelector.animationsGroupsSelector.selectedAnimation().toGifBlob(blob => {
+            saveBlob(blob, this.gifName.text);
+        });
+        }, "Save Gif", 65);
+        this.gifName = new GuiTextBox(true, 100, this.saveGif);
+        this.pngName.setText("myFirst.png");
+        this.localLayout.addElement(new GuiLabel("Save Screen as:", 200, 16, GuiTextBox.bottom));
+        this.localLayout.addElement(this.pngName);
+        this.localLayout.addElement(this.savePng);
+        this.localLayout.addElement(new GuiLabel("Save selected\nanimation as gif:", 200, 16, GuiTextBox.bottom, 50));
+    }
+};
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {// clean up class code remove fields made redundant by GuiToolBar
     toolBar:GuiToolBar;
+    animationsGroupsSelector:AnimationGroupsSelector;
     canvas:HTMLCanvasElement;
     ctx:CanvasRenderingContext2D;
     touchListener:SingleTouchListener;
@@ -2388,6 +2412,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     sprayPaint:boolean;
     field:LayeredDrawingScreen;
     outLineTool:OutlineTool;
+    filesManagerTool:FilesManagerTool
     constructor(pallette:Pallette, keyboardHandler:KeyboardHandler, drawingScreenListener:SingleTouchListener, imgWidth:number = 50, imgHeight:number = 50)
     {
         this.lastDrawTime = Date.now();
@@ -2631,6 +2656,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             else
             switch (field.toolSelector.selectedToolName())
             {
+                case("outline"):
+                field.layer().autoOutline(new Pair<number>(gx, gy), false);
+                break;
                 case("layers"):
                 case("move"):
                 field.zoom.offsetX -= e.deltaX;
@@ -2781,6 +2809,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             field.layer().repaint = repaint;
         });
         }
+        this.filesManagerTool = new FilesManagerTool("fileManager", "images/filesSprite.png", [], field);
         this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
@@ -2827,6 +2856,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.toolBar.tools.push(this.rotateTool);
         this.toolBar.tools.push(this.outLineTool);
         this.toolBar.tools.push(this.layersTool);
+        this.toolBar.tools.push(this.filesManagerTool);
         this.toolBar.tools.push(this.settingsTool);
         //this.toolBar.tools.push(this.transformTool);
         this.toolBar.resize();
@@ -3541,7 +3571,8 @@ class DrawingScreen {
                     this.screenBuffer.push(new RGB(0,0,0,0));
                 ctx.drawImage(this.canvas, 0, 0, newDim[0], newDim[1]);
                 const sprite:Sprite = new Sprite([], newDim[0], newDim[1], false);
-                sprite.pixels = ctx.getImageData(0, 0, newDim[0], newDim[1]).data;
+                sprite.imageData = ctx.getImageData(0, 0, newDim[0], newDim[1]);
+                sprite.pixels = sprite.imageData.data;
                 sprite.copyToBuffer(this.screenBuffer);
                 this.spriteScreenBuf = new Sprite([], this.bounds.first, this.bounds.second); 
             }
@@ -4003,7 +4034,8 @@ class LayeredDrawingScreen {
         const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d");
         ctx.drawImage(image, 0, 0);
         const sprite:Sprite = new Sprite([], this.offscreenCanvas.width, this.offscreenCanvas.width, false);
-        sprite.pixels = ctx.getImageData(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height).data;
+        sprite.imageData = ctx.getImageData(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+        sprite.pixels = sprite.imageData.data;
         const layer:DrawingScreen = this.layers[this.layers.length - 1];
         this.layers.forEach(layer => layer.setDim([image.width, image.height]));
         const bounds:number[] = [this.layer().bounds.first, this.layer().bounds.second];
@@ -4055,7 +4087,8 @@ class LayeredDrawingScreen {
         }
         //save rescaled offscreen canvas to sprite
         const sprite:Sprite = new Sprite([], this.layer().dimensions.first, this.layer().dimensions.second, false);
-        sprite.pixels = ctx.getImageData(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height).data;
+        sprite.imageData = ctx.getImageData(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+        sprite.pixels = sprite.imageData.data;
         sprite.refreshImage();
 
         return sprite;
@@ -4626,26 +4659,34 @@ class Sprite {
     }
     copy(pixels:Array<RGB>, width:number, height:number):void
     {
-        if(!this.pixels || this.pixels.length !== pixels.length){
 
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
-            this.imageData = ctx.createImageData(this.width, this.height);
-            this.pixels = this.imageData.data;
-            this.width = width;
-            this.height = height;
-
-        }
-        for(let i = 0; i < pixels.length; i++)
+        this.width = width;
+        this.height = height;
+        if(width !== 0 && height !== 0)
         {
-            this.pixels[(i<<2)] = pixels[i].red();
-            this.pixels[(i<<2)+1] = pixels[i].green();
-            this.pixels[(i<<2)+2] = pixels[i].blue();
-            this.pixels[(i<<2)+3] = pixels[i].alpha();
+            if(!this.pixels || this.pixels.length !== pixels.length || this.pixels.length > 0){
+
+                const canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                const ctx = canvas.getContext('2d');
+    
+                this.imageData = ctx.createImageData(this.width, this.height);
+                this.pixels = this.imageData.data;
+                this.width = width;
+                this.height = height;
+    
+            }
+            for(let i = 0; i < pixels.length; i++)
+            {
+                this.pixels[(i<<2)] = pixels[i].red();
+                this.pixels[(i<<2)+1] = pixels[i].green();
+                this.pixels[(i<<2)+2] = pixels[i].blue();
+                this.pixels[(i<<2)+3] = pixels[i].alpha();
+            }
+            if(pixels.length)
+                this.refreshImage();
         }
-        if(pixels.length)
-            this.refreshImage();
     }
     putPixels(ctx:CanvasRenderingContext2D):void
     {
@@ -4721,12 +4762,10 @@ class Sprite {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        const idata = ctx.createImageData(this.width, this.height);
-        idata.data.set(this.pixels);
         canvas.width = this.width;
         canvas.height = this.height;
         ctx.clearRect(0, 0, this.width, this.height);
-        ctx.putImageData(idata, 0, 0);
+        ctx.putImageData(this.imageData, 0, 0);
     
         this.image = new Image();
         this.image.src = canvas.toDataURL();
@@ -5180,10 +5219,7 @@ class AnimationGroup {
         { 
             const sprites:Sprite[] = this.animations[this.selectedAnimation].sprites;
             this.spriteSelector.selectedSprite = sprites.length - 1;
-            const copy:Sprite = new Sprite([], 0, 0, false);
-            copy.copySprite(this.drawingField.toSprite());
-            copy.refreshImage();
-            sprites.push(copy);
+            sprites.push(this.drawingField.toSprite());
             this.spriteSelector.loadSprite();
         }
     }
@@ -5665,6 +5701,7 @@ async function main()
     const animationGroupSelector:AnimationGroupsSelector = new AnimationGroupsSelector(field, keyboardHandler, "animation_group_selector", "animations", "sprites_canvas", dim[0], dim[1], 128, 128);
     animationGroupSelector.createAnimationGroup();
     animationGroupSelector.selectedAnimationGroup = 0;
+    toolSelector.animationsGroupsSelector = animationGroupSelector;
     const add_animationGroup_button = document.getElementById("add_animationGroup");
     const add_animationGroup_buttonListener:SingleTouchListener = new SingleTouchListener(add_animationGroup_button, false, true);
     add_animationGroup_buttonListener.registerCallBack("touchstart", e => true, e => {
