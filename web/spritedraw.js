@@ -4739,6 +4739,9 @@ async function main() {
         }
     });
     keyboardHandler.registerCallBack("keyup", e => true, e => {
+        if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+            field.layer().state.color.copy(pallette.calcColor());
+        }
     });
     ;
     const fileSelector = document.getElementById('file-selector');
