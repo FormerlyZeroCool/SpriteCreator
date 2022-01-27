@@ -2965,15 +2965,11 @@ class DrawingScreen {
             if (newDim[0] <= 500) {
                 this.bounds.first = newDim[0] * Math.floor(1000 / newDim[0]);
                 zoom.first = 1 / Math.floor(1000 / newDim[0]);
-            }
-            else {
-                this.bounds.first = newDim[0];
-            }
-            if (newDim[1] <= 500) {
                 this.bounds.second = newDim[1] * Math.floor(1000 / newDim[1]);
                 zoom.second = 1 / Math.floor(1000 / newDim[1]);
             }
             else {
+                this.bounds.first = newDim[0];
                 this.bounds.second = newDim[1];
             }
             const bounds = [this.bounds.first, this.bounds.second];
