@@ -888,8 +888,11 @@ class GuiSlider implements GuiElement {
     {
         switch(type)
         {
+            case("touchstart"):
+            this.state = (e.touchPos[0]) / this.width();
+            break;
             case("touchmove"):
-            this.state += e.deltaX / this.width();
+            this.state = (e.touchPos[0]) / this.width();
             break;
         }
         if(this.state > 1)
