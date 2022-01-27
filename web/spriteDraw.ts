@@ -615,20 +615,26 @@ class SimpleGridLayoutManager implements GuiElement {
 class GuiListItem extends SimpleGridLayoutManager {
     textBox:GuiTextBox;
     checkBox:GuiCheckBox;
+    slider:GuiSlider;
+    sliderX:number;
     callBackType:string;
     callBack:(e) => void;
-    constructor(text:string, state:boolean, pixelDim:number[], fontSize:number = 16, callBack:(e) => void = () => null, genericCallBack:(e) => void = () => null, flags:number = GuiTextBox.left | GuiTextBox.bottom, genericTouchType:string = "touchend")
+    constructor(text:string, state:boolean, pixelDim:number[], fontSize:number = 16, callBack:(e) => void = () => null, genericCallBack:(e) => void = () => null, slideMoved:(event:SlideEvent) => void, flags:number = GuiTextBox.left | GuiTextBox.bottom, genericTouchType:string = "touchend")
     {
         super([20, 1], pixelDim);
         this.callBackType = genericTouchType;
         this.callBack = genericCallBack;
         this.checkBox = new GuiCheckBox(callBack, pixelDim[1], pixelDim[1]);
-        this.textBox = new GuiTextBox(false, pixelDim[0] - fontSize * 2 - 10, null, fontSize, pixelDim[1], flags);
+        const width:number = (pixelDim[0] - fontSize * 2 - 10) >> 1;
+        this.textBox = new GuiTextBox(false, width, null, fontSize, pixelDim[1], flags);
+        this.sliderX = width + pixelDim[1];
+        this.slider = new GuiSlider(1, [width, pixelDim[1]], slideMoved);
         this.textBox.setText(text);
         this.checkBox.checked = state;
         this.checkBox.refresh();
         this.addElement(this.checkBox);
         this.addElement(this.textBox);
+        this.addElement(this.slider);
     }
     handleTouchEvents(type: string, e: any): void {
         super.handleTouchEvents(type, e);
@@ -642,6 +648,14 @@ class GuiListItem extends SimpleGridLayoutManager {
         return this.checkBox.checked;
     }
 };
+class SlideEvent {
+    value:number;
+    element:GuiSlider;
+    constructor(value:number, element:GuiSlider)
+    {
+        this.value = value;
+    }
+}
 class GuiCheckList implements GuiElement {
     limit:number;
     list:GuiListItem[];
@@ -652,7 +666,8 @@ class GuiCheckList implements GuiElement {
     fontSize:number;
     focused:boolean;
     swapElementsInParallelArray:(x1, x2) => void;
-    constructor(matrixDim:number[], pixelDim:number[], fontSize:number, swap:(x1, x2) => void = null)
+    slideMoved:(SlideEvent) => void;
+    constructor(matrixDim:number[], pixelDim:number[], fontSize:number, swap:(x1, x2) => void = null, slideMoved:(event:SlideEvent) => void)
     {
         this.focused = true;
         this.fontSize = fontSize;
@@ -662,12 +677,14 @@ class GuiCheckList implements GuiElement {
         this.dragItem = null;
         this.dragItemLocation = [-1, -1];
         this.dragItemInitialIndex = -1;
+        this.slideMoved = slideMoved;
         this.swapElementsInParallelArray = swap;
     }
     push(text:string, state:boolean = true, checkBoxCallback:(event) => void, onClickGeneral:(event) => void): void
     {
-        this.list.push(new GuiListItem(text, state, [this.width(),
-            this.height() / this.layoutManager.matrixDim[1] - 5], this.fontSize, checkBoxCallback, onClickGeneral));
+        const newElement:GuiListItem = new GuiListItem(text, state, [this.width(),
+            this.height() / this.layoutManager.matrixDim[1] - 5], this.fontSize, checkBoxCallback, onClickGeneral, this.slideMoved);
+        this.list.push(newElement);
     }
     selected():number
     {
@@ -741,7 +758,7 @@ class GuiCheckList implements GuiElement {
         let offsetI:number = 0;
         for(let i = 0; i < itemsPositions.length; i++)
         {
-            if(this.dragItemLocation[1] !== -1 && i === Math.floor((this.dragItemLocation[1] / this.height()) * this.layoutManager.matrixDim[1]))
+            if(this.dragItem && this.dragItemLocation[1] !== -1 && i === Math.floor((this.dragItemLocation[1] / this.height()) * this.layoutManager.matrixDim[1]))
             {
                 offsetI++;
             }
@@ -783,12 +800,20 @@ class GuiCheckList implements GuiElement {
             break;
             case("touchmove"):
             const movesNeeded:number = isTouchSupported()?7:2;
-            if(e.moveCount === movesNeeded && this.selectedItem() && this.list.length > 1)
+            if(this.selectedItem() && e.touchPos[0] < this.selectedItem().sliderX)
             {
-                this.dragItem = this.list.splice(this.selected(), 1)[0];
-                this.dragItemInitialIndex = this.selected();
-                this.dragItemLocation[0] = e.touchPos[0];
-                this.dragItemLocation[1] = e.touchPos[1];
+                if(e.moveCount === movesNeeded && this.selectedItem() && this.list.length > 1)
+                {
+                    this.dragItem = this.list.splice(this.selected(), 1)[0];
+                    this.dragItemInitialIndex = this.selected();
+                    this.dragItemLocation[0] = e.touchPos[0];
+                    this.dragItemLocation[1] = e.touchPos[1];
+                }
+                else if(e.moveCount > movesNeeded)
+                {
+                    this.dragItemLocation[0] += e.deltaX;
+                    this.dragItemLocation[1] += e.deltaY;
+                }
             }
             else if(e.moveCount > movesNeeded)
             {
@@ -808,13 +833,16 @@ class GuiSlider implements GuiElement {
     focused:boolean;
     dim:number[];
     canvas:HTMLCanvasElement;
-    constructor(state:number, dim:number){
+    callBack:(event:SlideEvent) => void;
+    constructor(state:number, dim:number[], movedCallBack:(event:SlideEvent) => void){
         this.state = state;
+        this.callBack = movedCallBack;
         this.focused = false;
         this.dim = [dim[0], dim[1]];
         this.canvas = document.createElement("canvas");
         this.canvas.width = this.width();
         this.canvas.height = this.height();
+        this.refresh();
     }
     active():boolean
     {
@@ -841,10 +869,10 @@ class GuiSlider implements GuiElement {
         const ctx:CanvasRenderingContext2D = this.canvas.getContext("2d");
         ctx.clearRect(0, 0, this.width(), this.height());
         ctx.fillStyle = "#000000";
-        ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
+        //ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
         const bounds:number[] = [this.width() / 10, this.height()/ 10, this.width() - this.width() / 5, this.height() - this.height() / 5];
         const center:number[] = [bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2];
-        ctx.fillRect(bounds[0], center[1], bounds[2], 4);
+        ctx.fillRect(bounds[0], center[1], bounds[2], 2);
         const displayLineX:number = this.state * bounds[2] + bounds[0];
         ctx.fillRect(displayLineX, bounds[1], 4, bounds[3]);
     }
@@ -858,7 +886,18 @@ class GuiSlider implements GuiElement {
     }
     handleTouchEvents(type:string, e:any):void
     {
-
+        switch(type)
+        {
+            case("touchmove"):
+            this.state += e.deltaX / this.width();
+            break;
+        }
+        if(this.state > 1)
+            this.state = 1;
+        else if(this.state < 0)
+            this.state = 0;
+        this.callBack({value:this.state, element:this});
+        this.refresh();
     }
     isLayoutManager():boolean
     {
@@ -2281,15 +2320,23 @@ class LayerManagerTool extends Tool {
         this.list = new GuiCheckList([1, this.layersLimit], [200, 400], 20, (x1, x2) => {
             this.field.swapLayers(x1, x2);
             this.field.layer().repaint = true;
+        },
+        (event:SlideEvent) => {
+            const index:number = this.list.list.findIndex(element => element.slider === event.element);
+            if(field.layers[index])
+            {
+                field.layers[index].drawWithAlpha = event.value;
+                field.layers[index].repaint = true;
+            }
         });
-        this.buttonAddLayer = new GuiButton(() => { this.pushList(`layer${this.runningId++}`); }, "Add Layer", 99, 40, 16);
+        this.buttonAddLayer = new GuiButton(() => { this.pushList(`l${this.runningId++}`); }, "Add Layer", 99, 40, 16);
         this.layoutManager.addElement(new GuiLabel("Layers list:", 200));
         this.layoutManager.addElement(this.list);
         this.layoutManager.addElement(this.buttonAddLayer);
         this.layoutManager.addElement(new GuiButton(() => this.deleteItem(), "Delete", 99, 40, 16));
         for(let i = 0; i < field.layers.length; i++)
         {
-            this.pushList(`layer${i}`);
+            this.pushList(`l${i}`);
         }
         this.runningId = field.layers.length;
         this.list.refresh();
@@ -2981,6 +3028,7 @@ class DrawingScreen {
     dragDataMinPoint:number;
     state:DrawingScreenState;
     sprayProbability:number;
+    drawWithAlpha:number;
     constructor(canvas:HTMLCanvasElement, keyboardHandler:KeyboardHandler, palette:Pallette, offset:Array<number>, dimensions:Array<number>, toolSelector:ToolSelector, state:DrawingScreenState, clipBoard:ClipBoard)
     {
         const bounds:Array<number> = [dim[0], dim[1]];
@@ -2989,6 +3037,7 @@ class DrawingScreen {
         this.palette = palette;
         this.noColor = new RGB(255, 255, 255, 0);
         this.state = state;
+        this.drawWithAlpha = 1;
         this.repaint = true;
         this.dimensions = new Pair<number>(dimensions[0], dimensions[1]);
         this.offset = new Pair<number>(offset[0], offset[1]);
@@ -3551,19 +3600,19 @@ class DrawingScreen {
         let zoom:Pair<number> = new Pair<number>(1,1);
         if(newDim.length === 2)
         { 
-            if(newDim[0] < 300)
+            if(newDim[0] <= 500)
             {
-                this.bounds.first = newDim[0] * Math.floor(600 / newDim[0]);
-                zoom.first = 1 / Math.floor(600 / newDim[0]);
+                this.bounds.first = newDim[0] * Math.floor(1000 / newDim[0]);
+                zoom.first = 1 / Math.floor(1000 / newDim[0]);
             }
             else
             {
                 this.bounds.first = newDim[0];
             } 
-            if(newDim[1] < 300)
+            if(newDim[1] <= 500)
             {
-                this.bounds.second = newDim[1] * Math.floor(600 / newDim[1]);
-                zoom.second = 1 / Math.floor(600 / newDim[1]);
+                this.bounds.second = newDim[1] * Math.floor(1000 / newDim[1]);
+                zoom.second = 1 / Math.floor(1000 / newDim[1]);
             }
             else
             {
@@ -3900,7 +3949,14 @@ class DrawingScreen {
     drawToContext(ctx:CanvasRenderingContext2D, x:number, y:number, width:number = this.dimensions.first, height:number = this.dimensions.second):void
     {
         this.draw();
-        ctx.drawImage(this.canvas, x, y, width, height);
+        const oldAlpha:number = ctx.globalAlpha;
+        if(oldAlpha !== this.drawWithAlpha) {
+            ctx.globalAlpha = this.drawWithAlpha;
+            ctx.drawImage(this.canvas, x, y, width, height);
+            ctx.globalAlpha = oldAlpha;
+        }
+        else
+            ctx.drawImage(this.canvas, x, y, width, height);
     }
 };
 class ZoomState {
@@ -4378,6 +4434,7 @@ class SingleTouchListener
             const dotProduct:number = this.dotProduct(a, b);
             const angle:number = Math.acos(dotProduct)*(180/Math.PI)*(deltaY<0?1:-1);
             event.deltaX = deltaX;
+            event.startTouchPos = this.startTouchPos;
             event.deltaY = deltaY;
             event.mag = mag;
             event.angle = angle;
@@ -5763,22 +5820,6 @@ async function main()
     delete_spriteButtonTouchListener.registerCallBack("touchstart", e => true, e => {
         animationGroupSelector.animationGroup().spriteSelector.deleteSelectedSprite();
     });
-    const save_local_drawing_screenButton = document.getElementById("save_local_drawing_screen");
-    if(save_local_drawing_screenButton)
-    {
-        save_local_drawing_screenButton.addEventListener("mousedown", e => {field.saveToFile((<HTMLInputElement>document.getElementById("screen_sprite_file_name")).value);
-            });
-    }
-    const saveAnimation = document.getElementById("save_local_selected_animation");
-
-    if(saveAnimation)
-    {
-        saveAnimation.addEventListener("mousedown", e => {
-        animationGroupSelector.selectedAnimation().toGifBlob(blob => {
-            saveBlob(blob, (<HTMLInputElement>document.getElementById("animation_file_name")).value);
-        });
-        });
-    }
     keyboardHandler.registerCallBack("keydown", e=> true, e => {
         if((document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)){
             if(e.code.substring(0,"Digit".length) === "Digit")
