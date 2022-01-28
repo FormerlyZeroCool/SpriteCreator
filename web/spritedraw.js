@@ -1759,9 +1759,10 @@ class ColorPickerTool extends ExtendedTool {
 ;
 class DrawingScreenSettingsTool extends ExtendedTool {
     constructor(dim = [524, 524], field, toolName, pathToImage, optionPanes) {
-        super(toolName, pathToImage, optionPanes, [200, 140], [2, 4]);
+        super(toolName, pathToImage, optionPanes, [200, 200], [2, 6]);
         this.dim = dim;
         this.field = field;
+        this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
         //this.localLayout = new SimpleGridLayoutManager([2,4],[200,150]);
         this.tbX = new GuiTextBox(true, 70);
         this.tbX.promptText = "Enter width:";
@@ -1779,6 +1780,8 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(this.tbY);
         this.localLayout.addElement(new GuiSpacer([85, 10]));
         this.localLayout.addElement(this.btUpdate);
+        this.localLayout.addElement(new GuiLabel("Resize:", 80, 16));
+        this.localLayout.addElement(this.checkBoxResizeImage);
     }
     activateOptionPanel() { this.layoutManager.activate(); }
     deactivateOptionPanel() { this.layoutManager.deactivate(); }
@@ -2497,6 +2500,7 @@ class DrawingScreenState {
         this.drawCircular = true;
         this.slow = false;
         this.blendAlphaOnPaste = true;
+        this.resizeSprite = false;
         this.lineWidth = lineWidth; //dimensions[0] / bounds[0] * 4;
     }
 }
@@ -3008,17 +3012,29 @@ class DrawingScreen {
             this.updatesStack.empty();
             if (this.screenBuffer.length != newDim[0] * newDim[1]) {
                 const canvas = document.createElement("canvas");
-                canvas.width = newDim[0];
-                canvas.height = newDim[1];
                 const ctx = canvas.getContext("2d");
                 this.screenBuffer = [];
                 for (let i = 0; i < newDim[0] * newDim[1]; i++)
                     this.screenBuffer.push(new RGB(0, 0, 0, 0));
-                ctx.drawImage(this.canvas, 0, 0, newDim[0], newDim[1]);
                 const sprite = new Sprite([], newDim[0], newDim[1], false);
-                sprite.imageData = ctx.getImageData(0, 0, newDim[0], newDim[1]);
-                sprite.pixels = sprite.imageData.data;
-                sprite.copyToBuffer(this.screenBuffer);
+                if (this.state.resizeSprite) {
+                    canvas.width = newDim[0];
+                    canvas.height = newDim[1];
+                    ctx.drawImage(this.canvas, 0, 0, newDim[0], newDim[1]);
+                    sprite.imageData = ctx.getImageData(0, 0, newDim[0], newDim[1]);
+                    sprite.pixels = sprite.imageData.data;
+                    sprite.copyToBuffer(this.screenBuffer, newDim[0], newDim[1]);
+                }
+                else {
+                    canvas.width = this.dimensions.first;
+                    canvas.height = this.dimensions.second;
+                    ctx.drawImage(this.canvas, 0, 0, this.dimensions.first, this.dimensions.second);
+                    sprite.imageData = ctx.getImageData(0, 0, this.dimensions.first, this.dimensions.second);
+                    sprite.pixels = sprite.imageData.data;
+                    sprite.width = this.dimensions.first;
+                    sprite.height = this.dimensions.second;
+                    sprite.copyToBuffer(this.screenBuffer, newDim[0], newDim[1]);
+                }
                 this.spriteScreenBuf = new Sprite([], this.bounds.first, this.bounds.second);
             }
             this.canvas.width = bounds[0];
@@ -3035,7 +3051,7 @@ class DrawingScreen {
         return 1 - frac;
     }
     loadSprite(sprite) {
-        sprite.copyToBuffer(this.screenBuffer);
+        sprite.copyToBuffer(this.screenBuffer, this.dimensions.first, this.dimensions.second);
         this.undoneUpdatesStack.empty();
         this.updatesStack.empty();
         this.updateLabelUndoRedoCount();
@@ -3414,7 +3430,7 @@ class LayeredDrawingScreen {
         this.dim = [bounds[0], bounds[1]];
         this.canvas.width = bounds[0];
         this.canvas.height = bounds[1];
-        sprite.copyToBuffer(layer.screenBuffer);
+        sprite.copyToBuffer(layer.screenBuffer, layer.dimensions.first, layer.dimensions.second);
     }
     addBlankLayer() {
         const layer = new DrawingScreen(document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [this.dim[0], this.dim[1]], this.toolSelector, this.state, this.clipBoard);
@@ -3946,12 +3962,19 @@ class Sprite {
             }
         }
     }
-    copyToBuffer(buf) {
-        for (let i = 0; i < buf.length; i++) {
-            buf[i].setRed(this.pixels[(i << 2)]);
-            buf[i].setGreen(this.pixels[(i << 2) + 1]);
-            buf[i].setBlue(this.pixels[(i << 2) + 2]);
-            buf[i].setAlpha(this.pixels[(i << 2) + 3]);
+    copyToBuffer(buf, width, height) {
+        for (let y = 0; y < this.height && y < height; y++) {
+            for (let x = 0; x < this.width && x < width; x++) {
+                const i = (x + y * width);
+                const si = (x + y * this.width) << 2;
+                // if(buf[i])
+                {
+                    buf[i].setRed(this.pixels[(si)]);
+                    buf[i].setGreen(this.pixels[(si) + 1]);
+                    buf[i].setBlue(this.pixels[(si) + 2]);
+                    buf[i].setAlpha(this.pixels[(si) + 3]);
+                }
+            }
         }
     }
     binaryFileSize() {
@@ -4202,7 +4225,7 @@ class SpriteSelector {
     }
     loadSprite() {
         if (this.selectedSpriteVal())
-            this.selectedSpriteVal().copyToBuffer(this.drawingField.layer().screenBuffer);
+            this.selectedSpriteVal().copyToBuffer(this.drawingField.layer().screenBuffer, this.drawingField.layer().dimensions.first, this.drawingField.layer().dimensions.second);
     }
     pushSelectedToCanvas() {
         const spriteWidth = this.drawingField.layer().dimensions.first;
@@ -4279,7 +4302,7 @@ class AnimationGroup {
                     if (sprite.width !== this.drawingField.layer().spriteScreenBuf.width || sprite.height !== this.drawingField.layer().spriteScreenBuf.height) {
                         this.drawingField.setDimOnCurrent([sprite.width, sprite.height]);
                     }
-                    sprite.copyToBuffer(this.drawingField.layer().screenBuffer);
+                    sprite.copyToBuffer(this.drawingField.layer().screenBuffer, this.drawingField.layer().dimensions.first, this.drawingField.layer().dimensions.second);
                 }
             }
         });
