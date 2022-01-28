@@ -2889,9 +2889,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack:(tb:GuiTextBox) => void = (tbprob)=>{
-            this.field.layer().sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get() <= 1 && tbprob.asNumber.get() > 0?tbprob.asNumber.get():this.field.layer().sprayProbability;
+            this.field.layer().state.sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get() <= 1 && tbprob.asNumber.get() > 0?tbprob.asNumber.get():this.field.layer().state.sprayProbability;
             this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
-            tbprob.setText(this.field.layer().sprayProbability.toString());
+            tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen","images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
@@ -2994,9 +2994,10 @@ class DrawingScreenState {
     blendAlphaOnPaste:boolean;
     blendAlphaOnPutSelectedPixels:boolean;
     antiAliasRotation:boolean;
-    sprayPaintFactor:number;
+    sprayProbability:number;
     slow:boolean;
     constructor(lineWidth:number) {
+        this.sprayProbability = 1;
         this.antiAliasRotation = true;
         this.screenBufUnlocked = true;
         this.blendAlphaOnPutSelectedPixels = true;
@@ -3030,12 +3031,10 @@ class DrawingScreen {
     dragDataMaxPoint:number;
     dragDataMinPoint:number;
     state:DrawingScreenState;
-    sprayProbability:number;
     drawWithAlpha:number;
     constructor(canvas:HTMLCanvasElement, keyboardHandler:KeyboardHandler, palette:Pallette, offset:Array<number>, dimensions:Array<number>, toolSelector:ToolSelector, state:DrawingScreenState, clipBoard:ClipBoard)
     {
         const bounds:Array<number> = [dim[0], dim[1]];
-        this.sprayProbability = 1;
         this.clipBoard = clipBoard;
         this.palette = palette;
         this.noColor = new RGB(255, 255, 255, 0);
@@ -3226,7 +3225,7 @@ class DrawingScreen {
                         const dx:number = ngx - gx;
                         const dy:number = ngy - gy;
                         const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
-                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx*dx+dy*dy) <= radius && Math.random() < this.sprayProbability){
+                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx*dx+dy*dy) <= radius && Math.random() < this.state.sprayProbability){
                             this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
                             pixel.copy(this.state.color);
                         }
@@ -3243,7 +3242,7 @@ class DrawingScreen {
                         const ngx:number = gx+Math.round(j);
                         const ngy:number = (gy+Math.round(i));
                         const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
-                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.random() < this.sprayProbability){
+                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability){
                             this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
                             pixel.copy(this.state.color);
                         }
@@ -5272,7 +5271,7 @@ class AnimationGroup {
         const sprite:Sprite = new Sprite([], 0,0);
         sprite.copySprite(this.drawingField.toSprite());
         sprite.refreshImage();
-        sprites.push(sprite);//this.spriteSelector.loadSprite();
+        sprites.push(sprite);
     }
     pushSprite()
     {

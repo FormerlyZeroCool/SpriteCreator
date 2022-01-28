@@ -2372,9 +2372,9 @@ class ToolSelector {
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack = (tbprob) => {
-            this.field.layer().sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get() <= 1 && tbprob.asNumber.get() > 0 ? tbprob.asNumber.get() : this.field.layer().sprayProbability;
+            this.field.layer().state.sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get() <= 1 && tbprob.asNumber.get() > 0 ? tbprob.asNumber.get() : this.field.layer().state.sprayProbability;
             this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get() ? this.penTool.tbSize.asNumber.get() : this.field.layer().state.lineWidth;
-            tbprob.setText(this.field.layer().sprayProbability.toString());
+            tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen", "images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
@@ -2460,6 +2460,7 @@ class ToolSelector {
 ;
 class DrawingScreenState {
     constructor(lineWidth) {
+        this.sprayProbability = 1;
         this.antiAliasRotation = true;
         this.screenBufUnlocked = true;
         this.blendAlphaOnPutSelectedPixels = true;
@@ -2476,7 +2477,6 @@ class DrawingScreenState {
 class DrawingScreen {
     constructor(canvas, keyboardHandler, palette, offset, dimensions, toolSelector, state, clipBoard) {
         const bounds = [dim[0], dim[1]];
-        this.sprayProbability = 1;
         this.clipBoard = clipBoard;
         this.palette = palette;
         this.noColor = new RGB(255, 255, 255, 0);
@@ -2636,7 +2636,7 @@ class DrawingScreen {
                         const dx = ngx - gx;
                         const dy = ngy - gy;
                         const pixel = this.screenBuffer[ngx + ngy * this.dimensions.first];
-                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius && Math.random() < this.sprayProbability) {
+                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius && Math.random() < this.state.sprayProbability) {
                             this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(ngx + ngy * this.dimensions.first, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
@@ -2650,7 +2650,7 @@ class DrawingScreen {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
                         const pixel = this.screenBuffer[ngx + ngy * this.dimensions.first];
-                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.random() < this.sprayProbability) {
+                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability) {
                             this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(ngx + ngy * this.dimensions.first, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
@@ -4295,7 +4295,7 @@ class AnimationGroup {
         const sprite = new Sprite([], 0, 0);
         sprite.copySprite(this.drawingField.toSprite());
         sprite.refreshImage();
-        sprites.push(sprite); //this.spriteSelector.loadSprite();
+        sprites.push(sprite);
     }
     pushSprite() {
         if (this.selectedAnimation >= this.animations.length) {
