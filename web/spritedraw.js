@@ -1759,10 +1759,12 @@ class ColorPickerTool extends ExtendedTool {
 ;
 class DrawingScreenSettingsTool extends ExtendedTool {
     constructor(dim = [524, 524], field, toolName, pathToImage, optionPanes) {
-        super(toolName, pathToImage, optionPanes, [200, 200], [2, 6]);
+        super(toolName, pathToImage, optionPanes, [200, 200], [2, 5]);
         this.dim = dim;
         this.field = field;
         this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
+        this.checkBoxResizeImage.checked = false;
+        this.checkBoxResizeImage.refresh();
         //this.localLayout = new SimpleGridLayoutManager([2,4],[200,150]);
         this.tbX = new GuiTextBox(true, 70);
         this.tbX.promptText = "Enter width:";
