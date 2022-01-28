@@ -713,6 +713,31 @@ class GuiSlider {
     }
 }
 ;
+class GuiSpacer {
+    constructor(dim) {
+        this.dim = [dim[0], dim[1]];
+        this.refresh();
+    }
+    active() {
+        return false;
+    }
+    deactivate() { }
+    activate() { }
+    width() {
+        return this.dim[0];
+    }
+    height() {
+        return this.dim[1];
+    }
+    refresh() { }
+    draw(ctx, x, y, offsetX, offsetY) { }
+    handleKeyBoardEvents(type, e) { }
+    handleTouchEvents(type, e) { }
+    isLayoutManager() {
+        return false;
+    }
+}
+;
 class GuiButton {
     constructor(callBack, text, width = 200, height = 50, fontSize = 12, pressedColor = new RGB(150, 150, 200, 1), unPressedColor = new RGB(255, 255, 255), fontName = "button_font") {
         this.text = text;
@@ -1582,7 +1607,7 @@ class OutlineTool extends ExtendedTool {
     constructor(name, imagePath, onlyOneColor, toolSelector, optionPanes = []) {
         super(name, imagePath, optionPanes, [200, 50]);
         this.checkBoxignoreAlphaInFill = new GuiCheckBox(() => onlyOneColor(toolSelector.drawingScreenListener.touchPos[0], toolSelector.drawingScreenListener.touchPos[1]), 40, 40);
-        this.localLayout.addElement(new GuiLabel("Outline tool:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
+        this.localLayout.addElement(new GuiLabel("Outline tool:", 200, 16, GuiTextBox.bottom | GuiTextBox.left));
         //this.localLayout.addElement(this.checkBoxignoreAlphaInFill);
     }
 }
@@ -1754,7 +1779,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("Height:", 90, 16));
         this.localLayout.addElement(this.tbX);
         this.localLayout.addElement(this.tbY);
-        this.localLayout.addElement(new GuiLabel(" ", 85));
+        this.localLayout.addElement(new GuiSpacer([85, 10]));
         this.localLayout.addElement(this.btUpdate);
     }
     activateOptionPanel() { this.layoutManager.activate(); }
@@ -1966,7 +1991,7 @@ class ScreenTransformationTool extends ExtendedTool {
                 field.zoom.zoomY = field.zoom.zoomY * ratio;
             }
         }, "Set Zoom", 100, 40, 16);
-        this.localLayout.addElement(new GuiLabel("", 50));
+        this.localLayout.addElement(new GuiSpacer([50, 10]));
         this.textBoxZoom = new GuiTextBox(true, 70, this.buttonUpdateZoom, 16, 32);
         this.textBoxZoom.setText(field.zoom.zoomX.toString());
         this.localLayout.addElement(this.textBoxZoom);
