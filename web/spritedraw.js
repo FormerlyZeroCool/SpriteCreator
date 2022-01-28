@@ -675,12 +675,15 @@ class GuiSlider {
     refresh() {
         const ctx = this.canvas.getContext("2d");
         ctx.clearRect(0, 0, this.width(), this.height());
-        ctx.fillStyle = "#000000";
+        ctx.fillStyle = "#FFFFFF";
         //ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
         const bounds = [this.width() / 10, this.height() / 10, this.width() - this.width() / 5, this.height() - this.height() / 5];
         const center = [bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2];
-        ctx.fillRect(bounds[0], center[1], bounds[2], 2);
         const displayLineX = this.state * bounds[2] + bounds[0];
+        ctx.fillRect(bounds[0] - 1, center[1] - 1, bounds[2] + 2, 4);
+        ctx.fillRect(displayLineX - 1, bounds[1] - 1, 5 + 1, bounds[3] + 2);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(bounds[0], center[1], bounds[2], 2);
         ctx.fillRect(displayLineX, bounds[1], 4, bounds[3]);
     }
     draw(ctx, x, y, offsetX, offsetY) {
@@ -689,12 +692,13 @@ class GuiSlider {
     handleKeyBoardEvents(type, e) {
     }
     handleTouchEvents(type, e) {
+        const bounds = [this.width() / 10, this.height() / 10, this.width() - this.width() / 5, this.height() - this.height() / 5];
         switch (type) {
             case ("touchstart"):
-                this.state = (e.touchPos[0]) / this.width();
+                this.state = (e.touchPos[0] - bounds[0]) / bounds[2];
                 break;
             case ("touchmove"):
-                this.state = (e.touchPos[0]) / this.width();
+                this.state = (e.touchPos[0] - bounds[0]) / bounds[2];
                 break;
         }
         if (this.state > 1)
