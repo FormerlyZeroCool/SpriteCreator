@@ -1991,13 +1991,10 @@ class DragTool extends ExtendedTool {
     }
 };
 class OutlineTool extends ExtendedTool {
-    checkBoxignoreAlphaInFill:GuiCheckBox;
-    constructor(name:string, imagePath:string, onlyOneColor:(x, y) => void, toolSelector:ToolSelector, optionPanes:SimpleGridLayoutManager[] = [])
+    constructor(name:string, imagePath:string, toolSelector:ToolSelector, optionPanes:SimpleGridLayoutManager[] = [])
     {
         super(name, imagePath, optionPanes, [200, 50]);
-        this.checkBoxignoreAlphaInFill = new GuiCheckBox(() => onlyOneColor(toolSelector.drawingScreenListener.touchPos[0], toolSelector.drawingScreenListener.touchPos[1]), 40, 40);
         this.localLayout.addElement(new GuiLabel("Outline tool:", 200, 16, GuiTextBox.bottom | GuiTextBox.left));
-        //this.localLayout.addElement(this.checkBoxignoreAlphaInFill);
     }
 };
 class RotateTool extends ExtendedTool {
@@ -2918,7 +2915,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
         this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         
-        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", (x,y) => { }, this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, 
             () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,

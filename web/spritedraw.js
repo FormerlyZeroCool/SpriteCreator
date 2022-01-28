@@ -1604,11 +1604,9 @@ class DragTool extends ExtendedTool {
 }
 ;
 class OutlineTool extends ExtendedTool {
-    constructor(name, imagePath, onlyOneColor, toolSelector, optionPanes = []) {
+    constructor(name, imagePath, toolSelector, optionPanes = []) {
         super(name, imagePath, optionPanes, [200, 50]);
-        this.checkBoxignoreAlphaInFill = new GuiCheckBox(() => onlyOneColor(toolSelector.drawingScreenListener.touchPos[0], toolSelector.drawingScreenListener.touchPos[1]), 40, 40);
         this.localLayout.addElement(new GuiLabel("Outline tool:", 200, 16, GuiTextBox.bottom | GuiTextBox.left));
-        //this.localLayout.addElement(this.checkBoxignoreAlphaInFill);
     }
 }
 ;
@@ -2393,7 +2391,7 @@ class ToolSelector {
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
         this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
-        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", (x, y) => { }, this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBox_blendAlpha.checked, [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", "images/settingsSprite.png", [this.transformTool.getOptionPanel()]);
