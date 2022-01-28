@@ -2278,10 +2278,10 @@ class ToolSelector {
                             }
                             if (e.moveCount % moveCountBeforeRotation === 0)
                                 if (e.deltaY > 0)
-                                    field.layer().rotateSelectedPixelGroup(angle, [(this.drawingScreenListener.startTouchPos[0] / field.layer().bounds.first) * field.layer().dimensions.first,
+                                    field.layer().rotateSelectedPixelGroup(angle, [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.layer().bounds.first) * field.layer().dimensions.first,
                                         (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
                                 else if (e.deltaY < 0)
-                                    field.layer().rotateSelectedPixelGroup(-angle, [(this.drawingScreenListener.startTouchPos[0] / field.layer().bounds.first) * field.layer().dimensions.first,
+                                    field.layer().rotateSelectedPixelGroup(-angle, [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.layer().bounds.first) * field.layer().dimensions.first,
                                         (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
                             if (field.state.antiAliasRotation) {
                                 field.layer().dragData.second;
