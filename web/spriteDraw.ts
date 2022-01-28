@@ -4834,11 +4834,12 @@ class Sprite {
     }
     copySprite(sprite:Sprite):void
     {
-        if(this.pixels.length !== sprite.pixels.length)
+        if(!this.pixels || this.pixels.length !== sprite.pixels.length)
         {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-
+            this.width = sprite.width;
+            this.height = sprite.height;
             this.imageData = ctx.createImageData(this.width, this.height);
             this.pixels = this.imageData.data;
         }
@@ -5268,8 +5269,10 @@ class AnimationGroup {
         const sprites:Array<Sprite> = animation.sprites;
         this.spriteSelector.spritesCount = sprites.length;
         this.spriteSelector.selectedSprite = sprites.length - 1;
-        sprites.push(new Sprite(this.drawingField.layer().screenBuffer, this.drawingField.layer().dimensions.first, this.drawingField.layer().dimensions.second));
-        this.spriteSelector.loadSprite();
+        const sprite:Sprite = new Sprite([], 0,0);
+        sprite.copySprite(this.drawingField.toSprite());
+        sprite.refreshImage();
+        sprites.push(sprite);//this.spriteSelector.loadSprite();
     }
     pushSprite()
     {
@@ -5281,8 +5284,10 @@ class AnimationGroup {
         { 
             const sprites:Sprite[] = this.animations[this.selectedAnimation].sprites;
             this.spriteSelector.selectedSprite = sprites.length - 1;
-            sprites.push(this.drawingField.toSprite());
-            this.spriteSelector.loadSprite();
+            const sprite:Sprite = new Sprite([], 0,0);
+            sprite.copySprite(this.drawingField.toSprite());
+            sprite.refreshImage();
+            sprites.push(sprite);
         }
     }
     maxAnimationsOnCanvas():number
