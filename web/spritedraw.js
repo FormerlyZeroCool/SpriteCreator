@@ -11,7 +11,7 @@ function changeFavicon(src) {
     }
     document.head.appendChild(link);
 }
-fetchImage('/SpriteDraw/web/images/favicon.ico').then((value) => changeFavicon('/SpriteDraw/web/images/favicon.ico'));
+fetchImage('/web/images/favicon.ico').then((value) => changeFavicon('/web/images/favicon.ico'));
 fetchImage('images/favicon.ico').then((value) => changeFavicon('images/favicon.ico'));
 const dim = [128, 128];
 function threeByThreeMat(a, b) {
@@ -755,7 +755,7 @@ class GuiButton {
         this.fontName = fontName;
         //if(document.fonts.check(`16px ${this.fontName}`, "a"))
         {
-            this.font = new FontFace(`${this.fontName}`, 'url(/SpriteDraw/web/fonts/Minecraft.ttf)');
+            this.font = new FontFace(`${this.fontName}`, 'url(/web/fonts/Minecraft.ttf)');
             this.font.load().then((loaded_face) => {
                 document.fonts.add(loaded_face);
                 this.drawInternal();
@@ -1005,7 +1005,7 @@ class GuiTextBox {
                 this.font.family;
             }
             else
-                this.font = new FontFace(fontName, 'url(/SpriteDraw/web/fonts/Minecraft.ttf)');
+                this.font = new FontFace(fontName, 'url(/web/fonts/Minecraft.ttf)');
             this.font.load().then((loaded_face) => {
                 document.fonts.add(loaded_face);
                 this.drawInternalAndClear();
