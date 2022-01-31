@@ -3143,13 +3143,13 @@ function insidePolygon(point:number[], shape:number[][]):boolean
     for(let i = 0; i < shape.length; ++i)
     {
         const endPoint:number[] = [shape[i][0], shape[i][1]];
-        if(segmentsIntersect(point, [1 << 30, point[1] + 1], startPoint, endPoint))
+        if(segmentsIntersect([point[0]+0.5, point[1] + 0.5], [1 << 30, point[1] + 1.5], startPoint, endPoint))
         {
             if (segmentOrientation(startPoint, point, endPoint) === 0)
                 return onSegment(startPoint, point, endPoint);
             intersectionCount++;
         }
-        startPoint = [shape[i][0], shape[i][1]];
+        startPoint = shape[i];
     }
     return (intersectionCount & 1) === 1;
 }
@@ -4054,7 +4054,7 @@ class DrawingScreen {
             if(this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length > 1)
             {
                 let start = this.toolSelector.polygon.length - 1;
-                ctx.lineWidth = cellWidth > 4?cellWidth >> 1:cellWidth;
+                ctx.lineWidth = cellWidth;
                 ctx.beginPath();
                 ctx.strokeStyle = "#FF4040";
                 for(let i = 0; i < this.toolSelector.polygon.length; i++)
