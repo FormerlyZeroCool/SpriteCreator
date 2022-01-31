@@ -4054,9 +4054,9 @@ class DrawingScreen {
             if(this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length > 1)
             {
                 let start = this.toolSelector.polygon.length - 1;
-                ctx.lineWidth = 6;
+                ctx.lineWidth = cellWidth > 4?cellWidth >> 1:cellWidth;
                 ctx.beginPath();
-                ctx.strokeStyle = this.state.color.htmlRBGA();
+                ctx.strokeStyle = "#FF4040";
                 for(let i = 0; i < this.toolSelector.polygon.length; i++)
                 {
                     const lineStart = this.toolSelector.polygon[start];
@@ -4066,7 +4066,13 @@ class DrawingScreen {
                     start++;
                     start %= this.toolSelector.polygon.length;
                 }
+                const lastIndex = this.toolSelector.polygon.length - 1;
+                ctx.lineWidth = 1;
                 ctx.stroke();
+                ctx.fillStyle = "#0000FF";
+                ctx.moveTo(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight);
+                ctx.ellipse(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight, 5, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
             }
             else if(this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line")
             {
