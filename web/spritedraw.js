@@ -2583,9 +2583,11 @@ function segmentsIntersect(p1, q1, p2, q2) {
 function insidePolygon(point, shape) {
     let intersectionCount = 0;
     let startPoint = shape[shape.length - 1];
+    point[0] += 0.5;
+    point[1] += 0.5;
     for (let i = 0; i < shape.length; ++i) {
         const endPoint = [shape[i][0], shape[i][1]];
-        if (segmentsIntersect([point[0] + 0.5, point[1] + 0.5], [1 << 30, point[1] + 1.5], startPoint, endPoint)) {
+        if (segmentsIntersect(point, [1 << 30, point[1] + 1], startPoint, endPoint)) {
             if (segmentOrientation(startPoint, point, endPoint) === 0)
                 return onSegment(startPoint, point, endPoint);
             intersectionCount++;
