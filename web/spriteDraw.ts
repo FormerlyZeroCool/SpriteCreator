@@ -1976,18 +1976,19 @@ class SingleCheckBoxTool extends GenericTool {
 };
 class DragTool extends ExtendedTool {
     checkBox:GuiCheckBox;
-    checkBox_blendAlpha:GuiCheckBox;
+    checkBoxBlendAlpha:GuiCheckBox;
+    checkbox
     constructor(name:string, imagePath:string, callBack:() => void, callBackBlendAlphaState:()=>void, optionPanes:SimpleGridLayoutManager[] = [])
     {
         super(name, imagePath, optionPanes, [200, 200]);
         this.checkBox = new GuiCheckBox(callBack, 40, 40);
-        this.checkBox_blendAlpha = new GuiCheckBox(callBackBlendAlphaState, 40, 40);
-        this.checkBox_blendAlpha.checked = true;
-        this.checkBox_blendAlpha.refresh();
+        this.checkBoxBlendAlpha = new GuiCheckBox(callBackBlendAlphaState, 40, 40);
+        this.checkBoxBlendAlpha.checked = true;
+        this.checkBoxBlendAlpha.refresh();
         this.localLayout.addElement(new GuiLabel("Only drag\none color:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
         this.localLayout.addElement(this.checkBox);
         this.localLayout.addElement(new GuiLabel("Blend alpha\nwhen dropping:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
-        this.localLayout.addElement(this.checkBox_blendAlpha);
+        this.localLayout.addElement(this.checkBoxBlendAlpha);
     }
 };
 class OutlineTool extends ExtendedTool {
@@ -2508,6 +2509,7 @@ class SelectionTool extends ExtendedTool {
             "Reset Selection", 150, 40, 16));
     }
 };
+
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {// clean up class code remove fields made redundant by GuiToolBar
     toolBar:GuiToolBar;
@@ -2722,16 +2724,16 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 else
                     field.layer().saveDragDataToScreen();
                 if(field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                    field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair<number>(gx,gy), true);
+                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair<number>(gx,gy), true);
                 else
-                    field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair<number>(gx,gy), false);
+                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair<number>(gx,gy), false);
                 break;
                 case("drag"):
                     field.layer().saveDragDataToScreen();
                 if(field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                    field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair<number>(gx,gy), true);
+                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair<number>(gx,gy), true);
                 else
-                    field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair<number>(gx,gy), false);
+                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair<number>(gx,gy), false);
                 break;
                 case("selection"):
                 if(this.selectionTool.checkboxComplexPolygon.checked){
@@ -2967,7 +2969,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, 
             () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,
-        () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBox_blendAlpha.checked, [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move","images/settingsSprite.png", [ this.transformTool.getOptionPanel() ]);
         this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked);
         PenTool.checkDrawCircular.checked = true;
@@ -3427,10 +3429,10 @@ class DrawingScreen {
                 const cur:number = stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
                 if(cur >= 0 && cur < length && 
-                    (pixelColor.compare(spc) || (this.state.ignoreAlphaInFill && pixelColor.alpha() === 0)) && !checkedMap[cur])
+                    (pixelColor.compare(spc) || (this.state.ignoreAlphaInFill && pixelColor.alpha() === 0)) && !checkedMap[cur] && this.state.bufferBitMask[cur])
                 {
                     checkedMap[cur] = true;
-                    if(!pixelColor.compare(this.state.color) && this.state.bufferBitMask[cur]){
+                    if(!pixelColor.compare(this.state.color)){
                         this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
                         pixelColor.copy(this.state.color);
                     }
@@ -3444,8 +3446,33 @@ class DrawingScreen {
             this.repaint = true;
         }
     }
+    getSelectedPixelGroupBitMask():Pair<Pair<number>, number[] >
+    {
+        const data:number[] = [];
+        for(let i = 0; i < this.state.bufferBitMask.length; ++i)
+        {
+            if(this.state.bufferBitMask[i])
+            {
+                    //top left
+                    data.push(i % this.dimensions.first);
+                    data.push(Math.floor(i / this.dimensions.first));
+                    //top right
+                    data.push(i % this.dimensions.first + 1);
+                    data.push(Math.floor(i / this.dimensions.first));
+                    //bottom left
+                    data.push(i % this.dimensions.first);
+                    data.push(Math.floor(i / this.dimensions.first) + 1);
+                    //bottom right
+                    data.push(i % this.dimensions.first + 1);
+                    data.push(Math.floor(i / this.dimensions.first) + 1);
+                    data.push(this.screenBuffer[i].color);
+                    this.screenBuffer[i].copy(this.noColor);
+            }
+        }
+        return new Pair(new Pair(0,0), data);
+    }
     //Pair<offset point>, Map of colors encoded as numbers by location>
-    getSelectedPixelGroup(startCoordinate:Pair<number>, countColor:boolean):Pair<Pair<number>, number[] >
+    getSelectedPixelGroupAuto(startCoordinate:Pair<number>, countColor:boolean):Pair<Pair<number>, number[] >
     {
         const data:number[] = [];
         if(this.state.screenBufUnlocked && 
@@ -3468,29 +3495,26 @@ class DrawingScreen {
                 const cur:number = stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
                 if(cur >= 0 && cur < this.dimensions.first * this.dimensions.second && 
-                    (pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color)) && !checkedMap[cur])
+                    (pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color)) && !checkedMap[cur] && this.state.bufferBitMask[cur])
                 {
                     checkedMap[cur] = true;
-                    if(this.state.bufferBitMask[cur])
-                    {
-                        this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
-                        
-                        //top left
-                        data.push(cur % this.dimensions.first);
-                        data.push(Math.floor(cur / this.dimensions.first));
-                        //top right
-                        data.push(cur % this.dimensions.first + 1);
-                        data.push(Math.floor(cur / this.dimensions.first));
-                        //bottom left
-                        data.push(cur % this.dimensions.first);
-                        data.push(Math.floor(cur / this.dimensions.first) + 1);
-                        //bottom right
-                        data.push(cur % this.dimensions.first + 1);
-                        data.push(Math.floor(cur / this.dimensions.first) + 1);
-
-                        data.push(pixelColor.color);
-                        pixelColor.copy(defaultColor);
-                    }
+                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
+                    
+                    //top left
+                    data.push(cur % this.dimensions.first);
+                    data.push(Math.floor(cur / this.dimensions.first));
+                    //top right
+                    data.push(cur % this.dimensions.first + 1);
+                    data.push(Math.floor(cur / this.dimensions.first));
+                    //bottom left
+                    data.push(cur % this.dimensions.first);
+                    data.push(Math.floor(cur / this.dimensions.first) + 1);
+                    //bottom right
+                    data.push(cur % this.dimensions.first + 1);
+                    data.push(Math.floor(cur / this.dimensions.first) + 1);
+                    data.push(pixelColor.color);
+                    pixelColor.copy(defaultColor);
+                    
                     if(cur > this.dragDataMaxPoint)
                         this.dragDataMaxPoint = cur;
                     if(cur < this.dragDataMinPoint)
@@ -3539,7 +3563,7 @@ class DrawingScreen {
                 const cur:number = stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
                 if(pixelColor && 
-                    pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color) && !checkedMap[cur])
+                    pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color) && !checkedMap[cur] && this.state.bufferBitMask[cur])
                 {
                     checkedMap[cur] = true;
                     if(!checkedMap[cur+1])
