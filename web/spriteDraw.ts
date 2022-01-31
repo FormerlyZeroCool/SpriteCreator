@@ -3778,10 +3778,13 @@ class DrawingScreen {
             {
                 const canvas = document.createElement("canvas");
                 const ctx = canvas.getContext("2d");
+                this.renderToBuffer(this.spriteScreenBuf);
+                this.spriteScreenBuf.putPixels(this.ctx);
                 this.screenBuffer = [];
                 for(let i = 0; i < newDim[0] * newDim[1]; i++)
-                    this.screenBuffer.push(new RGB(0,0,0,0));
+                    this.screenBuffer.push(new RGB(this.noColor.red(),this.noColor.green(),this.noColor.blue(),this.noColor.alpha()));
                 const sprite:Sprite = new Sprite([], newDim[0], newDim[1], false);
+                this.updatesStack;
                 if(this.state.resizeSprite)
                 {
                     canvas.width = newDim[0];
