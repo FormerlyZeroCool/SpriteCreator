@@ -2025,10 +2025,25 @@ class FilesManagerTool extends ExtendedTool {
     }
 }
 ;
+class SelectionTool extends ExtendedTool {
+    constructor(name, path, optionPanes, toolSelector) {
+        super(name, path, optionPanes, [200, 200], [2, 20]);
+        this.checkboxComplexPolygon = new GuiCheckBox(() => { }, 40, 40);
+        this.checkboxComplexPolygon.checked = true;
+        this.checkboxComplexPolygon.refresh();
+        this.toolSelector = toolSelector;
+        this.localLayout.addElement(new GuiSpacer([200, 10]));
+        this.localLayout.addElement(new GuiLabel("Polygonal\nselector:", 100, 16, GuiTextBox.bottom, 40));
+        this.localLayout.addElement(this.checkboxComplexPolygon);
+        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = []; toolSelector.field.layer().repaint = true; }, "Reset Polygon"));
+    }
+}
+;
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {
     constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 50, imgHeight = 50) {
         this.lastDrawTime = Date.now();
+        this.polygon = [];
         const field = new LayeredDrawingScreen(keyboardHandler, pallette);
         field.toolSelector = this;
         field.addBlankLayer();
@@ -2208,6 +2223,11 @@ class ToolSelector {
                             else
                                 field.layer().dragData = field.layer().getSelectedPixelGroup(new Pair(gx, gy), false);
                             break;
+                        case ("selection"):
+                            if (this.selectionTool.checkboxComplexPolygon.checked) {
+                                this.polygon.push([gx, gy]);
+                                break;
+                            }
                         case ("oval"):
                         case ("rect"):
                         case ("copy"):
@@ -2290,6 +2310,10 @@ class ToolSelector {
                         case ("fill"):
                             field.layer().fillArea(new Pair(gx, gy));
                             break;
+                        case ("selection"):
+                            if (this.selectionTool.checkboxComplexPolygon.checked) {
+                                break;
+                            }
                         case ("line"):
                         case ("oval"):
                         case ("rect"):
@@ -2370,6 +2394,17 @@ class ToolSelector {
                             field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
                             field.layer().selectionRect = [0, 0, 0, 0];
                             break;
+                        case ("selection"):
+                            if (this.selectionTool.checkboxComplexPolygon.checked && this.polygon.length > 2) {
+                                field.updateMaskPolygon(this.polygon);
+                            }
+                            else {
+                                if (field.layer().selectionRect[2] > 0 && field.layer().selectionRect[3] > 0)
+                                    field.updateBitMaskRectangle(field.layer().selectionRect);
+                                else
+                                    field.clearBitMask();
+                            }
+                            break;
                         case ("copy"):
                             const clipBoardSprite = field.layer().selectionToSprite(field.layer().selectionRect);
                             field.layer().clipBoard.sprite = clipBoardSprite;
@@ -2391,6 +2426,7 @@ class ToolSelector {
                 field.layer().repaint = repaint;
             });
         }
+        this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [], this);
         this.filesManagerTool = new FilesManagerTool("fileManager", "images/filesSprite.png", [], field);
         this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
@@ -2433,6 +2469,7 @@ class ToolSelector {
         this.toolBar.tools.push(this.rotateTool);
         this.toolBar.tools.push(this.outLineTool);
         this.toolBar.tools.push(this.layersTool);
+        this.toolBar.tools.push(this.selectionTool);
         this.toolBar.tools.push(this.filesManagerTool);
         this.toolBar.tools.push(this.settingsTool);
         //this.toolBar.tools.push(this.transformTool);
@@ -2492,6 +2529,7 @@ class ToolSelector {
 ;
 class DrawingScreenState {
     constructor(lineWidth) {
+        this.bufferBitMask = [];
         this.sprayProbability = 1;
         this.antiAliasRotation = true;
         this.screenBufUnlocked = true;
@@ -2507,6 +2545,55 @@ class DrawingScreenState {
     }
 }
 ;
+function segmentOrientation(p, q, r) {
+    const val = (q[1] - p[1]) * (r[0] - q[0]) -
+        (q[0] - p[0]) * (r[1] - q[1]);
+    if (val === 0)
+        return 0; // collinear
+    return (val > 0) ? 1 : 2;
+}
+function onSegment(p, q, r) {
+    if (q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0], r[0]) &&
+        q[1] <= Math.max(p[1], r[1]) && q[1] >= Math.min(p[1], r[1]))
+        return true;
+    return false;
+}
+function segmentsIntersect(p1, q1, p2, q2) {
+    const o1 = segmentOrientation(p1, q1, p2);
+    const o2 = segmentOrientation(p1, q1, q2);
+    const o3 = segmentOrientation(p2, q2, p1);
+    const o4 = segmentOrientation(p2, q2, q1);
+    if (o1 !== o2 && o3 !== o4)
+        return true;
+    // Special Cases
+    // p1, q1 and p2 are collinear and p2 lies on segment p1q1
+    if (o1 === 0 && onSegment(p1, p2, q1))
+        return true;
+    // p1, q1 and p2 are collinear and q2 lies on segment p1q1
+    if (o2 === 0 && onSegment(p1, q2, q1))
+        return true;
+    // p2, q2 and p1 are collinear and p1 lies on segment p2q2
+    if (o3 === 0 && onSegment(p2, p1, q2))
+        return true;
+    // p2, q2 and q1 are collinear and q1 lies on segment p2q2
+    if (o4 === 0 && onSegment(p2, q1, q2))
+        return true;
+    return false;
+}
+function insidePolygon(point, shape) {
+    let intersectionCount = 0;
+    let startPoint = shape[shape.length - 1];
+    for (let i = 0; i < shape.length; ++i) {
+        const endPoint = [shape[i][0], shape[i][1]];
+        if (segmentsIntersect(point, [1 << 30, point[1] + 1], startPoint, endPoint)) {
+            if (segmentOrientation(startPoint, point, endPoint) === 0)
+                return onSegment(startPoint, point, endPoint);
+            intersectionCount++;
+        }
+        startPoint = [shape[i][0], shape[i][1]];
+    }
+    return (intersectionCount & 1) === 1;
+}
 class DrawingScreen {
     constructor(canvas, keyboardHandler, palette, offset, dimensions, toolSelector, state, clipBoard) {
         const bounds = [dim[0], dim[1]];
@@ -2570,7 +2657,7 @@ class DrawingScreen {
             const copyAreaX = i % width;
             const copyAreaY = Math.floor(i / width);
             const sourceIndex = source_x + source_y * this.dimensions.first + copyAreaX + copyAreaY * this.dimensions.first;
-            if (this.inBufferBounds(source_x + copyAreaX, source_y + copyAreaY)) {
+            if (this.inBufferBounds(source_x + copyAreaX, source_y + copyAreaY) && this.state.bufferBitMask[sourceIndex]) {
                 const pixel = this.screenBuffer[sourceIndex];
                 asSprite.fillRect(pixel, copyAreaX, copyAreaY, 1, 1);
             }
@@ -2598,7 +2685,7 @@ class DrawingScreen {
                 color.setBlue(this.clipBoard.sprite.pixels[(i << 2) + 2]);
                 color.setAlpha(this.clipBoard.sprite.pixels[(i << 2) + 3]);
                 const source = color;
-                if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && (!dest.compare(source) || source.alpha() != 255)) {
+                if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY) && this.state.bufferBitMask[destIndex] && (!dest.compare(source) || source.alpha() != 255)) {
                     const oldColor = dest.color;
                     if (blendAlpha)
                         dest.blendAlphaCopy(source);
@@ -2668,9 +2755,10 @@ class DrawingScreen {
                         const ngy = (gy + Math.round(i));
                         const dx = ngx - gx;
                         const dy = ngy - gy;
-                        const pixel = this.screenBuffer[ngx + ngy * this.dimensions.first];
-                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius && Math.random() < this.state.sprayProbability) {
-                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(ngx + ngy * this.dimensions.first, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
+                        const key = ngx + ngy * this.dimensions.first;
+                        const pixel = this.screenBuffer[key];
+                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius && Math.random() < this.state.sprayProbability) {
+                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
                     }
@@ -2682,9 +2770,10 @@ class DrawingScreen {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
-                        const pixel = this.screenBuffer[ngx + ngy * this.dimensions.first];
-                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability) {
-                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(ngx + ngy * this.dimensions.first, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
+                        const key = ngx + ngy * this.dimensions.first;
+                        const pixel = this.screenBuffer[key];
+                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability) {
+                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
                     }
@@ -2717,7 +2806,7 @@ class DrawingScreen {
                 if (cur >= 0 && cur < length &&
                     (pixelColor.compare(spc) || (this.state.ignoreAlphaInFill && pixelColor.alpha() === 0)) && !checkedMap[cur]) {
                     checkedMap[cur] = true;
-                    if (!pixelColor.compare(this.state.color)) {
+                    if (!pixelColor.compare(this.state.color) && this.state.bufferBitMask[cur]) {
                         this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
                         pixelColor.copy(this.state.color);
                     }
@@ -2753,21 +2842,23 @@ class DrawingScreen {
                 if (cur >= 0 && cur < this.dimensions.first * this.dimensions.second &&
                     (pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color)) && !checkedMap[cur]) {
                     checkedMap[cur] = true;
-                    this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
-                    //top left
-                    data.push(cur % this.dimensions.first);
-                    data.push(Math.floor(cur / this.dimensions.first));
-                    //top right
-                    data.push(cur % this.dimensions.first + 1);
-                    data.push(Math.floor(cur / this.dimensions.first));
-                    //bottom left
-                    data.push(cur % this.dimensions.first);
-                    data.push(Math.floor(cur / this.dimensions.first) + 1);
-                    //bottom right
-                    data.push(cur % this.dimensions.first + 1);
-                    data.push(Math.floor(cur / this.dimensions.first) + 1);
-                    data.push(pixelColor.color);
-                    pixelColor.copy(defaultColor);
+                    if (this.state.bufferBitMask[cur]) {
+                        this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
+                        //top left
+                        data.push(cur % this.dimensions.first);
+                        data.push(Math.floor(cur / this.dimensions.first));
+                        //top right
+                        data.push(cur % this.dimensions.first + 1);
+                        data.push(Math.floor(cur / this.dimensions.first));
+                        //bottom left
+                        data.push(cur % this.dimensions.first);
+                        data.push(Math.floor(cur / this.dimensions.first) + 1);
+                        //bottom right
+                        data.push(cur % this.dimensions.first + 1);
+                        data.push(Math.floor(cur / this.dimensions.first) + 1);
+                        data.push(pixelColor.color);
+                        pixelColor.copy(defaultColor);
+                    }
                     if (cur > this.dragDataMaxPoint)
                         this.dragDataMaxPoint = cur;
                     if (cur < this.dragDataMinPoint)
@@ -2831,7 +2922,7 @@ class DrawingScreen {
                     if (!checkedMap[cur - this.dimensions.first + 1])
                         stack.push(cur - this.dimensions.first + 1);
                 }
-                else if (pixelColor && !checkedMap[cur]) {
+                else if (pixelColor && !checkedMap[cur] && this.state.bufferBitMask[cur]) {
                     checkedMap[cur] = true;
                     this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
                     pixelColor.copy(this.state.color);
@@ -3012,6 +3103,11 @@ class DrawingScreen {
             const dimensions = [this.dimensions.first, this.dimensions.second];
             this.undoneUpdatesStack.empty();
             this.updatesStack.empty();
+            if (this.state.bufferBitMask.length != newDim[0] * newDim[1]) {
+                this.state.bufferBitMask = [];
+                for (let i = 0; i < newDim[0] * newDim[1]; ++i)
+                    this.state.bufferBitMask.push(true);
+            }
             if (this.screenBuffer.length != newDim[0] * newDim[1]) {
                 const canvas = document.createElement("canvas");
                 const ctx = canvas.getContext("2d");
@@ -3075,8 +3171,8 @@ class DrawingScreen {
                 counter++;
                 const x = Math.floor(dragDataColors[i + 0] + this.dragData.first.first);
                 const y = Math.floor(dragDataColors[i + 1] + this.dragData.first.second);
-                if (this.inBufferBounds(x, y)) {
-                    const key = (x + y * this.dimensions.first);
+                const key = (x + y * this.dimensions.first);
+                if (this.inBufferBounds(x, y) && this.state.bufferBitMask[key]) {
                     color.color = dragDataColors[i + 8];
                     this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(this.screenBuffer[key].red(), this.screenBuffer[key].green(), this.screenBuffer[key].blue(), this.screenBuffer[key].alpha())));
                     if (color.alpha() !== 255 && this.state.blendAlphaOnPutSelectedPixels)
@@ -3141,8 +3237,8 @@ class DrawingScreen {
                 color0.setAlpha(value[3]);
                 const x = key >> 16;
                 const y = key & (0x0000FFFF);
-                if (this.inBufferBounds(x, y)) {
-                    const newKey = x + y * this.dimensions.first;
+                const newKey = x + y * this.dimensions.first;
+                if (this.inBufferBounds(x, y) && this.state.bufferBitMask[newKey]) {
                     this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(newKey, new RGB(this.screenBuffer[newKey].red(), this.screenBuffer[newKey].green(), this.screenBuffer[newKey].blue(), this.screenBuffer[newKey].alpha())));
                     this.screenBuffer[newKey].blendAlphaCopy(color0);
                 }
@@ -3157,55 +3253,60 @@ class DrawingScreen {
     getTouchPosY() {
         return this.toolSelector.field.zoom.invZoomY(this.toolSelector.drawingScreenListener.touchPos[1]);
     }
+    renderToBuffer(spriteBuffer) {
+        if (this.dimensions.first === this.canvas.width && this.dimensions.second === this.canvas.height) { //if drawing screen dimensions, and canvas dimensions are the same just update per pixel
+            let index = 0;
+            for (; index < this.screenBuffer.length - 4;) {
+                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                ++index;
+                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                ++index;
+                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                ++index;
+                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                ++index;
+            }
+            for (; index < this.screenBuffer.length;) {
+                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                index++;
+            }
+        }
+        else //use fill rect method to fill rectangle the size of pixels(more branch mispredicts, but more general)
+         {
+            const cellHeight = (this.bounds.second / this.dimensions.second);
+            const cellWidth = (this.bounds.first / this.dimensions.first);
+            for (let y = 0; y < this.dimensions.second; y++) {
+                for (let x = 0; x < this.dimensions.first; x++) {
+                    spriteBuffer.fillRect(this.screenBuffer[x + y * this.dimensions.first], x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                }
+            }
+        }
+    }
     draw() {
         if (this.repaint) {
             this.repaint = false;
             const ctx = this.ctx;
             const cellHeight = (this.bounds.second / this.dimensions.second);
             const cellWidth = (this.bounds.first / this.dimensions.first);
-            const white = new RGB(255, 255, 255);
             const spriteScreenBuf = this.spriteScreenBuf;
             const source = new RGB(0, 0, 0, 0);
             const toCopy = new RGB(0, 0, 0, 0);
-            spriteScreenBuf.fillRect(white, 0, 0, this.canvas.width, this.canvas.height);
-            if (this.dimensions.first === this.canvas.width && this.dimensions.second === this.canvas.height) { //if drawing screen dimensions, and canvas dimensions are the same just update per pixel
-                let index = 0;
-                for (; index < this.screenBuffer.length - 4;) {
-                    spriteScreenBuf.pixels[(index << 2)] = this.screenBuffer[index].red();
-                    spriteScreenBuf.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                    spriteScreenBuf.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                    spriteScreenBuf.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
-                    ++index;
-                    spriteScreenBuf.pixels[(index << 2)] = this.screenBuffer[index].red();
-                    spriteScreenBuf.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                    spriteScreenBuf.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                    spriteScreenBuf.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
-                    ++index;
-                    spriteScreenBuf.pixels[(index << 2)] = this.screenBuffer[index].red();
-                    spriteScreenBuf.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                    spriteScreenBuf.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                    spriteScreenBuf.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
-                    ++index;
-                    spriteScreenBuf.pixels[(index << 2)] = this.screenBuffer[index].red();
-                    spriteScreenBuf.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                    spriteScreenBuf.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                    spriteScreenBuf.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
-                    ++index;
-                }
-                for (; index < this.screenBuffer.length;) {
-                    spriteScreenBuf.pixels[(index << 2)] = this.screenBuffer[index].red();
-                    spriteScreenBuf.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                    spriteScreenBuf.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                    spriteScreenBuf.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
-                    index++;
-                }
-            }
-            else //use fill rect method to fill rectangle the size of pixels(more branch mispredicts, but more general)
-                for (let y = 0; y < this.dimensions.second; y++) {
-                    for (let x = 0; x < this.dimensions.first; x++) {
-                        spriteScreenBuf.fillRect(this.screenBuffer[x + y * this.dimensions.first], x * cellWidth, y * cellHeight, cellWidth, cellHeight);
-                    }
-                }
+            this.renderToBuffer(spriteScreenBuf);
             if (this.dragData) {
                 const dragDataColors = this.dragData.second;
                 const dragDataOffsetX = Math.floor(this.dragData.first.first);
@@ -3250,7 +3351,22 @@ class DrawingScreen {
                 }
             }
             spriteScreenBuf.putPixels(ctx);
-            if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
+            if (this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length > 1) {
+                let start = this.toolSelector.polygon.length - 1;
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.strokeStyle = this.state.color.htmlRBGA();
+                for (let i = 0; i < this.toolSelector.polygon.length; i++) {
+                    const lineStart = this.toolSelector.polygon[start];
+                    const lineEnd = this.toolSelector.polygon[i];
+                    ctx.moveTo(lineStart[0] * cellWidth, lineStart[1] * cellHeight);
+                    ctx.lineTo(lineEnd[0] * cellWidth, lineEnd[1] * cellHeight);
+                    start++;
+                    start %= this.toolSelector.polygon.length;
+                }
+                ctx.stroke();
+            }
+            else if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
                 let touchStart = [this.selectionRect[0], this.selectionRect[1]];
                 ctx.lineWidth = 6;
                 ctx.beginPath();
@@ -3263,7 +3379,7 @@ class DrawingScreen {
                 ctx.lineWidth = 6;
                 const xr = Math.abs(this.selectionRect[2] / 2);
                 const yr = Math.abs(this.selectionRect[3] / 2);
-                if (this.toolSelector.selectedToolName() === "copy") {
+                if (this.toolSelector.selectedToolName() === "copy" || this.toolSelector.selectedToolName() === "selection") {
                     ctx.strokeStyle = "#FFFFFF";
                     ctx.strokeRect(this.selectionRect[0] + 2, this.selectionRect[1] + 2, this.selectionRect[2] - 4, this.selectionRect[3] - 4);
                     ctx.strokeStyle = "#FF0000";
@@ -3359,6 +3475,68 @@ class LayeredDrawingScreen {
         this.setDimOnCurrent(this.dim);
         this.zoom = new ZoomState();
         this.clipBoard = new ClipBoard(document.getElementById("clipboard_canvas"), keyboardHandler, 128, 128);
+    }
+    updateMaskPolygon(shape) {
+        if (shape.length > 2) {
+            for (let i = 0; i < this.state.bufferBitMask.length; i++)
+                this.state.bufferBitMask[i] = true;
+            for (let y = 0; y < this.layer().dimensions.second; ++y) {
+                for (let x = 0; x < this.layer().dimensions.first; ++x) {
+                    const key = x + y * this.layer().dimensions.first;
+                    this.state.bufferBitMask[key] = insidePolygon([x, y], shape);
+                }
+            } /*
+            let minX:number = shape[0][0];
+            for(let i = 0; i < shape.length; i++)
+            {
+                if(minX > shape[i][0])
+                    minX = shape[i][0];
+            }
+            for(let i = 0; i < this.state.bufferBitMask.length; i++)
+            {
+                if(i % this.layer().dimensions.first < minX)
+                    this.state.bufferBitMask[i] = false;
+            }*/
+        }
+    }
+    updateBitMaskRectangle(rect) {
+        if (rect.length === 4 && this.layer()) {
+            for (let i = 0; i < this.state.bufferBitMask.length; i++)
+                this.state.bufferBitMask[i] = true;
+            for (let y = 0; y < this.layer().dimensions.second; ++y) {
+                for (let x = 0; x < this.layer().dimensions.first; ++x) {
+                    const key = x + y * this.layer().dimensions.first;
+                    this.state.bufferBitMask[key] = x >= rect[0] && x <= rect[0] + rect[2] && y >= rect[1] && y <= rect[1] + rect[3];
+                }
+            }
+        }
+        else {
+            console.log("Error, invalid rectangle for bitmask");
+        }
+    }
+    clearBitMask() {
+        let i = 0;
+        for (; i < this.state.bufferBitMask.length - 16; ++i) {
+            this.state.bufferBitMask[i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+            this.state.bufferBitMask[++i] = true;
+        }
+        for (; i < this.state.bufferBitMask.length; ++i) {
+            this.state.bufferBitMask[i] = true;
+        }
     }
     repaint() {
         let repaint = false;
