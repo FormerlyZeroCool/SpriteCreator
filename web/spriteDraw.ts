@@ -4236,18 +4236,7 @@ class LayeredDrawingScreen {
                     const key:number = x + y * this.layer().dimensions.first;
                     this.state.bufferBitMask[key] = insidePolygon([x, y], shape);
                 }
-            }/*
-            let minX:number = shape[0][0];
-            for(let i = 0; i < shape.length; i++)
-            {
-                if(minX > shape[i][0])
-                    minX = shape[i][0];
             }
-            for(let i = 0; i < this.state.bufferBitMask.length; i++)
-            {
-                if(i % this.layer().dimensions.first < minX)
-                    this.state.bufferBitMask[i] = false;
-            }*/
         }
     }
     updateBitMaskRectangle(rect:number[]):void //[x, y, width, height]
