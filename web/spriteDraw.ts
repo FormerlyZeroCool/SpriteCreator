@@ -2496,7 +2496,7 @@ class SelectionTool extends ExtendedTool {
     toolSelector:ToolSelector;
     checkboxComplexPolygon:GuiCheckBox;
     constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], toolSelector:ToolSelector){
-        super(name, path, optionPanes, [200, 200], [2, 20]);
+        super(name, path, optionPanes, [200, 150], [2, 20]);
         this.checkboxComplexPolygon = new GuiCheckBox(() => {}, 40, 40);
         this.checkboxComplexPolygon.checked = true;
         this.checkboxComplexPolygon.refresh();
@@ -2504,7 +2504,8 @@ class SelectionTool extends ExtendedTool {
         this.localLayout.addElement(new GuiSpacer([200,10]));
         this.localLayout.addElement(new GuiLabel("Polygonal\nselector:", 100, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.checkboxComplexPolygon);
-        this.localLayout.addElement(new GuiButton(() => {toolSelector.polygon = []; toolSelector.field.layer().repaint = true}, "Reset Polygon"));
+        this.localLayout.addElement(new GuiButton(() => {toolSelector.polygon = [], toolSelector.field.layer().selectionRect = [0,0,0,0]; toolSelector.field.layer().repaint = true}, 
+            "Reset Selection", 150, 40, 16));
     }
 };
 // To do refactor tools to make sure they load in the same order every time
@@ -2955,13 +2956,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             field.layer().repaint = repaint;
         });
         }
-        this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [], this);
         this.filesManagerTool = new FilesManagerTool("fileManager", "images/filesSprite.png", [], field);
         this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
         this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         
+        this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [this.transformTool.localLayout, this.undoTool.getOptionPanel()], this);
         this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, 
             () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
