@@ -1590,16 +1590,19 @@ class SingleCheckBoxTool extends GenericTool {
 }
 ;
 class DragTool extends ExtendedTool {
-    constructor(name, imagePath, callBack, callBackBlendAlphaState, optionPanes = []) {
-        super(name, imagePath, optionPanes, [200, 200]);
+    constructor(name, imagePath, callBack, callBackBlendAlphaState, optionPanes = [], toolSelector) {
+        super(name, imagePath, optionPanes, [200, 275], [2, 60]);
         this.checkBox = new GuiCheckBox(callBack, 40, 40);
         this.checkBoxBlendAlpha = new GuiCheckBox(callBackBlendAlphaState, 40, 40);
+        this.checkboxAutoSelect = new GuiCheckBox(() => toolSelector.field.layer().repaint = true, 40, 40, true);
         this.checkBoxBlendAlpha.checked = true;
         this.checkBoxBlendAlpha.refresh();
         this.localLayout.addElement(new GuiLabel("Only drag\none color:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
         this.localLayout.addElement(this.checkBox);
         this.localLayout.addElement(new GuiLabel("Blend alpha\nwhen dropping:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
         this.localLayout.addElement(this.checkBoxBlendAlpha);
+        this.localLayout.addElement(new GuiLabel("Auto select\nwhen dragging:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
+        this.localLayout.addElement(this.checkboxAutoSelect);
     }
 }
 ;
@@ -2218,10 +2221,15 @@ class ToolSelector {
                             break;
                         case ("drag"):
                             field.layer().saveDragDataToScreen();
-                            if (field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                                field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), true);
-                            else
-                                field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), false);
+                            if (this.dragTool.checkboxAutoSelect.checked) {
+                                if (field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), true);
+                                else
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), false);
+                            }
+                            else {
+                                field.layer().dragData = field.layer().getSelectedPixelGroupBitMask();
+                            }
                             break;
                         case ("selection"):
                             if (this.selectionTool.checkboxComplexPolygon.checked) {
@@ -2434,7 +2442,7 @@ class ToolSelector {
         this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [this.transformTool.localLayout, this.undoTool.getOptionPanel()], this);
         this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
-        this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.getOptionPanel()], this);
         this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", "images/settingsSprite.png", [this.transformTool.getOptionPanel()]);
         this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked);
         PenTool.checkDrawCircular.checked = true;
@@ -2825,7 +2833,7 @@ class DrawingScreen {
     getSelectedPixelGroupBitMask() {
         const data = [];
         for (let i = 0; i < this.state.bufferBitMask.length; ++i) {
-            if (this.state.bufferBitMask[i]) {
+            if (this.state.bufferBitMask[i] && this.screenBuffer[i].alpha()) {
                 //top left
                 data.push(i % this.dimensions.first);
                 data.push(Math.floor(i / this.dimensions.first));
