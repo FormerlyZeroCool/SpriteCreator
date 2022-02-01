@@ -3227,7 +3227,6 @@ class DrawingScreen {
                     ctx.drawImage(this.canvas, 0, 0, newDim[0], newDim[1]);
                     sprite.imageData = ctx.getImageData(0, 0, newDim[0], newDim[1]);
                     sprite.pixels = sprite.imageData.data;
-                    console.log(sprite.width, sprite.height, newDim);
                     sprite.copyToBuffer(this.screenBuffer, newDim[0], newDim[1]);
                 }
                 else {
