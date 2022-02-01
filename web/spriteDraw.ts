@@ -3015,7 +3015,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.filesManagerTool = new FilesManagerTool("fileManager", "images/filesSprite.png", [], field);
         this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
-        this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.localLayout], field);
+        this.transformTool = new ScreenTransformationTool("move", "images/selectionSprite.png", [this.undoTool.localLayout], field);
         this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
         
         this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [this.transformTool.localLayout, this.undoTool.localLayout], this);
