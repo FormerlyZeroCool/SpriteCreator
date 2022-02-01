@@ -3669,6 +3669,7 @@ class LayeredDrawingScreen {
         }
     }
     clearBitMask() {
+        this.toolSelector.polygon = [];
         let i = 0;
         for (; i < this.state.bufferBitMask.length - 16; ++i) {
             this.state.bufferBitMask[i] = true;
