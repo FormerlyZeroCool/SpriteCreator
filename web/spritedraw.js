@@ -2472,7 +2472,7 @@ class ToolSelector {
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
         this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.localLayout], field);
         this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [this.transformTool.localLayout, this.undoTool.localLayout], this);
+        this.selectionTool = new SelectionTool("selection", "images/selectionSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
