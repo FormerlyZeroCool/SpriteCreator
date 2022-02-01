@@ -1,4 +1,3 @@
-# Sprite Creator
 A small animation creation tool that allows users to do pixel art, and make animations from that pixel art.
 You can try it out: <a href="http://andrew-rubinstein.com/SpriteCreator/web">Here!</a>
 <br>
