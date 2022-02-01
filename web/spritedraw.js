@@ -1591,18 +1591,29 @@ class SingleCheckBoxTool extends GenericTool {
 ;
 class DragTool extends ExtendedTool {
     constructor(name, imagePath, callBack, callBackBlendAlphaState, optionPanes = [], toolSelector) {
-        super(name, imagePath, optionPanes, [200, 275], [2, 60]);
+        super(name, imagePath, optionPanes, [200, 190], [10, 50]);
+        this.toolSelector = toolSelector;
         this.checkBox = new GuiCheckBox(callBack, 40, 40);
         this.checkBoxBlendAlpha = new GuiCheckBox(callBackBlendAlphaState, 40, 40);
         this.checkboxAutoSelect = new GuiCheckBox(() => toolSelector.field.layer().repaint = true, 40, 40, true);
+        this.checkboxAllowDropOutsideSelection = new GuiCheckBox((event) => {
+            toolSelector.field.state.allowDropOutsideSelection = event.checkBox.checked;
+        }, 40, 40);
         this.checkBoxBlendAlpha.checked = true;
         this.checkBoxBlendAlpha.refresh();
-        this.localLayout.addElement(new GuiLabel("Only drag\none color:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
+        this.localLayout.addElement(new GuiSpacer([200, 5]));
+        this.localLayout.addElement(new GuiLabel("Only drag\none color:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.checkBox);
-        this.localLayout.addElement(new GuiLabel("Blend alpha\nwhen dropping:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
+        this.localLayout.addElement(new GuiLabel("Blend alpha\nwhen dropping:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.checkBoxBlendAlpha);
-        this.localLayout.addElement(new GuiLabel("Auto select\nwhen dragging:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
+        this.localLayout.addElement(new GuiLabel("Auto select\nwhen dragging:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.checkboxAutoSelect);
+        this.localLayout.addElement(new GuiLabel("Allow dropping\noutside select:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
+        this.localLayout.addElement(this.checkboxAllowDropOutsideSelection);
+    }
+    activateOptionPanel() {
+        super.activateOptionPanel();
+        this.checkboxAllowDropOutsideSelection.checked = this.toolSelector.field.state.allowDropOutsideSelection;
     }
 }
 ;
@@ -1614,17 +1625,30 @@ class OutlineTool extends ExtendedTool {
 }
 ;
 class RotateTool extends ExtendedTool {
-    constructor(name, imagePath, callBack, callBackAntiAlias, optionPanes = []) {
-        super(name, imagePath, optionPanes, [200, 200]);
+    constructor(name, imagePath, callBack, callBackAntiAlias, optionPanes = [], toolSelector) {
+        super(name, imagePath, optionPanes, [200, 230], [70, 40], [1, 23]);
+        this.toolSelector = toolSelector;
         this.checkBox = new GuiCheckBox(callBack, 40, 40);
         this.checkBoxAntiAlias = new GuiCheckBox(callBackAntiAlias, 40, 40);
+        this.checkboxAutoSelect = new GuiCheckBox(() => toolSelector.field.layer().repaint = true, 40, 40, true);
         this.checkBoxAntiAlias.checked = true;
         this.checkBoxAntiAlias.refresh();
+        this.checkboxAllowDropOutsideSelection = new GuiCheckBox((event) => {
+            toolSelector.field.state.allowDropOutsideSelection = event.checkBox.checked;
+        }, 40, 40, false);
         this.localLayout.addElement(new GuiLabel("Only rotate adjacent\npixels of same color:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
         this.localLayout.addElement(this.checkBox);
-        this.localLayout.addElement(new GuiLabel("", 100, 14, GuiTextBox.bottom | GuiTextBox.left, 50));
-        this.localLayout.addElement(new GuiLabel("anti-alias\nrotation:", 90, 16, GuiTextBox.bottom | GuiTextBox.left, 50));
+        this.localLayout.addElement(new GuiSpacer([100, 50]));
+        this.localLayout.addElement(new GuiLabel("anti-alias\nrotation:", 90, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.checkBoxAntiAlias);
+        this.localLayout.addElement(new GuiLabel("Auto select\nwhen dragging:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
+        this.localLayout.addElement(this.checkboxAutoSelect);
+        this.localLayout.addElement(new GuiLabel("Allow dropping\noutside select:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
+        this.localLayout.addElement(this.checkboxAllowDropOutsideSelection);
+    }
+    activateOptionPanel() {
+        super.activateOptionPanel();
+        this.checkboxAllowDropOutsideSelection.checked = this.toolSelector.field.state.allowDropOutsideSelection;
     }
 }
 ;
@@ -2214,10 +2238,15 @@ class ToolSelector {
                                 field.layer().saveDragDataToScreenAntiAliased();
                             else
                                 field.layer().saveDragDataToScreen();
-                            if (field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                                field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), true);
-                            else
-                                field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), false);
+                            if (this.rotateTool.checkboxAutoSelect.checked) {
+                                if (field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), true);
+                                else
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), false);
+                            }
+                            else {
+                                field.layer().dragData = field.layer().getSelectedPixelGroupBitMask();
+                            }
                             break;
                         case ("drag"):
                             field.layer().saveDragDataToScreen();
@@ -2437,12 +2466,12 @@ class ToolSelector {
         this.filesManagerTool = new FilesManagerTool("fileManager", "images/filesSprite.png", [], field);
         this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
         this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
-        this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.getOptionPanel()], field);
-        this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
-        this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [this.transformTool.localLayout, this.undoTool.getOptionPanel()], this);
-        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
-        this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.getOptionPanel(), this.transformTool.localLayout]);
-        this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.getOptionPanel()], this);
+        this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.localLayout], field);
+        this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.selectionTool = new SelectionTool("selection", "images/favicon.ico", [this.transformTool.localLayout, this.undoTool.localLayout], this);
+        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
+        this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", "images/settingsSprite.png", [this.transformTool.getOptionPanel()]);
         this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked);
         PenTool.checkDrawCircular.checked = true;
@@ -2452,12 +2481,12 @@ class ToolSelector {
             this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get() ? this.penTool.tbSize.asNumber.get() : this.field.layer().state.lineWidth;
             tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
-        //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
-        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen", "images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen", "images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
         this.penTool.activateOptionPanel();
-        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser", "images/eraserSprite.png", [this.transformTool.localLayout, this.undoTool.getOptionPanel()]);
+        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser", "images/eraserSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
         PenTool.checkDrawCircular.callback = () => field.state.drawCircular = PenTool.checkDrawCircular.checked;
-        this.fillTool = new FillTool("fill", "images/fillSprite.png", [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.getOptionPanel()], () => {
+        this.fillTool = new FillTool("fill", "images/fillSprite.png", [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout], () => {
             field.layer().state.ignoreAlphaInFill = this.fillTool.checkIgnoreAlpha.checked;
         });
         this.toolBar.tools = [];
@@ -2470,7 +2499,7 @@ class ToolSelector {
         this.toolBar.tools.push(this.copyTool);
         this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel(), "paste", "images/pasteSprite.png"));
         this.toolBar.tools.push(this.dragTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.getOptionPanel(), "redo", "images/redoSprite.png"));
+        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", "images/redoSprite.png"));
         this.toolBar.tools.push(this.undoTool);
         this.toolBar.tools.push(this.colorPickerTool);
         this.toolBar.tools.push(this.eraserTool);
@@ -2537,6 +2566,7 @@ class ToolSelector {
 ;
 class DrawingScreenState {
     constructor(lineWidth) {
+        this.allowDropOutsideSelection = false;
         this.bufferBitMask = [];
         this.sprayProbability = 1;
         this.antiAliasRotation = true;
@@ -2834,6 +2864,7 @@ class DrawingScreen {
         const data = [];
         for (let i = 0; i < this.state.bufferBitMask.length; ++i) {
             if (this.state.bufferBitMask[i] && this.screenBuffer[i].alpha()) {
+                this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
                 //top left
                 data.push(i % this.dimensions.first);
                 data.push(Math.floor(i / this.dimensions.first));
@@ -2850,6 +2881,7 @@ class DrawingScreen {
                 this.screenBuffer[i].copy(this.noColor);
             }
         }
+        this.updatesStack.push([]);
         return new Pair(new Pair(0, 0), data);
     }
     //Pair<offset point>, Map of colors encoded as numbers by location>
@@ -3205,7 +3237,7 @@ class DrawingScreen {
                 const x = Math.floor(dragDataColors[i + 0] + this.dragData.first.first);
                 const y = Math.floor(dragDataColors[i + 1] + this.dragData.first.second);
                 const key = (x + y * this.dimensions.first);
-                if (this.inBufferBounds(x, y) && this.state.bufferBitMask[key]) {
+                if (this.inBufferBounds(x, y) && (this.state.allowDropOutsideSelection || this.state.bufferBitMask[key])) {
                     color.color = dragDataColors[i + 8];
                     this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(this.screenBuffer[key].red(), this.screenBuffer[key].green(), this.screenBuffer[key].blue(), this.screenBuffer[key].alpha())));
                     if (color.alpha() !== 255 && this.state.blendAlphaOnPutSelectedPixels)
@@ -3271,7 +3303,7 @@ class DrawingScreen {
                 const x = key >> 16;
                 const y = key & (0x0000FFFF);
                 const newKey = x + y * this.dimensions.first;
-                if (this.inBufferBounds(x, y) && this.state.bufferBitMask[newKey]) {
+                if (this.inBufferBounds(x, y) && (this.state.allowDropOutsideSelection || this.state.bufferBitMask[newKey])) {
                     this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(newKey, new RGB(this.screenBuffer[newKey].red(), this.screenBuffer[newKey].green(), this.screenBuffer[newKey].blue(), this.screenBuffer[newKey].alpha())));
                     this.screenBuffer[newKey].blendAlphaCopy(color0);
                 }
