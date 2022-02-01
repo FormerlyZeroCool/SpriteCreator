@@ -1919,15 +1919,19 @@ class ClipBoard {
 }
 ;
 class CopyPasteTool extends ExtendedTool {
-    constructor(name, path, optionPanes, clipBoard, updateBlendAlpha) {
-        super(name, path, optionPanes, [200, clipBoard.height() + 130], [2, 20], [1, 30]);
+    constructor(name, path, optionPanes, clipBoard, updateBlendAlpha, toolSelector) {
+        super(name, path, optionPanes, [200, clipBoard.height() + 200], [8, 20], [1, 30]);
         this.blendAlpha = new GuiCheckBox(updateBlendAlpha, 40, 40);
+        this.checkboxCopySelection = new GuiCheckBox(() => { toolSelector.field.layer().repaint = true; }, 40, 40);
         this.blendAlpha.checked = true;
         this.blendAlpha.refresh();
         this.localLayout.addElement(new GuiLabel("Clipboard:", 200, 16));
         this.localLayout.addElement(clipBoard);
         this.localLayout.addElement(new GuiLabel("Preserve\ntransparency:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.blendAlpha);
+        this.localLayout.addElement(new GuiSpacer([75, 40]));
+        this.localLayout.addElement(new GuiLabel("Copy from\selection:", 140, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
+        this.localLayout.addElement(this.checkboxCopySelection);
     }
 }
 ;
@@ -2062,7 +2066,7 @@ class SelectionTool extends ExtendedTool {
         this.localLayout.addElement(new GuiSpacer([200, 10]));
         this.localLayout.addElement(new GuiLabel("Polygonal\nselector:", 100, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.checkboxComplexPolygon);
-        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = [], toolSelector.field.layer().selectionRect = [0, 0, 0, 0]; toolSelector.field.layer().repaint = true; }, "Reset Selection", 150, 40, 16));
+        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = [], toolSelector.field.layer().selectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, "Reset Selection", 150, 40, 16));
     }
 }
 ;
@@ -2443,7 +2447,7 @@ class ToolSelector {
                             }
                             break;
                         case ("copy"):
-                            const clipBoardSprite = field.layer().selectionToSprite(field.layer().selectionRect);
+                            const clipBoardSprite = this.copyTool.checkboxCopySelection.checked ? field.layer().maskToSprite() : field.layer().selectionToSprite(field.layer().selectionRect);
                             field.layer().clipBoard.sprite = clipBoardSprite;
                             field.layer().clipBoard.refreshImageFromBuffer();
                             field.layer().selectionRect = [0, 0, 0, 0];
@@ -2473,7 +2477,7 @@ class ToolSelector {
         this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", "images/settingsSprite.png", [this.transformTool.getOptionPanel()]);
-        this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked);
+        this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack = (tbprob) => {
@@ -2677,6 +2681,43 @@ class DrawingScreen {
         const pen = this.toolSelector.penTool;
         this.state.lineWidth = pen.penSize();
         pen.tbSize.setText(String(this.state.lineWidth));
+    }
+    maskToSprite() {
+        let minY = this.dimensions.second;
+        let minX = this.dimensions.first;
+        let maxY = 0;
+        let maxX = 0;
+        for (let i = 0; i < this.screenBuffer.length; i++) {
+            if (this.state.bufferBitMask[i]) {
+                const x = i % this.dimensions.first;
+                const y = Math.floor(i / this.dimensions.first);
+                if (minX > x)
+                    minX = x;
+                if (maxX < x)
+                    maxX = x;
+                if (minY > y)
+                    minY = y;
+                if (maxY < y)
+                    maxY = y;
+            }
+        }
+        const width = maxX - minX;
+        const height = maxY - minY;
+        const sprite = new Sprite([], width, height, false);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const key = minX + x + (y + minY) * this.dimensions.first;
+                if (this.state.bufferBitMask[key]) {
+                    const spriteBufKey = x + y * width;
+                    sprite.pixels[spriteBufKey << 2] = this.screenBuffer[key].red();
+                    sprite.pixels[(spriteBufKey << 2) + 1] = this.screenBuffer[key].green();
+                    sprite.pixels[(spriteBufKey << 2) + 2] = this.screenBuffer[key].blue();
+                    sprite.pixels[(spriteBufKey << 2) + 3] = this.screenBuffer[key].alpha();
+                }
+            }
+        }
+        sprite.refreshImage();
+        return sprite;
     }
     selectionToSprite(selectionRect) {
         if (selectionRect[2] < 0) {
