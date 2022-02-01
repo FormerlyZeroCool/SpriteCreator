@@ -3892,8 +3892,6 @@ class DrawingScreen {
             }
             const bounds:Array<number> = [this.bounds.first, this.bounds.second];
             const dimensions:Array<number> = [this.dimensions.first, this.dimensions.second];
-            this.undoneUpdatesStack.empty();
-            this.updatesStack.empty();
             if(this.state.bufferBitMask.length != newDim[0] * newDim[1])
             {
                 this.state.bufferBitMask = [];
@@ -3903,32 +3901,38 @@ class DrawingScreen {
             if(this.screenBuffer.length != newDim[0]*newDim[1])
             {
                 const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                this.renderToBuffer(this.spriteScreenBuf);
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 this.spriteScreenBuf.putPixels(this.ctx);
                 this.screenBuffer = [];
                 for(let i = 0; i < newDim[0] * newDim[1]; i++)
                     this.screenBuffer.push(new RGB(this.noColor.red(),this.noColor.green(),this.noColor.blue(),this.noColor.alpha()));
                 const sprite:Sprite = new Sprite([], newDim[0], newDim[1], false);
-                this.updatesStack;
+                
+                //buggy when resizing to a different aspect ratio
                 if(this.state.resizeSprite)
                 {
+                    this.undoneUpdatesStack.empty();
+                    this.updatesStack.empty();
                     canvas.width = newDim[0];
                     canvas.height = newDim[1];
+                    const ctx = canvas.getContext("2d");
                     ctx.drawImage(this.canvas, 0, 0, newDim[0], newDim[1]);
                     sprite.imageData = ctx.getImageData(0, 0, newDim[0], newDim[1]);
                     sprite.pixels = sprite.imageData.data;
+                    console.log(sprite.width, sprite.height, newDim)
                     sprite.copyToBuffer(this.screenBuffer, newDim[0], newDim[1]);
                 }
                 else
                 {
                     canvas.width = this.dimensions.first;
                     canvas.height = this.dimensions.second;
+                    const ctx = canvas.getContext("2d");
                     ctx.drawImage(this.canvas, 0, 0, this.dimensions.first, this.dimensions.second);
-                    sprite.imageData = ctx.getImageData(0, 0, this.dimensions.first, this.dimensions.second);
-                    sprite.pixels = sprite.imageData.data;
+                    
                     sprite.width = this.dimensions.first;
                     sprite.height = this.dimensions.second;
+                    sprite.imageData = ctx.getImageData(0, 0, this.dimensions.first, this.dimensions.second);
+                    sprite.pixels = sprite.imageData.data;
                     sprite.copyToBuffer(this.screenBuffer, newDim[0], newDim[1]);
                 }
                 this.spriteScreenBuf = new Sprite([], this.bounds.first, this.bounds.second); 
@@ -4352,6 +4356,59 @@ class LayeredDrawingScreen {
         this.zoom = new ZoomState();
         this.clipBoard = new ClipBoard(<HTMLCanvasElement> document.getElementById("clipboard_canvas"), keyboardHandler, 128, 128);
     }
+
+//possible replace these functions with one that first calculates the functions for all the lines in the polygon
+//check each point if it can solve the equation for the function, and the x is within the bounds of the line segment then the point intersects the line segment
+//iterating through each row of the bit mask buffer count the number of intersections per row, if the current count of intersections is odd
+//then you are inside the shape
+   /* updateMaskPolygon(polygon:number[][])
+    {
+        if(polygon.length < 3)
+            return;
+        interface LinearFunction {
+            m:number;
+            b:number;
+            bounds:number[];
+        }
+        const functions:LinearFunction[] = [];
+        let start:number[] = polygon[polygon.length - 1]
+        for(let i = 0; i < polygon.length; i++)
+        {
+            const end:number[] = polygon[i];
+            const slope:number = (end[1] - start[1]) / (end[0] - start[0]);
+            //const dx:number = end[1] - start[1];
+            const intercept:number = end[1] - slope * end[0];
+            functions.push({m:slope, b:intercept, bounds:[Math.min(start[0], end[0]), Math.max(start[0], end[0])]});
+        }
+        for(let i = 0; i < this.state.bufferBitMask.length; i++)
+            this.state.bufferBitMask[i] = true;
+        
+        for(let y = 0; y < this.layer().dimensions.second; ++y)
+        {
+            let intersectionCount:number = 0;
+            for(let x = 0; x < this.layer().dimensions.first; ++x)
+            {
+                let pointIntersection:boolean = false;
+                for(let i = 0;!pointIntersection && i < functions.length; i++)
+                {
+                    const fn:LinearFunction = functions[i];
+                    if(x > fn.bounds[0] && x < fn.bounds[1])
+                    {
+                        if(Math.floor(y) === Math.floor(x * fn.m + fn.b))
+                        {
+                            pointIntersection = true;
+                            intersectionCount++;
+                        }
+                    }
+                }
+                if((intersectionCount & 1))
+                {
+                    this.state.bufferBitMask[x + y * this.layer().dimensions.first] = false;
+                }
+            }
+        }
+        
+    }*/
     updateMaskPolygon(shape:number[][])
     {
         if(shape.length > 2)
@@ -4485,19 +4542,19 @@ class LayeredDrawingScreen {
     }
     loadImageToLayer(image:HTMLImageElement):void
     {
-        this.offscreenCanvas.height = image.height;
-        this.offscreenCanvas.width = image.width;
+        const bounds:number[] = [image.width, image.height];
+        this.offscreenCanvas.height = bounds[0];
+        this.offscreenCanvas.width = bounds[1];
         const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d");
         ctx.drawImage(image, 0, 0);
-        const sprite:Sprite = new Sprite([], this.offscreenCanvas.width, this.offscreenCanvas.width, false);
-        sprite.imageData = ctx.getImageData(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+        const sprite:Sprite = new Sprite([], bounds[0], bounds[1], false);
+        sprite.imageData = ctx.getImageData(0, 0, bounds[0], bounds[1]);
         sprite.pixels = sprite.imageData.data;
+        this.layers.forEach(layer => layer.setDim([bounds[0], bounds[1]]));
         const layer:DrawingScreen = this.layers[this.layers.length - 1];
-        this.layers.forEach(layer => layer.setDim([image.width, image.height]));
-        const bounds:number[] = [this.layer().bounds.first, this.layer().bounds.second];
-        this.dim = [bounds[0], bounds[1]];
-        this.canvas.width = bounds[0];
-        this.canvas.height = bounds[1];
+        //this.dim = [bounds[0], bounds[1]];
+        sprite.width = bounds[0];
+        sprite.height = bounds[1];
         sprite.copyToBuffer(layer.screenBuffer, layer.dimensions.first, layer.dimensions.second);
     }
 
@@ -5103,8 +5160,6 @@ class Sprite {
     constructor(pixels:Array<RGB>, width:number, height:number, fillBackground:boolean = true)
     {
         this.fillBackground = fillBackground;
-        this.width = width;
-        this.height = height;
         this.copy(pixels, width, height);
     }
     copy(pixels:Array<RGB>, width:number, height:number):void
@@ -6250,7 +6305,7 @@ async function main()
         {
             const img = new Image();
             img.onload = () => {
-                toolSelector.layersTool.pushList(`layer${toolSelector.layersTool.runningId++}`)
+                toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`)
                 field.loadImageToLayer(img);
                 toolSelector.settingsTool.dim = [img.width, img.height];
                 toolSelector.settingsTool.tbX.setText(img.width.toString());
