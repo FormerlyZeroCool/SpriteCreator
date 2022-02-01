@@ -3478,7 +3478,7 @@ class DrawingScreen {
                 ctx.ellipse(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight, 5, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
             }
-            else if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
+            if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
                 let touchStart = [this.selectionRect[0], this.selectionRect[1]];
                 ctx.lineWidth = 6;
                 ctx.beginPath();
