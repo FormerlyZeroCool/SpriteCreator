@@ -1427,6 +1427,11 @@ class GuiTextBox implements GuiElement {
                         {
                             //todo
                         }
+                        else if(e.code.substring(0,"Numpad".length) === "Numpad")
+                        {
+                            this.text = this.text.substring(0, this.cursor) + letter + this.text.substring(this.cursor, this.text.length);
+                            this.cursor++;
+                        }
 
                     }
                 }
