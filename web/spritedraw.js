@@ -1807,7 +1807,6 @@ class ColorPickerTool extends ExtendedTool {
                 this.colorTextBackup = e.textbox.text;
             }
             else if (code === 2) {
-                const cursor = e.textbox.cursor;
                 this.tbColor.text = (color.htmlRBGA());
                 this.tbColor.refresh();
                 this.colorTextBackup = this.tbColor.text;
@@ -5252,6 +5251,10 @@ async function main() {
             img.src = reader.result;
         });
     });
+    canvas.onmousemove = (event) => {
+        toolSelector.drawingScreenListener.touchPos[0] = event.offsetX;
+        toolSelector.drawingScreenListener.touchPos[1] = event.offsetY;
+    };
     canvas.addEventListener("wheel", (e) => {
         e.preventDefault();
         let delta = 0.1;
