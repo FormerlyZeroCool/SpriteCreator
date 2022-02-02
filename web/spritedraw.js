@@ -3197,10 +3197,10 @@ class DrawingScreen {
         let zoom = new Pair(1, 1);
         if (newDim.length === 2) {
             if (newDim[0] <= 500) {
-                this.bounds.first = newDim[0] * Math.floor(1000 / newDim[0]);
-                zoom.first = 1 / Math.floor(1000 / newDim[0]);
-                this.bounds.second = newDim[1] * Math.floor(1000 / newDim[1]);
-                zoom.second = 1 / Math.floor(1000 / newDim[1]);
+                this.bounds.first = newDim[0] * Math.floor(1024 / newDim[0]);
+                zoom.first = 1 / Math.floor(1024 / newDim[0]);
+                this.bounds.second = newDim[1] * Math.floor(1024 / newDim[1]);
+                zoom.second = 1 / Math.floor(1024 / newDim[1]);
             }
             else {
                 this.bounds.first = newDim[0];
@@ -5222,7 +5222,7 @@ async function main() {
     let counter = 0;
     canvas.width = getWidth() - 350;
     canvas.height = 500;
-    field.setDimOnCurrent([canvas.width, canvas.height]);
+    field.setDimOnCurrent([128, 128]);
     while (true) {
         const start = Date.now();
         toolSelector.draw();
