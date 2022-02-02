@@ -2058,15 +2058,14 @@ class FilesManagerTool extends ExtendedTool {
 ;
 class SelectionTool extends ExtendedTool {
     constructor(name, path, optionPanes, toolSelector) {
-        super(name, path, optionPanes, [200, 150], [2, 20]);
-        this.checkboxComplexPolygon = new GuiCheckBox(() => { }, 40, 40);
-        this.checkboxComplexPolygon.checked = true;
-        this.checkboxComplexPolygon.refresh();
+        super(name, path, optionPanes, [200, 210], [1, 20]);
+        this.checkboxComplexPolygon = new GuiCheckBox(() => { }, 40, 40, true);
         this.toolSelector = toolSelector;
-        this.localLayout.addElement(new GuiSpacer([200, 10]));
-        this.localLayout.addElement(new GuiLabel("Polygonal\nselector:", 100, 16, GuiTextBox.bottom, 40));
+        this.localLayout.addElement(new GuiLabel("Polygonal selector:", 200, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.checkboxComplexPolygon);
+        this.localLayout.addElement(new GuiSpacer([200, 10]));
         this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = [], toolSelector.field.layer().selectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, "Reset Selection", 150, 40, 16));
+        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon.pop(), toolSelector.field.layer().selectionRect = [0, 0, 0, 0]; toolSelector.field.updateMaskPolygon(toolSelector.polygon); toolSelector.field.layer().repaint = true; }, "Undo last point", 150, 40, 16));
     }
 }
 ;
