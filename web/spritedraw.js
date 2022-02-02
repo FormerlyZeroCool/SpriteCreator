@@ -1167,7 +1167,8 @@ class GuiTextBox {
                     }
                     else
                         this.asNumber.clear();
-                    this.validationCallback({ textbox: this, event: e });
+                    if (this.validationCallback)
+                        this.validationCallback({ textbox: this, event: e });
                     this.drawInternalAndClear();
             }
         }
