@@ -4493,6 +4493,7 @@ class LayeredDrawingScreen {
             this.dim = [bounds[0], bounds[1]];
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
+            this.ctx = this.canvas.getContext("2d");
         }
         //this.resizeTransparencyCanvas(this.dim);
     }
@@ -4543,19 +4544,20 @@ class LayeredDrawingScreen {
     loadImageToLayer(image:HTMLImageElement):void
     {
         const bounds:number[] = [image.width, image.height];
-        this.offscreenCanvas.height = bounds[0];
-        this.offscreenCanvas.width = bounds[1];
-        const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d");
-        ctx.drawImage(image, 0, 0);
+        this.offscreenCanvas.width = bounds[0];
+        this.offscreenCanvas.height = bounds[1];
         const sprite:Sprite = new Sprite([], bounds[0], bounds[1], false);
+        this.setDimOnCurrent([bounds[0], bounds[1]]);
+        const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d");
+        ctx.clearRect(0, 0, bounds[0], bounds[1]);
+        ctx.drawImage(image, 0, 0);
         sprite.imageData = ctx.getImageData(0, 0, bounds[0], bounds[1]);
         sprite.pixels = sprite.imageData.data;
-        this.layers.forEach(layer => layer.setDim([bounds[0], bounds[1]]));
         const layer:DrawingScreen = this.layers[this.layers.length - 1];
-        //this.dim = [bounds[0], bounds[1]];
+        this.selected = this.layers.length - 1;
         sprite.width = bounds[0];
         sprite.height = bounds[1];
-        sprite.copyToBuffer(layer.screenBuffer, layer.dimensions.first, layer.dimensions.second);
+        sprite.copyToBuffer(layer.screenBuffer, bounds[0], bounds[1]);
     }
 
     addBlankLayer():DrawingScreen
@@ -5234,13 +5236,18 @@ class Sprite {
     }
     copyToBuffer(buf:Array<RGB>, width:number, height:number)
     {
+        if(width * height !== buf.length)
+        {
+            console.log("error invalid dimensions supplied");
+            return;
+        }
         for(let y = 0; y < this.height && y < height; y++)
         {
+            const six:number = (10 + y * this.width) << 2;
             for(let x = 0; x < this.width && x < width; x++)
             {
                 const i:number = (x + y * width);
                 const si:number = (x + y * this.width) << 2;
-               // if(buf[i])
                 {
                     buf[i].setRed(this.pixels[(si)]);
                     buf[i].setGreen(this.pixels[(si)+1]);
