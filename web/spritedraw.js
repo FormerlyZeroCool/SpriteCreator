@@ -1802,7 +1802,7 @@ class ColorPickerTool extends ExtendedTool {
     constructor(field, toolName = "colorPicker", pathToImage = "images/colorPickerSprite.png", optionPanes = []) {
         super(toolName, pathToImage, optionPanes, [200, 100], [1, 30]);
         this.field = field;
-        this.tbColor = new GuiTextBox(true, 200, null, 16, 35, GuiTextBox.default, (e) => {
+        this.tbColor = new GuiTextBox(true, 200, null, 16, 32, GuiTextBox.default, (e) => {
             const color = new RGB(0, 0, 0, 0);
             const code = color.loadString(this.tbColor.text);
             if (code === 0) {
