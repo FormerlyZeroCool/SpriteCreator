@@ -203,6 +203,8 @@ class RGB {
             let b;
             let a;
             if (color.substring(0, 4).toLowerCase() !== "rgba") {
+                if (color[0] !== "#")
+                    throw new Error("Exception malformed color: " + color);
                 r = parseInt(color.substring(1, 3), 16);
                 g = parseInt(color.substring(3, 5), 16);
                 b = parseInt(color.substring(5, 7), 16);
@@ -210,41 +212,67 @@ class RGB {
             }
             else {
                 const vals = color.split(",");
-                vals[0] = vals[0].substring(5);
-                vals[3] = vals[3].substring(0, vals[3].length - 1);
+                vals[0] = vals[0].split("(")[1];
+                vals[3] = vals[3].split(")")[0];
                 r = parseInt(vals[0], 10);
                 g = parseInt(vals[1], 10);
                 b = parseInt(vals[2], 10);
                 a = parseFloat(vals[3]) * 255;
             }
-            let invalid = false;
-            if (!isNaN(r) && r <= 255 && r >= 0) {
-                this.setRed(r);
+            let invalid = 0;
+            if (!isNaN(r) && r >= 0) {
+                if (r > 255) {
+                    this.setRed(255);
+                    invalid = 2;
+                }
+                else
+                    this.setRed(r);
             }
             else
-                invalid = r > 0;
-            if (!isNaN(g) && g <= 255 && g >= 0) {
-                this.setGreen(g);
+                invalid = +(r > 0);
+            if (!isNaN(g) && g >= 0) {
+                if (g > 255) {
+                    this.setGreen(255);
+                    invalid = 2;
+                }
+                else
+                    this.setGreen(g);
             }
             else
-                invalid = g > 0;
-            if (!isNaN(b) && b <= 255 && b >= 0) {
-                this.setBlue(b);
+                invalid = +(g > 0);
+            if (!isNaN(b) && b >= 0) {
+                if (b > 255) {
+                    this.setBlue(255);
+                    invalid = 2;
+                }
+                else
+                    this.setBlue(b);
             }
             else
-                invalid = b > 0;
-            if (!isNaN(a) && a <= 255 && a >= 0) {
-                this.setAlpha(a);
+                invalid = +(b > 0);
+            if (!isNaN(a) && a >= 0) {
+                if (a > 255) {
+                    this.setAlpha(255);
+                    invalid = 2;
+                }
+                else
+                    this.setAlpha(a);
             }
             else
-                invalid = a > 0;
+                invalid = +(a > 0);
             if (color[color.length - 1] !== ")")
-                invalid = true;
-            return !invalid;
+                invalid = 1;
+            let openingPresent = false;
+            for (let i = 0; !openingPresent && i < color.length; i++) {
+                openingPresent = color[i] === "(";
+            }
+            if (!openingPresent)
+                invalid = 1;
+            return invalid;
         }
         catch (error) {
             console.log(error);
-            return false;
+            return 0;
         }
     }
     htmlRBGA() {
@@ -1774,8 +1802,15 @@ class ColorPickerTool extends ExtendedTool {
         this.field = field;
         this.tbColor = new GuiTextBox(true, 200, null, 16, 35, GuiTextBox.default, (e) => {
             const color = new RGB(0, 0, 0, 0);
-            if (color.loadString(e.textbox.text)) {
+            const code = color.loadString(this.tbColor.text);
+            if (code === 0) {
                 this.colorTextBackup = e.textbox.text;
+            }
+            else if (code === 2) {
+                const cursor = e.textbox.cursor;
+                this.tbColor.text = (color.htmlRBGA());
+                this.tbColor.refresh();
+                this.colorTextBackup = this.tbColor.text;
             }
             else {
                 e.textbox.text = this.colorTextBackup;
@@ -1785,8 +1820,13 @@ class ColorPickerTool extends ExtendedTool {
         this.setColorText();
         this.btUpdate = new GuiButton(() => {
             const color = new RGB(0, 0, 0, 0);
-            if (color.loadString(this.tbColor.text)) {
+            const code = color.loadString(this.tbColor.text);
+            if (code === 0) {
                 this.field.layer().palette.setSelectedColor(this.tbColor.text);
+                this.field.layer().state.color = this.field.layer().palette.calcColor();
+            }
+            else if (code === 2) {
+                this.field.layer().palette.setSelectedColor(color.htmlRBGA());
                 this.field.layer().state.color = this.field.layer().palette.calcColor();
             }
             else {
