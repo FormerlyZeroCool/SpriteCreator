@@ -3277,7 +3277,7 @@ class DrawingScreen {
     setDim(newDim) {
         let zoom = new Pair(1, 1);
         if (newDim.length === 2) {
-            if (newDim[0] <= 500) {
+            if (newDim[0] <= 512) {
                 this.bounds.first = newDim[0] * Math.floor(1024 / newDim[0]);
                 zoom.first = 1 / Math.floor(1024 / newDim[0]);
                 this.bounds.second = newDim[1] * Math.floor(1024 / newDim[1]);
@@ -3800,6 +3800,14 @@ class LayeredDrawingScreen {
     }
     setDimOnCurrent(dim) {
         if (this.layer()) {
+            /*this.scalingCanvases = [];
+            for(let i = 0; i < 4; i++)
+            {
+                const canvas:HTMLCanvasElement = document.createElement("canvas");
+                canvas.width = dim[0] << (1 + i);
+                canvas.height = dim[1] << (1 + i);
+                this.scalingCanvases.push(new Pair(canvas, canvas.getContext("2d")));
+            }*/
             this.toolSelector.settingsTool.setDim(dim);
             this.layers.forEach(layer => {
                 const zoom = layer.setDim(dim);
@@ -3929,7 +3937,15 @@ class LayeredDrawingScreen {
             ctx.fillRect(0, 0, width, this.zoom.zoomedY);
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
             ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
-            ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
+            let canvas = this.canvas;
+            /*for(let i = 0; (canvas.width << 1) < zoomedWidth && (canvas.height << 1) < zoomedHeight && i < 4; i++)
+            {
+
+                this.scalingCanvases[i].second.clearRect(0, 0, this.scalingCanvases[i].first.width, this.scalingCanvases[i].first.height);
+                this.scalingCanvases[i].second.drawImage(canvas, 0, 0, this.scalingCanvases[i].first.width, this.scalingCanvases[i].first.height);
+                canvas = this.scalingCanvases[i].first;
+            }*/
+            ctx.drawImage(canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             //ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
         }
     }
@@ -4340,19 +4356,20 @@ class Sprite {
         this.fillBackground = fillBackground;
         this.copy(pixels, width, height);
     }
+    createImageData() {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.width;
+        canvas.height = this.height;
+        const ctx = canvas.getContext('2d');
+        return ctx.createImageData(this.width, this.height);
+    }
     copy(pixels, width, height) {
         this.width = width;
         this.height = height;
         if (width !== 0 && height !== 0) {
             if (!this.pixels || this.pixels.length !== pixels.length || this.pixels.length > 0) {
-                const canvas = document.createElement('canvas');
-                canvas.width = this.width;
-                canvas.height = this.height;
-                const ctx = canvas.getContext('2d');
-                this.imageData = ctx.createImageData(this.width, this.height);
+                this.imageData = this.createImageData();
                 this.pixels = this.imageData.data;
-                this.width = width;
-                this.height = height;
             }
             for (let i = 0; i < pixels.length; i++) {
                 this.pixels[(i << 2)] = pixels[i].red();

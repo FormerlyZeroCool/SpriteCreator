@@ -3983,7 +3983,7 @@ class DrawingScreen {
         let zoom:Pair<number> = new Pair<number>(1,1);
         if(newDim.length === 2)
         { 
-            if(newDim[0] <= 500)
+            if(newDim[0] <= 512)
             {
                 this.bounds.first = newDim[0] * Math.floor(1024 / newDim[0]);
                 zoom.first = 1 / Math.floor(1024 / newDim[0]);
@@ -4445,6 +4445,7 @@ class LayeredDrawingScreen {
     selected:number;
     clipBoard:ClipBoard;
     canvas:HTMLCanvasElement;
+    //scalingCanvases:Pair<HTMLCanvasElement, CanvasRenderingContext2D>[];
     canvasTransparency:HTMLCanvasElement;
     spriteTest:Sprite;
     dim:number[];
@@ -4603,6 +4604,14 @@ class LayeredDrawingScreen {
     setDimOnCurrent(dim:number[]):void {
         if(this.layer())
         {
+            /*this.scalingCanvases = [];
+            for(let i = 0; i < 4; i++)
+            {
+                const canvas:HTMLCanvasElement = document.createElement("canvas");
+                canvas.width = dim[0] << (1 + i);
+                canvas.height = dim[1] << (1 + i);
+                this.scalingCanvases.push(new Pair(canvas, canvas.getContext("2d")));
+            }*/
             this.toolSelector.settingsTool.setDim(dim);
             this.layers.forEach(layer => {
                 const zoom:Pair<number> = layer.setDim(dim);
@@ -4753,8 +4762,16 @@ class LayeredDrawingScreen {
             ctx.fillRect(0,0,width, this.zoom.zoomedY);
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
             ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
+            let canvas:HTMLCanvasElement = this.canvas;
             
-            ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
+            /*for(let i = 0; (canvas.width << 1) < zoomedWidth && (canvas.height << 1) < zoomedHeight && i < 4; i++)
+            {
+
+                this.scalingCanvases[i].second.clearRect(0, 0, this.scalingCanvases[i].first.width, this.scalingCanvases[i].first.height);
+                this.scalingCanvases[i].second.drawImage(canvas, 0, 0, this.scalingCanvases[i].first.width, this.scalingCanvases[i].first.height);
+                canvas = this.scalingCanvases[i].first;
+            }*/
+            ctx.drawImage(canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             //ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
         }
     }
@@ -5285,6 +5302,16 @@ class Sprite {
         this.fillBackground = fillBackground;
         this.copy(pixels, width, height);
     }
+    
+    createImageData():ImageData {
+
+        const canvas = document.createElement('canvas');
+        canvas.width = this.width;
+        canvas.height = this.height;
+        const ctx = canvas.getContext('2d');
+
+        return ctx.createImageData(this.width, this.height);
+    }
     copy(pixels:Array<RGB>, width:number, height:number):void
     {
 
@@ -5293,17 +5320,8 @@ class Sprite {
         if(width !== 0 && height !== 0)
         {
             if(!this.pixels || this.pixels.length !== pixels.length || this.pixels.length > 0){
-
-                const canvas = document.createElement('canvas');
-                canvas.width = this.width;
-                canvas.height = this.height;
-                const ctx = canvas.getContext('2d');
-    
-                this.imageData = ctx.createImageData(this.width, this.height);
+                this.imageData = this.createImageData();
                 this.pixels = this.imageData.data;
-                this.width = width;
-                this.height = height;
-    
             }
             for(let i = 0; i < pixels.length; i++)
             {
