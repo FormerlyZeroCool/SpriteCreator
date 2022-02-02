@@ -1422,6 +1422,7 @@ class GuiTextBox implements GuiElement {
                 case("keydown"):
                 switch(e.code)
                 {
+                    case("NumpadEnter"):
                     case("Enter"):
                     this.deactivate();
                     if(this.submissionButton)
