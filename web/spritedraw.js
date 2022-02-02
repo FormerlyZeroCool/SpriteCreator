@@ -5140,7 +5140,7 @@ async function main() {
         animationGroupSelector.animationGroup().spriteSelector.deleteSelectedSprite();
     });
     keyboardHandler.registerCallBack("keydown", e => true, e => {
-        if ((document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)) {
+        if (!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)) {
             if (e.code.substring(0, "Digit".length) === "Digit") {
                 const numTyped = e.code.substring("Digit".length, e.code.length);
                 pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
@@ -5151,7 +5151,7 @@ async function main() {
             }
         }
     });
-    keyboardHandler.registerCallBack("keyup", e => true, e => {
+    keyboardHandler.registerCallBack("keyup", e => !e.defaultPrevented, e => {
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
             field.layer().state.color.copy(pallette.calcColor());
         }
