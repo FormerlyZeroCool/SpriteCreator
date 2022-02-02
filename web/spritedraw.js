@@ -1812,6 +1812,11 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("Resize:", 80, 16));
         this.localLayout.addElement(this.checkBoxResizeImage);
     }
+    setDim(dim) {
+        this.tbX.setText(dim[0].toString());
+        this.tbY.setText(dim[1].toString());
+        this.dim = [dim[0], dim[1]];
+    }
     activateOptionPanel() { this.layoutManager.activate(); }
     deactivateOptionPanel() { this.layoutManager.deactivate(); }
     getOptionPanel() {
@@ -3714,6 +3719,7 @@ class LayeredDrawingScreen {
     }
     setDimOnCurrent(dim) {
         if (this.layer()) {
+            this.toolSelector.settingsTool.setDim(dim);
             this.layers.forEach(layer => {
                 const zoom = layer.setDim(dim);
                 this.zoom.zoomX = zoom.first;
@@ -5161,9 +5167,7 @@ async function main() {
             img.onload = () => {
                 toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`);
                 field.loadImageToLayer(img);
-                toolSelector.settingsTool.dim = [img.width, img.height];
-                toolSelector.settingsTool.tbX.setText(img.width.toString());
-                toolSelector.settingsTool.tbY.setText(img.height.toString());
+                toolSelector.settingsTool.setDim([img.width, img.height]);
             };
             img.src = reader.result;
         });
