@@ -4185,7 +4185,7 @@ class DrawingScreen {
             }
             
             spriteScreenBuf.putPixels(ctx);
-            if(this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length > 1)
+            if(this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length)
             {
                 let start = this.toolSelector.polygon.length - 1;
                 ctx.lineWidth = cellWidth;
@@ -4270,6 +4270,22 @@ class DrawingScreen {
         }
 
         
+    }
+    drawToContextAsSprite(ctx:CanvasRenderingContext2D, x:number, y:number, width:number = this.dimensions.first, height:number = this.dimensions.second):void
+    {
+        if(this.repaint)
+        {
+            this.renderToBuffer(this.spriteScreenBuf);
+        }
+        this.spriteScreenBuf.putPixels(this.ctx);
+        const oldAlpha:number = ctx.globalAlpha;
+        if(oldAlpha !== this.drawWithAlpha) {
+            ctx.globalAlpha = this.drawWithAlpha;
+            ctx.drawImage(this.canvas, x, y, width, height);
+            ctx.globalAlpha = oldAlpha;
+        }
+        else
+            ctx.drawImage(this.canvas, x, y, width, height);
     }
     drawToContext(ctx:CanvasRenderingContext2D, x:number, y:number, width:number = this.dimensions.first, height:number = this.dimensions.second):void
     {
@@ -4446,7 +4462,6 @@ class LayeredDrawingScreen {
     }
     clearBitMask():void 
     {
-        this.toolSelector.polygon = [];
         let i = 0;
         for(; i < this.state.bufferBitMask.length - 16; ++i)
         {
@@ -4597,7 +4612,7 @@ class LayeredDrawingScreen {
             if(this.layersState[i])
             {
                 const layer:DrawingScreen = this.layers[i];
-                layer.drawToContext(ctx, 0, 0, this.layer().dimensions.first, this.layer().dimensions.second);
+                layer.drawToContextAsSprite(ctx, 0, 0, this.layer().dimensions.first, this.layer().dimensions.second);
             }
         }
         //save rescaled offscreen canvas to sprite
