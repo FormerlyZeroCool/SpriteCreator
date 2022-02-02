@@ -216,18 +216,28 @@ class RGB {
             b = parseInt(vals[2], 10);
             a = parseFloat(vals[3]) * 255;
         }
+        let invalid = false;
         if (!isNaN(r) && r <= 255 && r >= 0) {
             this.setRed(r);
         }
+        else
+            invalid = true;
         if (!isNaN(g) && g <= 255 && g >= 0) {
             this.setGreen(g);
         }
+        else
+            invalid = true;
         if (!isNaN(b) && b <= 255 && b >= 0) {
             this.setBlue(b);
         }
+        else
+            invalid = true;
         if (!isNaN(a) && a <= 255 && a >= 0) {
             this.setAlpha(a);
         }
+        else
+            invalid = true;
+        return !invalid;
     }
     htmlRBGA() {
         return `rgba(${this.red()}, ${this.green()}, ${this.blue()}, ${this.alphaNormal()})`;
@@ -1751,8 +1761,14 @@ class ColorPickerTool extends ExtendedTool {
         this.tbColor.promptText = "Enter RGBA color here (RGB 0-255 A 0-1):";
         this.setColorText();
         this.btUpdate = new GuiButton(() => {
-            this.field.layer().palette.setSelectedColor(this.tbColor.text);
-            this.field.layer().state.color = this.field.layer().palette.calcColor();
+            const color = new RGB(0, 0, 0, 0);
+            if (color.loadString(this.tbColor.text)) {
+                this.field.layer().palette.setSelectedColor(this.tbColor.text);
+                this.field.layer().state.color = this.field.layer().palette.calcColor();
+            }
+            else {
+                this.tbColor.setText(this.field.layer().palette.calcColor().htmlRBGA());
+            }
         }, "Update", 75, this.tbColor.height(), 16);
         this.tbColor.submissionButton = this.btUpdate;
         this.localLayout.addElement(new GuiLabel("Color:", 150, 16));
