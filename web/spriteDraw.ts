@@ -5515,6 +5515,7 @@ class Pallette {
 };
 function buildSpriteFromBuffer(buffer:Uint32Array, index:number):Pair<Sprite, number>
 {
+    console.log(buffer[index-1], buffer[index], buffer[index + 1], buffer[index + 2])
     const size:number = buffer[index++];
     const type:number = buffer[index++];
     const width:number = buffer[index] >> 16;
@@ -5550,8 +5551,8 @@ function buildSpriteAnimationFromBuffer(buffer:Uint32Array, index:number):Pair<S
     for(; i < size;)
     {
         const result:Pair<Sprite, number> = buildSpriteFromBuffer(buffer, index);
-        index += result.second;
-        i += result.second;
+        index += result.second + 1;
+        i += result.second + 1;
         animation.pushSprite(result.first);
     }
     console.log(size)

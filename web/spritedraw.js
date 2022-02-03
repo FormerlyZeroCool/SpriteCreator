@@ -4541,6 +4541,7 @@ class Pallette {
 }
 ;
 function buildSpriteFromBuffer(buffer, index) {
+    console.log(buffer[index - 1], buffer[index], buffer[index + 1], buffer[index + 2]);
     const size = buffer[index++];
     const type = buffer[index++];
     const width = buffer[index] >> 16;
@@ -4572,8 +4573,8 @@ function buildSpriteAnimationFromBuffer(buffer, index) {
     const animation = new SpriteAnimation(0, 0, width, height);
     for (; i < size;) {
         const result = buildSpriteFromBuffer(buffer, index);
-        index += result.second;
-        i += result.second;
+        index += result.second + 1;
+        i += result.second + 1;
         animation.pushSprite(result.first);
     }
     console.log(size);
