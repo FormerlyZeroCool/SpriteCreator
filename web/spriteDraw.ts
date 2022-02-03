@@ -2252,7 +2252,6 @@ class SprayCanTool extends PenTool {
 class ColorPickerTool extends ExtendedTool {
     field:LayeredDrawingScreen;
     tbColor:GuiTextBox;
-    colorTextBackup:string;
     btUpdate:GuiButton;
     constructor(field:LayeredDrawingScreen, toolName:string = "colorPicker", pathToImage:string = "images/colorPickerSprite.png", optionPanes:SimpleGridLayoutManager[] = [])
     {
@@ -2261,20 +2260,14 @@ class ColorPickerTool extends ExtendedTool {
         this.tbColor = new GuiTextBox(true, 200, null, 16, 32, GuiTextBox.default, (e) =>
         {
             const color:RGB = new RGB(0,0,0,0);
-            const code:number = color.loadString(this.tbColor.text);
-            if(code === 0)
+            const code:number = color.loadString(e.textbox.text);
+            if(code === 2)//overflow
             {
-                this.colorTextBackup = e.textbox.text;
+                e.textbox.text = (color.htmlRBGA());
             }
-            else if(code === 2)
+            else if(code === 1)//parse error
             {
-                this.tbColor.text = (color.htmlRBGA());
-                this.tbColor.refresh();
-                this.colorTextBackup = this.tbColor.text;
-            }
-            else
-            {
-                e.textbox.text = this.colorTextBackup;
+                return false;
             }
             return true;
         });
@@ -2658,25 +2651,54 @@ class FilesManagerTool extends ExtendedTool {
     savePng:GuiButton;
     gifName:GuiTextBox;
     saveGif:GuiButton;
+    projectName:GuiTextBox;
+    saveProject:GuiButton;
+
     constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
         super(name, path, optionPanes,[200, 400], [1, 22]);
         this.savePng = new GuiButton(() => {field.saveToFile(this.pngName.text)}, "Save PNG", 85, 35, 16);
-        this.pngName = new GuiTextBox(true, 200, this.savePng, 16, 35, GuiTextBox.bottom);
+        this.pngName = new GuiTextBox(true, 200, this.savePng, 16, 35, GuiTextBox.bottom, (event) => {
+            if(event.textbox.text.substring(event.textbox.text.length - 4, event.textbox.text.length) !== ".png")
+            {
+                return false;
+            }
+            return true;
+        });
         this.saveGif = new GuiButton(() => {
             field.toolSelector.animationsGroupsSelector.selectedAnimation().toGifBlob(blob => {
             saveBlob(blob, this.gifName.text);
         });
         }, "Save Gif", 85, 35, 16);
-        this.gifName = new GuiTextBox(true, 200, this.saveGif, 16, 35, GuiTextBox.bottom);
+        this.gifName = new GuiTextBox(true, 200, this.saveGif, 16, 35, GuiTextBox.bottom, (event) => {
+            if(event.textbox.text.substring(event.textbox.text.length - 4, event.textbox.text.length) !== ".gif")
+            {
+                return false;
+            }
+            return true;
+        });
+        this.saveProject = new GuiButton(() => {
+            field.toolSelector.animationsGroupsSelector.saveAs(this.projectName.text);
+        }, "Save Project", 125, 35, 16);
+        this.projectName = new GuiTextBox(true, 200, this.saveGif, 16, 35, GuiTextBox.bottom, (event) => {
+            if(event.textbox.text.substring(event.textbox.text.length - 5, event.textbox.text.length) !== ".proj")
+            {
+                return false;
+            }
+            return true;
+        });
         this.gifName.setText("myFirst.gif");
         this.pngName.setText("myFirst.png");
+        this.projectName.setText("myFirst.proj");
         this.localLayout.addElement(new GuiLabel("Save Screen as:", 200, 16, GuiTextBox.bottom));
         this.localLayout.addElement(this.pngName);
         this.localLayout.addElement(this.savePng);
         this.localLayout.addElement(new GuiLabel("Save selected\nanimation as gif:", 200, 16, GuiTextBox.bottom, 50));
         this.localLayout.addElement(this.gifName);
         this.localLayout.addElement(this.saveGif);
+        this.localLayout.addElement(new GuiLabel("Save project to a file:", 200, 16, GuiTextBox.bottom, 35));
+        this.localLayout.addElement(this.projectName);
+        this.localLayout.addElement(this.saveProject);
     }
 };
 class SelectionTool extends ExtendedTool {
@@ -4525,7 +4547,7 @@ function createShader(gl:WebGLRenderingContext, type, source:string) {
     console.log(gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
   }
-  function createProgram(gl, vertexShader, fragmentShader) {
+function createProgram(gl, vertexShader, fragmentShader) {
     var program = gl.createProgram();
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
@@ -4538,7 +4560,7 @@ function createShader(gl:WebGLRenderingContext, type, source:string) {
     console.log(gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
   }
-  function setTexcoords(gl) {
+function setTexcoords(gl) {
     gl.bufferData(
         gl.ARRAY_BUFFER,
         new Float32Array([
@@ -5491,6 +5513,89 @@ class Pallette {
         }
     }
 };
+function buildSpriteFromBuffer(buffer:Uint32Array, index:number):Pair<Sprite, number>
+{
+    const size:number = buffer[index++];
+    const type:number = buffer[index++];
+    const width:number = buffer[index] >> 16;
+    const height:number = buffer[index++] & ((1 << 17) - 1);
+    const sprite:Sprite = new Sprite([], width, height);
+    if(type !== 3)
+        throw new Error("Corrupted project file sprite type should be: 3, but is: " + type.toString());
+    if(width * height != size - 3)
+        throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() +","+ height.toString() + "), but size is: " + size.toString());
+    for(let i = 0; i < size - 3; i++)
+    {
+        let pbIndex:number = i << 2;
+        sprite.pixels[pbIndex++] = buffer[index] >> 24 & ((1 << 8) - 1);
+        sprite.pixels[pbIndex++] = buffer[index] >> 16 & ((1 << 8) - 1);
+        sprite.pixels[pbIndex++] = buffer[index] >> 8 & ((1 << 8) - 1);
+        sprite.pixels[pbIndex] = buffer[index] & ((1 << 8) - 1);
+        index++;
+    }
+    sprite.refreshImage();
+    return new Pair(sprite, size);
+}
+function buildSpriteAnimationFromBuffer(buffer:Uint32Array, index:number):Pair<SpriteAnimation, number>
+{
+    const size:number = buffer[index++];
+    const type:number = buffer[index++];
+    const width:number = buffer[index] >> 16;
+    const height:number = buffer[index + 1] & ((1 << 17) - 1);
+    if(type !== 2)
+        throw new Error("Corrupted project file animation type should be: 2, but is: " + type.toString());
+    let i:number = 2;
+    const animation:SpriteAnimation = new SpriteAnimation(0, 0, width, height);
+
+    for(; i < size;)
+    {
+        const result:Pair<Sprite, number> = buildSpriteFromBuffer(buffer, index);
+        index += result.second;
+        i += result.second;
+        animation.pushSprite(result.first);
+    }
+    console.log(size)
+    return new Pair(animation, size);
+}
+function buildAnimationGroupFromBuffer(buffer:Uint32Array, index:number, groupsSelector:AnimationGroupsSelector): number
+{
+    const size:number = buffer[index++];
+    const type:number = buffer[index++];
+    if(type !== 1)
+        throw new Error("Corrupted project file animation group type should be: 1, but is: " + type.toString());
+    
+    const group:AnimationGroup = groupsSelector.createAnimationGroup();
+    group.deleteAnimation(0);
+    let i = 0;
+    while(i < size - 2)
+    {
+        const result:Pair<SpriteAnimation, number> = buildSpriteAnimationFromBuffer(buffer, index);
+        i += result.second;
+        index += result.second;
+        group.pushAnimation(result.first);
+    }
+    return size;
+}
+function buildGroupsFromBuffer(buffer:Uint32Array, groupsSelector:AnimationGroupsSelector):number
+{
+    let index:number = 0;
+    groupsSelector.animationGroups = [];
+    groupsSelector.selectedAnimationGroup = 0;
+    const size:number = buffer[index++];
+    const type:number = buffer[index++];
+    if(type !== 0)
+        throw new Error("Corrupted project file group of animation groups type should be: 0, but is: " + type.toString());
+    if(size !== buffer.length)
+        throw Error("Corrupted file, sie does not match header value of: "+size.toString()+" instead it is: " + buffer.length);
+    let i:number = 0;
+    while(i < size - 2)
+    {
+        const result:number = buildAnimationGroupFromBuffer(buffer, index, groupsSelector);
+        i += result;
+        index += result;
+    }
+    return size;
+}
 class Sprite {
     pixels:Uint8ClampedArray;
     imageData:ImageData;
@@ -5604,7 +5709,7 @@ class Sprite {
     saveToUint32Buffer(buf:Uint32Array, index:number):number
     {
         buf[index++] = this.binaryFileSize();
-        buf[index++] = 2;
+        buf[index++] = 3;
         buf[index] |= this.height << 16; 
         buf[index++] |= this.width; 
         for(let i = 0; i < this.pixels.length; i += 4)
@@ -5692,7 +5797,6 @@ class Sprite {
         }
     }
 };
-
 class SpriteAnimation {
     sprites:Sprite[];
     x:number;
@@ -5740,8 +5844,8 @@ class SpriteAnimation {
     saveToUint32Buffer(buf:Uint32Array, index:number):number
     {
         buf[index++] = this.binaryFileSize();
-        buf[index++] = 1;
-        this.sprites.forEach(sprite => index += sprite.saveToUint32Buffer(buf, index));
+        buf[index++] = 2;
+        this.sprites.forEach(sprite => index = sprite.saveToUint32Buffer(buf, index));
         return index;
     }
     cloneAnimation():SpriteAnimation
@@ -6116,20 +6220,20 @@ class AnimationGroup {
     }
     buildFromBinary(binary:Uint32Array):AnimationGroup[]
     {
-        let i = 0;
+        let i = 1;
         const groupSize:number = binary[i];
         const color:RGB = new RGB(0, 0, 0, 0);
         const groups:AnimationGroup[] = [];
-        while(i < binary.length)
+        let j:number = 0;
+        //while(j < binary.length)
         {
-            if(i++ != 0)
-                throw "Corrupted File, animation group project header corrupted";
-            let j:number = 0;
-            const animationSize:number = binary[i+2];
-            groups.push(new AnimationGroup(this.drawingField, this.keyboardHandler, "test", "test", this.spriteSelector.spritesPerRow, this.spriteSelector.spriteWidth, this.spriteSelector.spriteHeight)
+            if(j != 0)
+                throw new Error("Corrupted File, animation group project header corrupted");
+            const animationSize:number = binary[i+1];
+            groups.push(new AnimationGroup(this.drawingField, this.keyboardHandler, "animations", "sprites_canvas", this.spriteSelector.spritesPerRow, this.spriteSelector.spriteWidth, this.spriteSelector.spriteHeight)
                 );
-            if(binary[i + 1] != 1)
-                throw "Corrupted File, animation header corrupted";
+            if(binary[i + 2] != 1)
+                throw new Error("Corrupted File, animation header corrupted value is:" + binary[(i+2)] + " should be 1");
             for(;j < groupSize; j += animationSize)
             {
                 const animationSize:number = binary[i + j + 2];
@@ -6137,17 +6241,20 @@ class AnimationGroup {
                 const animations:SpriteAnimation[] = groups[groups.length - 1].animations;
                 const sprites:Sprite[] = animations[animations.length - 1].sprites;
                 let k = 0;
-                const spriteSize:number = binary[i + j + 4];
-                if(binary[i + j + 5] != 2)
-                    throw "Corrupted sprite header file";
+                const spriteSize:number = binary[i + j + 5];
+                console.log(spriteSize)
+                if(binary[i + j + 6] != 2)
+                    throw new Error("Corrupted sprite header file value is: " + binary[i + j + 6] + ", and should be 2");
                 for(; k < animationSize; k += spriteSize)
                 {
-                    const spriteSize:number = binary[i + j + k + 4];
-                    const spriteWidth:number = binary[i + j + k + 5] & ((1<<16)-1);
-                    const spriteHeight:number = binary[i + j + k + 5] >> 16;
-                    let binaryPixelIndex:number = i + j + k + 7;
+                    const spriteSize:number = binary[i + j + k + 5];
+                    const type:number = binary[i + j + k + 6];
+                    const spriteWidth:number = binary[i + j + k + 7] & ((1<<16)-1);
+                    const spriteHeight:number = binary[i + j + k + 7] >> 16;
+                    let binaryPixelIndex:number = i + j + k + 8;
+                    console.log(binaryPixelIndex)
                     let l:number = 0;
-                    const sprite:Sprite = new Sprite(undefined, spriteWidth, spriteHeight);
+                    const sprite:Sprite = new Sprite([], spriteWidth, spriteHeight);
                     sprites.push(sprite);
                     for(; l < spriteSize; l++, binaryPixelIndex++)
                     {
@@ -6160,18 +6267,17 @@ class AnimationGroup {
                     }
                 }
             }
+            i += groupSize;
         }
         return groups;
     }
-    toBinary():Uint32Array
+    toBinary(buffer:Uint32Array, index:number):number
     {
         const size:number = this.binaryFileSize();
-        const buffer:Uint32Array = new Uint32Array(size);
-        buffer[0] = size;
-        buffer[1] = 0;
-        let index:number = 0;
-        this.animations.forEach(animation => index += animation.saveToUint32Buffer(buffer, index));
-        return buffer;
+        buffer[index++] = size;
+        buffer[index++] = 1;
+        this.animations.forEach(animation => index = animation.saveToUint32Buffer(buffer, index));
+        return index;
     }
     selectedAnimationX():number
     {
@@ -6329,18 +6435,27 @@ class AnimationGroupsSelector {
     }
     buildFromBinary(binary:Uint32Array):void
     {
-        const groups:AnimationGroup[] = this.animationGroup().buildFromBinary(binary);
+        /*const groups:AnimationGroup[] = this.animationGroup().buildFromBinary(binary);
         this.animationGroups = [];
         this.selectedAnimationGroup = 0;
         groups.forEach(el => {
             this.animationGroups.push(new Pair(el, new Pair(0,0)));
-        })
+        })*/
+        buildGroupsFromBuffer(binary, this);
     }
-    save():void {
-        var a = document.createElement("a");
-        a.href = window.URL.createObjectURL(new Blob([this.animationGroup().toBinary()], {type: "application/octet-stream"}));
-        a.download = "demo.txt";
-        a.click();
+    toBinary():Uint32Array {
+        const size:number = this.binaryFileSize();
+        const data:Uint32Array = new Uint32Array(size);
+        let index = 0;
+        data[index++] = size;
+        data[index++] = 0;
+        this.animationGroups.forEach(group => {
+            index = group.first.toBinary(data, index);
+        });
+        return data;
+    }
+    saveAs(name:string):void {
+        saveBlob(new Blob([this.toBinary()],{type: "application/octet-stream"}), name);
     }
     autoResizeCanvas()
     {
@@ -6353,11 +6468,12 @@ class AnimationGroupsSelector {
             }
         }
     }
-    createAnimationGroup()
+    createAnimationGroup():AnimationGroup
     {
         this.animationGroups.push(new Pair(new AnimationGroup(this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
         this.animationGroups[this.animationGroups.length-1].first.pushAnimation(new SpriteAnimation(0, 0, dim[0], dim[1]));
         this.autoResizeCanvas();
+        return this.animationGroups[this.animationGroups.length-1].first;
     }
     animationGroup():AnimationGroup
     {
@@ -6657,6 +6773,16 @@ async function main()
                 toolSelector.settingsTool.setDim([img.width, img.height]);
             };
             img.src = <string> reader.result;
+        });
+    });
+    const projectFileSelector = document.getElementById('project-file-selector');
+    projectFileSelector.addEventListener('change', (event) => {
+      const fileList:FileList = (<FilesHaver> <Object> event.target).files;
+      const reader = new FileReader();
+      fileList[0].arrayBuffer().then((buffer) =>
+        {
+            const binary:Uint32Array = new Uint32Array(buffer);
+            animationGroupSelector.buildFromBinary(binary);
         });
     });
     canvas.onmousemove = (event:MouseEvent) => {
