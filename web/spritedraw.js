@@ -1003,19 +1003,16 @@ class TextRow {
 ;
 class Optional {
     constructor() {
-        this.null = true;
+        this.data = null;
     }
     get() {
-        if (!this.null)
-            return this.data;
-        return null;
+        return this.data;
     }
     set(data) {
         this.data = data;
-        this.null = false;
     }
     clear() {
-        this.null = true;
+        this.data = null;
     }
 }
 ;
@@ -1102,6 +1099,8 @@ class GuiTextBox {
         let preventDefault = false;
         if (this.active() && this.handleKeyEvents) {
             preventDefault = true;
+            const oldText = this.text;
+            const oldCursor = this.cursor;
             switch (type) {
                 case ("keydown"):
                     switch (e.code) {
@@ -1162,14 +1161,19 @@ class GuiTextBox {
                                 }
                             }
                     }
-                    if (!isNaN(Number(this.text))) {
-                        this.asNumber.set(Number(this.text));
+                    this.calcNumber();
+                    if (this.validationCallback) {
+                        if (!this.validationCallback({ textbox: this, event: e, oldCursor: oldCursor, oldText: oldText })) {
+                            this.text = oldText;
+                            this.cursor = oldCursor;
+                        }
+                        else {
+                            this.drawInternalAndClear();
+                        }
                     }
-                    else
-                        this.asNumber.clear();
-                    if (this.validationCallback)
-                        this.validationCallback({ textbox: this, event: e });
-                    this.drawInternalAndClear();
+                    else {
+                        this.drawInternalAndClear();
+                    }
             }
         }
         if (preventDefault)
@@ -1742,7 +1746,15 @@ class PenTool extends ExtendedTool {
         super(toolName, pathToImage, optionPanes, dimLocal, [2, 30], [1, 50]);
         this.layoutManager.pixelDim = [200, 500];
         this.lineWidth = strokeWith;
-        this.tbSize = new GuiTextBox(true, 80);
+        this.tbSize = new GuiTextBox(true, 80, null, 16, 35, GuiTextBox.default, (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            else if (event.textbox.asNumber.get() > 128) {
+                event.textbox.setText("128");
+            }
+            return true;
+        });
         this.tbSize.promptText = "Enter line width:";
         this.tbSize.setText(String(this.lineWidth));
         this.btUpdate = new GuiButton(() => {
@@ -1786,7 +1798,16 @@ PenTool.checkDrawCircular = new GuiCheckBox(null, 40, 40);
 class SprayCanTool extends PenTool {
     constructor(strokeWidth, toolName, pathToImage, callBack, optionPanes) {
         super(strokeWidth, toolName, pathToImage, optionPanes, [200, 155]);
-        this.tbProbability = new GuiTextBox(true, 99, this.btUpdate, 16);
+        this.tbProbability = new GuiTextBox(true, 99, this.btUpdate, 16, 35, GuiTextBox.default, (event) => {
+            if (event.textbox.asNumber.get() === null) {
+                return false;
+            }
+            else if (event.textbox.asNumber.get() > 1 && event.textbox.text.length > 0) {
+                event.textbox.setText((1).toString());
+                event.textbox.cursor = 1;
+            }
+            return true;
+        });
         this.btUpdate.callback = () => {
             this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get() <= 128 ? this.tbSize.asNumber.get() : 128) : this.lineWidth;
             this.tbSize.setText(String(this.lineWidth));
@@ -1816,6 +1837,7 @@ class ColorPickerTool extends ExtendedTool {
             else {
                 e.textbox.text = this.colorTextBackup;
             }
+            return true;
         });
         this.tbColor.promptText = "Enter RGBA color here (RGB 0-255 A 0-1):";
         this.setColorText();
@@ -1874,10 +1896,20 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.checkBoxResizeImage.checked = false;
         this.checkBoxResizeImage.refresh();
         //this.localLayout = new SimpleGridLayoutManager([2,4],[200,150]);
-        this.tbX = new GuiTextBox(true, 70);
+        this.tbX = new GuiTextBox(true, 70, null, 16, 35, GuiTextBox.default, (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            return true;
+        });
         this.tbX.promptText = "Enter width:";
         this.tbX.setText(String(this.dim[0]));
-        this.tbY = new GuiTextBox(true, 70); //, null, 16, 100);
+        this.tbY = new GuiTextBox(true, 70, null, 16, 35, GuiTextBox.default, (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            return true;
+        }); //, null, 16, 100);
         this.tbY.promptText = "Enter height:";
         this.tbY.setText(String(this.dim[1]));
         this.btUpdate = new GuiButton(() => this.recalcDim(), "Update", 75, 35, 16);
@@ -3666,11 +3698,98 @@ class ZoomState {
     }
 }
 ;
+var vertexShaderSource = `#version 300 es
+in vec4 a_position;
+in vec2 a_texcoord;
+ 
+uniform mat4 u_matrix;
+ 
+// a varying to pass the texture coordinates to the fragment shader
+out vec2 v_texcoord;
+ 
+void main() {
+  // Multiply the position by the matrix.
+  gl_Position = u_matrix * a_position;
+ 
+  // Pass the texcoord to the fragment shader.
+  v_texcoord = a_texcoord;
+}
+`;
+var fragmentShaderSource = `#version 300 es
+precision highp float;
+ 
+// Passed in from the vertex shader.
+in vec2 v_texcoord;
+ 
+// The texture.
+uniform sampler2D u_texture;
+ 
+out vec4 outColor;
+ 
+void main() {
+   outColor = texture(u_texture, v_texcoord);
+}
+`;
+function createShader(gl, type, source) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (success) {
+        return shader;
+    }
+    console.log(gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+}
+function createProgram(gl, vertexShader, fragmentShader) {
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (success) {
+        return program;
+    }
+    console.log(gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+}
+function setTexcoords(gl) {
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        // left column front
+        0, 0,
+        0, 1,
+        1, 0,
+        0, 1,
+        1, 1,
+        1, 0,
+        // top rung front
+        0, 0,
+        0, 1,
+        1, 0,
+        0, 1,
+        1, 1,
+        1, 0,
+    ]), gl.STATIC_DRAW);
+}
+function createTexture(gl, drawable) {
+    // Create a texture.
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    // Fill the texture with a 1x1 blue pixel.
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, drawable.width, drawable.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, drawable.getContext("2d").getImageData(0, 0, drawable.width, drawable.height).data);
+    // Now that the image has loaded make copy it to the texture.
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawable);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    return texture;
+}
 class LayeredDrawingScreen {
     constructor(keyboardHandler, pallette) {
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
+        this.glCanvas = document.createElement("canvas");
+        //this.initWebGL();
         this.state = new DrawingScreenState(3);
         this.dim = [524, 524];
         this.canvas.width = this.dim[0];
@@ -3687,6 +3806,54 @@ class LayeredDrawingScreen {
         this.setDimOnCurrent(this.dim);
         this.zoom = new ZoomState();
         this.clipBoard = new ClipBoard(document.getElementById("clipboard_canvas"), keyboardHandler, 128, 128);
+    }
+    loadTexture(texcoordAttributeLocation) {
+        // create the texcoord buffer, make it the current ARRAY_BUFFER
+        // and copy in the texcoord values
+        var texcoordBuffer = this.glctx.createBuffer();
+        this.glctx.bindBuffer(this.glctx.ARRAY_BUFFER, texcoordBuffer);
+        setTexcoords(this.glctx);
+        // Turn on the attribute
+        this.glctx.enableVertexAttribArray(texcoordAttributeLocation);
+        // Tell the attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
+        var size = 2; // 2 components per iteration
+        var type = this.glctx.FLOAT; // the data is 32bit floating point values
+        var normalize = true; // convert from 0-255 to 0.0-1.0
+        var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next texcoord
+        var offset = 0; // start at the beginning of the buffer
+        this.glctx.vertexAttribPointer(texcoordAttributeLocation, size, type, normalize, stride, offset);
+    }
+    initWebGL() {
+        this.glctx = this.glCanvas.getContext("webgl2");
+        const vertexShader = createShader(this.glctx, this.glctx.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = createShader(this.glctx, this.glctx.FRAGMENT_SHADER, fragmentShaderSource);
+        this.glProgram = createProgram(this.glctx, vertexShader, fragmentShader);
+        const positionAttributeLocation = this.glctx.getAttribLocation(this.glProgram, "a_position");
+        const texcoordAttributeLocation = this.glctx.getAttribLocation(this.glProgram, "a_texcoord");
+        const texture = createTexture(this.glctx, this.canvas);
+        this.loadTexture(texcoordAttributeLocation);
+        const positionBuffer = this.glctx.createBuffer();
+        this.glctx.bindBuffer(this.glctx.ARRAY_BUFFER, positionBuffer);
+        // three 2d points
+        var positions = [
+            -1, -1,
+            -1, 1,
+            1, -1,
+            1, 1,
+            -1, 1,
+            1, -1
+        ];
+        this.glctx.bufferData(this.glctx.ARRAY_BUFFER, new Float32Array(positions), this.glctx.STATIC_DRAW);
+        this.vao = this.glctx.createVertexArray();
+        this.glctx.bindVertexArray(this.vao);
+        this.glctx.enableVertexAttribArray(positionAttributeLocation);
+        const size = 2; // 2 components per iteration
+        const type = this.glctx.FLOAT; // the data is 32bit floats
+        const normalize = false; // don't normalize the data
+        const stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+        const offset = 0; // start at the beginning of the buffer
+        this.glctx.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+        this.glctx.viewport(0, 0, this.glctx.canvas.width, this.glctx.canvas.height);
     }
     //possible replace these functions with one that first calculates the functions for all the lines in the polygon
     //check each point if it can solve the equation for the function, and the x is within the bounds of the line segment then the point intersects the line segment
@@ -3800,14 +3967,6 @@ class LayeredDrawingScreen {
     }
     setDimOnCurrent(dim) {
         if (this.layer()) {
-            /*this.scalingCanvases = [];
-            for(let i = 0; i < 4; i++)
-            {
-                const canvas:HTMLCanvasElement = document.createElement("canvas");
-                canvas.width = dim[0] << (1 + i);
-                canvas.height = dim[1] << (1 + i);
-                this.scalingCanvases.push(new Pair(canvas, canvas.getContext("2d")));
-            }*/
             this.toolSelector.settingsTool.setDim(dim);
             this.layers.forEach(layer => {
                 const zoom = layer.setDim(dim);
@@ -3937,15 +4096,25 @@ class LayeredDrawingScreen {
             ctx.fillRect(0, 0, width, this.zoom.zoomedY);
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
             ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
-            let canvas = this.canvas;
-            /*for(let i = 0; (canvas.width << 1) < zoomedWidth && (canvas.height << 1) < zoomedHeight && i < 4; i++)
+            /*if(this.glctx)
             {
-
-                this.scalingCanvases[i].second.clearRect(0, 0, this.scalingCanvases[i].first.width, this.scalingCanvases[i].first.height);
-                this.scalingCanvases[i].second.drawImage(canvas, 0, 0, this.scalingCanvases[i].first.width, this.scalingCanvases[i].first.height);
-                canvas = this.scalingCanvases[i].first;
-            }*/
-            ctx.drawImage(canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
+                // Clear the canvas
+                this.glctx.clearColor(0, 0, 0, 0);
+                this.glctx.clear(this.glctx.COLOR_BUFFER_BIT);
+                this.glctx.useProgram(this.glProgram);
+                const texcoordAttributeLocation = this.glctx.getAttribLocation(this.glProgram, "a_texcoord");
+                const texture = createTexture(this.glctx, this.canvas);
+                this.loadTexture(texcoordAttributeLocation);
+                // Bind the attribute/buffer set we want.
+                this.glctx.bindVertexArray(this.vao);
+                var primitiveType = this.glctx.TRIANGLES;
+                var offset = 0;
+                var count = 6;
+                this.glctx.drawArrays(primitiveType, offset, count);
+                ctx.drawImage(this.glCanvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
+            }
+            else*/
+            ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             //ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
         }
     }
