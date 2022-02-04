@@ -4586,8 +4586,7 @@ function buildAnimationGroupFromBuffer(buffer, index, groupsSelector) {
     const type = buffer[index++];
     if (type !== 1)
         throw new Error("Corrupted project file animation group type should be: 1, but is: " + type.toString());
-    const group = groupsSelector.createAnimationGroup();
-    group.deleteAnimation(0);
+    const group = groupsSelector.createEmptyAnimationGroup();
     let i = 0;
     while (i < size - 2) {
         const result = buildSpriteAnimationFromBuffer(buffer, index);
@@ -4618,14 +4617,18 @@ function buildGroupsFromBuffer(buffer, groupsSelector) {
 class Sprite {
     constructor(pixels, width, height, fillBackground = true) {
         this.fillBackground = fillBackground;
+        this.image = document.createElement("canvas");
+        this.ctx = this.image.getContext("2d");
         this.copy(pixels, width, height);
     }
     createImageData() {
-        const canvas = document.createElement('canvas');
-        canvas.width = this.width;
-        canvas.height = this.height;
-        const ctx = canvas.getContext('2d');
-        return ctx.createImageData(this.width, this.height);
+        const canvas = this.image;
+        if (canvas.width !== this.width || canvas.height !== this.height) {
+            canvas.width = this.width;
+            canvas.height = this.height;
+        }
+        this.ctx = canvas.getContext('2d');
+        return this.ctx.createImageData(this.width, this.height);
     }
     copy(pixels, width, height) {
         this.width = width;
@@ -4714,26 +4717,21 @@ class Sprite {
         return index;
     }
     refreshImage() {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = this.width;
-        canvas.height = this.height;
-        ctx.clearRect(0, 0, this.width, this.height);
-        ctx.putImageData(this.imageData, 0, 0);
-        this.image = new Image();
-        this.image.src = canvas.toDataURL();
+        const canvas = this.image;
+        if (canvas.width !== this.width || canvas.height !== this.height) {
+            canvas.width = this.width;
+            canvas.height = this.height;
+            this.ctx = canvas.getContext("2d");
+        }
+        this.putPixels(this.ctx);
     }
     copySprite(sprite) {
-        if (!this.pixels || this.pixels.length !== sprite.pixels.length) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            this.width = sprite.width;
-            this.height = sprite.height;
-            this.imageData = ctx.createImageData(this.width, this.height);
-            this.pixels = this.imageData.data;
-        }
         this.width = sprite.width;
         this.height = sprite.height;
+        if (!this.pixels || this.pixels.length !== sprite.pixels.length) {
+            this.imageData = this.createImageData();
+            this.pixels = this.imageData.data;
+        }
         for (let i = 0; i < this.pixels.length;) {
             this.pixels[i] = sprite.pixels[i++];
             this.pixels[i] = sprite.pixels[i++];
@@ -4743,9 +4741,7 @@ class Sprite {
     }
     copySpriteBlendAlpha(sprite) {
         if (this.pixels.length !== sprite.pixels.length) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            this.imageData = ctx.createImageData(this.width, this.height);
+            this.imageData = this.createImageData();
             this.pixels = this.imageData.data;
         }
         this.width = sprite.width;
@@ -5295,6 +5291,11 @@ class AnimationGroupsSelector {
                 this.canvas.height = this.neededRowsInCanvas() * this.renderHeight;
             }
         }
+    }
+    createEmptyAnimationGroup() {
+        this.animationGroups.push(new Pair(new AnimationGroup(this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0, 0)));
+        this.autoResizeCanvas();
+        return this.animationGroups[this.animationGroups.length - 1].first;
     }
     createAnimationGroup() {
         this.animationGroups.push(new Pair(new AnimationGroup(this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0, 0)));
