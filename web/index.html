@@ -1,6 +1,7 @@
 <html>
     <head>
     <link rel="stylesheet" href="style.css">
+
     <script src="gifjsLib/gif.js"></script>
     </head>
 <body id="body">
@@ -25,25 +26,30 @@
     </div>
 
     <div id="sprites_group" style="display: inline;">
+        Choose image to upload to layer: <input type="file" id="file-selector" multiple><br>
+        Choose project to load: <input type="file" id="project-file-selector" multiple><br>
+        
+        <br>
         <h3>Sprites/Frames:</h3>
-        Choose file to upload: <input type="file" id="file-selector" multiple><br>
         <div id="sprites" style="display: inline-block;">
-            <canvas id="sprites_canvas" width="500" height="100"            
-            style="border:1px solid #000000;"></canvas>
-            <br>
+
             <button id="add_sprite">Add Sprite</button>
             <button id="save_sprite">Save Sprite</button><br><br>
-            <button id="delete_sprite">Delete Sprite</button><br><br>
+            <button id="delete_sprite">Delete Sprite</button>
+            <br>
+            <canvas id="sprites_canvas" width="500" height="100"            
+            style="border:1px solid #000000;"></canvas>
+            <br><br>
         </div>
     </div>
     <h3>Animations:</h3>
-    <br><canvas id="animations" style="border:1px solid #c3c3c3"></canvas>
-    <br>
         
     <button id="add_animation">Add Animation</button>
     <button id="clone_animation">Clone Animation</button><br><br>
     <button id="delete_animation">Delete Animation</button>
         <br>
+        <canvas id="animations" style="border:1px solid #c3c3c3"></canvas>
+    <br>
     <div id="animations_group" style="display: inline-block;">
     <p>
 </p>
@@ -51,12 +57,14 @@
 
     <div style="display: inline-block;">
         <h3>Animation Groups</h3>
+        
+            <button id="add_animationGroup">Add Animation Group</button>
+            <button id="clone_animationGroup">Clone Animation Group</button><br><br>
+            <button id="delete_animationGroup">Delete Animation Group</button><br>
+            
         <canvas id="animation_group_selector" width="500" height="50" 
-        style="border:1px solid #c3c3c3"></canvas><p>
-        <button id="add_animationGroup">Add Animation Group</button>
-        <button id="clone_animationGroup">Clone Animation Group</button><br><br>
-        <button id="delete_animationGroup">Delete Animation Group</button>
-        </p></div>
+        style="border:1px solid #c3c3c3"></canvas>
+    </div>
     <br>
     <script src="spritedraw.js"></script>
 </body>
