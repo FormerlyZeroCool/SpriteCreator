@@ -4549,12 +4549,13 @@ function buildSpriteFromBuffer(buffer, index) {
         throw new Error("Corrupted project file sprite type should be: 3, but is: " + type.toString());
     if (width * height !== size - 3)
         throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() + "," + height.toString() + "), but size is: " + size.toString());
-    for (let i = 0; i < size - 3; i++) {
+    const limit = width * height;
+    for (let i = 0; i < limit; i++) {
         let pbIndex = i << 2;
         sprite.pixels[pbIndex++] = buffer[index] >> 24 & ((1 << 8) - 1);
         sprite.pixels[pbIndex++] = buffer[index] >> 16 & ((1 << 8) - 1);
         sprite.pixels[pbIndex++] = buffer[index] >> 8 & ((1 << 8) - 1);
-        sprite.pixels[pbIndex] = buffer[index] & ((1 << 8) - 1);
+        sprite.pixels[pbIndex++] = buffer[index] & ((1 << 8) - 1);
         index++;
     }
     sprite.refreshImage();
@@ -4592,7 +4593,7 @@ function buildAnimationGroupFromBuffer(buffer, index, groupsSelector) {
         const result = buildSpriteAnimationFromBuffer(buffer, index);
         i += result.second;
         index += result.second;
-        group.pushAnimation(result.first);
+        group.pushAnimationOnly(result.first);
     }
     return size;
 }
@@ -5021,6 +5022,11 @@ class AnimationGroup {
                 }
             }
         });
+        this.autoResizeCanvas();
+    }
+    pushAnimationOnly(animation) {
+        this.animations.push(animation);
+        //resize canvas if necessary
         this.autoResizeCanvas();
     }
     pushAnimation(animation) {
