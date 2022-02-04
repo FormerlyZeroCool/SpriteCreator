@@ -1043,7 +1043,6 @@ class GuiTextBox {
         this.dimensions = [width, height];
         this.fontSize = fontSize;
         this.fontName = fontName;
-        //if(document.fonts.check(`16px ${this.fontName}`))
         {
             if (customFontFace) {
                 this.font = customFontFace;
@@ -4541,7 +4540,6 @@ class Pallette {
 }
 ;
 function buildSpriteFromBuffer(buffer, index) {
-    console.log(buffer[index - 1], buffer[index], buffer[index + 1], buffer[index + 2]);
     const size = buffer[index++];
     const type = buffer[index++];
     const width = buffer[index] >> 16;
@@ -4549,7 +4547,7 @@ function buildSpriteFromBuffer(buffer, index) {
     const sprite = new Sprite([], width, height);
     if (type !== 3)
         throw new Error("Corrupted project file sprite type should be: 3, but is: " + type.toString());
-    if (width * height != size - 3)
+    if (width * height !== size - 3)
         throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() + "," + height.toString() + "), but size is: " + size.toString());
     for (let i = 0; i < size - 3; i++) {
         let pbIndex = i << 2;
@@ -4565,19 +4563,22 @@ function buildSpriteFromBuffer(buffer, index) {
 function buildSpriteAnimationFromBuffer(buffer, index) {
     const size = buffer[index++];
     const type = buffer[index++];
-    const width = buffer[index] >> 16;
-    const height = buffer[index + 1] & ((1 << 17) - 1);
+    const width = buffer[index + 2] >> 16;
+    const height = buffer[index + 2] & ((1 << 16) - 1);
     if (type !== 2)
         throw new Error("Corrupted project file animation type should be: 2, but is: " + type.toString());
     let i = 2;
     const animation = new SpriteAnimation(0, 0, width, height);
-    for (; i < size;) {
+    for (; i < size - 2;) {
         const result = buildSpriteFromBuffer(buffer, index);
-        index += result.second + 1;
-        i += result.second + 1;
+        index += result.second;
+        i += result.second;
         animation.pushSprite(result.first);
     }
-    console.log(size);
+    let spriteMemory = 0;
+    animation.sprites.forEach(sprite => spriteMemory += (sprite.pixels.length >> 2) + 3);
+    if (spriteMemory !== size - 2)
+        throw new Error("Error invalid group size: " + size.toString() + " should be: " + size.toString());
     return new Pair(animation, size);
 }
 function buildAnimationGroupFromBuffer(buffer, index, groupsSelector) {
@@ -4710,7 +4711,7 @@ class Sprite {
             buf[index] |= this.pixels[i + 2] << 8;
             buf[index++] |= this.pixels[i + 3];
         }
-        return ++index;
+        return index;
     }
     refreshImage() {
         const canvas = document.createElement('canvas');
