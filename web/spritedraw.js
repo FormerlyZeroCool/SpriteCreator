@@ -5525,7 +5525,7 @@ async function main() {
         //if(canvas.width !== getWidth() / 2 - (getWidth() / 8) * +(!isTouchSupported()))
         {
             canvas.width = getWidth() - 350;
-            canvas.height = 500;
+            canvas.height = screen.height * 0.6;
             if (pallette.canvas.width !== canvas.width)
                 pallette.canvas.width = canvas.width;
         }
