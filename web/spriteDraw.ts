@@ -1891,6 +1891,7 @@ class GuiToolBar implements GuiElement {
         return false;
     }
 };
+
 class ToolBarItem {
     toolImage:ImageContainer;
     constructor(toolName:string, toolImagePath:string)
@@ -1974,7 +1975,6 @@ class GenericTool extends Tool {
     }
     drawOptionPanel(ctx, x:number, y:number):void {}
 };
-
 class ExtendedTool extends ViewLayoutTool {
     localLayout:SimpleGridLayoutManager;
     optionPanels:SimpleGridLayoutManager[];
@@ -2305,7 +2305,6 @@ class ColorPickerTool extends ExtendedTool {
             this.tbColor.setText(this.color().htmlRBGA());
         else
             this.tbColor.setText(new RGB(0, 0, 0, 0).htmlRBGA())
-        this.colorTextBackup = this.tbColor.text;
     }
     activateOptionPanel():void { this.layoutManager.activate(); }
     deactivateOptionPanel():void { this.layoutManager.deactivate(); }
@@ -4119,10 +4118,19 @@ class DrawingScreen {
         return 1 - frac;
     }
     loadSprite(sprite:Sprite):void {
-        sprite.copyToBuffer(this.screenBuffer, this.dimensions.first, this.dimensions.second);
-        this.undoneUpdatesStack.empty();
-        this.updatesStack.empty();
+        const preUpdate = [];
+        for(let i = 0; i < this.screenBuffer.length; i++)
+        {
+            const color:RGB = this.screenBuffer[i];
+            preUpdate.push(new Pair(i, new RGB(color.red(), color.green(), color.blue(), color.alpha())));
+        }
+        this.updatesStack.push(preUpdate);
         this.updateLabelUndoRedoCount();
+        sprite.copyToBuffer(this.screenBuffer, this.dimensions.first, this.dimensions.second);
+        
+         
+                console.log("Loaded to screen:");
+        
         this.repaint = true;
     }
     setPixel(index:number, color:RGB)
@@ -4278,8 +4286,9 @@ class DrawingScreen {
             }
             else//use fill rect method to fill rectangle the size of pixels(more branch mispredicts, but more general)
             {
-                const cellHeight:number = (this.bounds.second / this.dimensions.second);
-                const cellWidth:number = (this.bounds.first / this.dimensions.first);
+                const cellHeight:number = Math.floor(this.bounds.second / this.dimensions.second);
+                const cellWidth:number = Math.floor(this.bounds.first / this.dimensions.first);
+                
                 for(let y = 0; y < this.dimensions.second; y++)
                 {
                     for(let x = 0; x < this.dimensions.first; x++)
@@ -4501,103 +4510,6 @@ class ZoomState {
         return (1 / (this.zoomY)) * (y);
     }
 };
-var vertexShaderSource = `#version 300 es
-in vec4 a_position;
-in vec2 a_texcoord;
- 
-uniform mat4 u_matrix;
- 
-// a varying to pass the texture coordinates to the fragment shader
-out vec2 v_texcoord;
- 
-void main() {
-  // Multiply the position by the matrix.
-  gl_Position = u_matrix * a_position;
- 
-  // Pass the texcoord to the fragment shader.
-  v_texcoord = a_texcoord;
-}
-`;
- 
-var fragmentShaderSource = `#version 300 es
-precision highp float;
- 
-// Passed in from the vertex shader.
-in vec2 v_texcoord;
- 
-// The texture.
-uniform sampler2D u_texture;
- 
-out vec4 outColor;
- 
-void main() {
-   outColor = texture(u_texture, v_texcoord);
-}
-`;
-function createShader(gl:WebGLRenderingContext, type, source:string) {
-    var shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-    if (success) {
-      return shader;
-    }
-   
-    console.log(gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
-  }
-function createProgram(gl, vertexShader, fragmentShader) {
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (success) {
-      return program;
-    }
-   
-    console.log(gl.getProgramInfoLog(program));
-    gl.deleteProgram(program);
-  }
-function setTexcoords(gl) {
-    gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array([
-          // left column front
-          0, 0,
-          0, 1,
-          1, 0,
-          0, 1,
-          1, 1,
-          1, 0,
-   
-          // top rung front
-          0, 0,
-          0, 1,
-          1, 0,
-          0, 1,
-          1, 1,
-          1, 0,
-
-         ]),
-         gl.STATIC_DRAW);
-}
-function createTexture(gl:WebGL2RenderingContext, drawable:HTMLCanvasElement)
-{
-    // Create a texture.
-        var texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        
-        // Fill the texture with a 1x1 blue pixel.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, drawable.width, drawable.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-                    drawable.getContext("2d").getImageData(0,0,drawable.width,drawable.height).data);
-        
-        // Now that the image has loaded make copy it to the texture.
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, drawable);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        return texture;
-}
 class LayeredDrawingScreen {
     layers:DrawingScreen[];
     layersState:boolean[];
@@ -4642,62 +4554,6 @@ class LayeredDrawingScreen {
         this.setDimOnCurrent(this.dim);
         this.zoom = new ZoomState();
         this.clipBoard = new ClipBoard(<HTMLCanvasElement> document.getElementById("clipboard_canvas"), keyboardHandler, 128, 128);
-    }
-    loadTexture(texcoordAttributeLocation):void
-    {
-        
-        // create the texcoord buffer, make it the current ARRAY_BUFFER
-        // and copy in the texcoord values
-        var texcoordBuffer = this.glctx.createBuffer();
-        this.glctx.bindBuffer(this.glctx.ARRAY_BUFFER, texcoordBuffer);
-        setTexcoords(this.glctx);
-
-        // Turn on the attribute
-        this.glctx.enableVertexAttribArray(texcoordAttributeLocation);
-
-        // Tell the attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
-        var size = 2;          // 2 components per iteration
-        var type = this.glctx.FLOAT;   // the data is 32bit floating point values
-        var normalize = true;  // convert from 0-255 to 0.0-1.0
-        var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next texcoord
-        var offset = 0;        // start at the beginning of the buffer
-        this.glctx.vertexAttribPointer(
-        texcoordAttributeLocation, size, type, normalize, stride, offset);
-    }
-    initWebGL():void{
-
-        this.glctx = this.glCanvas.getContext("webgl2");
-        const vertexShader = createShader(this.glctx, this.glctx.VERTEX_SHADER, vertexShaderSource);
-        const fragmentShader = createShader(this.glctx, this.glctx.FRAGMENT_SHADER, fragmentShaderSource);
-        this.glProgram = createProgram(this.glctx, vertexShader, fragmentShader);
-        const positionAttributeLocation = this.glctx.getAttribLocation(this.glProgram, "a_position");
-        const texcoordAttributeLocation = this.glctx.getAttribLocation(this.glProgram, "a_texcoord");
-        const texture = createTexture(this.glctx, this.canvas);
-        this.loadTexture(texcoordAttributeLocation);
-        const positionBuffer = this.glctx.createBuffer();
-        this.glctx.bindBuffer(this.glctx.ARRAY_BUFFER, positionBuffer);
-        // three 2d points
-        var positions = [
-            -1, -1,
-            -1, 1,
-            1, -1,
-            
-            1, 1,
-            -1, 1,
-            1, -1
-        ];
-        this.glctx.bufferData(this.glctx.ARRAY_BUFFER, new Float32Array(positions), this.glctx.STATIC_DRAW);
-        this.vao = this.glctx.createVertexArray();
-        this.glctx.bindVertexArray(this.vao);
-        this.glctx.enableVertexAttribArray(positionAttributeLocation);
-        const size = 2;          // 2 components per iteration
-        const type = this.glctx.FLOAT;   // the data is 32bit floats
-        const normalize = false; // don't normalize the data
-        const stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-        const offset = 0;        // start at the beginning of the buffer
-        this.glctx.vertexAttribPointer(
-            positionAttributeLocation, size, type, normalize, stride, offset);
-        this.glctx.viewport(0, 0, this.glctx.canvas.width, this.glctx.canvas.height);
     }
 //possible replace these functions with one that first calculates the functions for all the lines in the polygon
 //check each point if it can solve the equation for the function, and the x is within the bounds of the line segment then the point intersects the line segment
@@ -4907,7 +4763,7 @@ class LayeredDrawingScreen {
     {
         const layer:DrawingScreen = new DrawingScreen(
             document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [this.dim[0], this.dim[1]], this.toolSelector, this.state, this.clipBoard);
-        layer.setDim(this.dim);
+        layer.setDim(this.toolSelector.settingsTool?this.toolSelector.settingsTool.dim : this.dim);
         this.layers.push(layer);
         this.layersState.push(true);
         return layer;
@@ -5697,7 +5553,6 @@ class Sprite {
         }
         for(let y = 0; y < this.height && y < height; y++)
         {
-            const six:number = (10 + y * this.width) << 2;
             for(let x = 0; x < this.width && x < width; x++)
             {
                 const i:number = (x + y * width);
@@ -5887,7 +5742,7 @@ class SpriteSelector {
     dragSprite:Sprite;
     dragSpriteLocation:Array<number>;
     clickTime:number;
-    constructor(canvas, drawingField:LayeredDrawingScreen, animationGroup:AnimationGroup, keyboardHandler:KeyboardHandler, spritesPerRow:number, width:number, height:number)
+    constructor(canvas, listener:SingleTouchListener, drawingField:LayeredDrawingScreen, animationGroup:AnimationGroup, keyboardHandler:KeyboardHandler, spritesPerRow:number, width:number, height:number)
     {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d");
@@ -5903,20 +5758,19 @@ class SpriteSelector {
         this.spriteHeight = this.spriteWidth;
         this.selectedSprite = 0;
         canvas.height = this.spriteWidth;
-        const listener = new SingleTouchListener(canvas, true, true);
         this.listener = listener;
         this.spritesCount = this.sprites()?this.sprites().length:0;
-        listener.registerCallBack("touchstart", e => true, e => {
-
+       
+    }
+    handleTouchEvents(type:string, e):void
+    {
+        const clickedSprite:number = Math.floor(e.touchPos[0]/this.canvas.width*this.spritesPerRow) + this.spritesPerRow*Math.floor(e.touchPos[1] / this.spriteHeight);
+        switch(type) {
+            case("touchstart"):
             (<any>document.activeElement).blur();
-            const clickedSprite:number = Math.floor(e.touchPos[0]/canvas.width*this.spritesPerRow) + spritesPerRow*Math.floor(e.touchPos[1] / this.spriteHeight);
-            
-            
-        });
-        listener.registerCallBack("touchmove", e => true, e => {
-            const clickedSprite:number = Math.floor(e.touchPos[0]/canvas.width*this.spritesPerRow) + spritesPerRow*Math.floor(e.touchPos[1] / this.spriteHeight);
-            
-            if(e.moveCount === 1 && this.sprites() && this.sprites()[clickedSprite] && this.sprites().length > 1)
+            break;
+            case("touchmove"):
+            if(e.moveCount === 3 && this.sprites() && this.sprites()[clickedSprite] && this.sprites().length > 1)
             {
                 if(this.keyboardHandler.keysHeld["AltLeft"] || this.keyboardHandler.keysHeld["AltRight"])
                 {
@@ -5931,15 +5785,14 @@ class SpriteSelector {
                 this.dragSpriteLocation[0] = e.touchPos[0];
                 this.dragSpriteLocation[1] = e.touchPos[1];
             }
-            else if(e.moveCount > 1)
+            else if(e.moveCount > 3)
             {
                 this.dragSpriteLocation[0] += e.deltaX;
                 this.dragSpriteLocation[1] += e.deltaY;
             }
-        });
-        listener.registerCallBack("touchend", e => true, e => {
-            const clickedSprite:number = Math.floor(e.touchPos[0]/canvas.width*this.spritesPerRow) + spritesPerRow*Math.floor(e.touchPos[1] / this.spriteHeight);
-
+        
+        break;
+        case("touchend"):
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             if(clickedSprite >= 0 && this.dragSprite !== null)
             {
@@ -5962,7 +5815,8 @@ class SpriteSelector {
                 this.selectedSprite = this.sprites().length - 1;
             else
                 this.selectedSprite = 0;
-        });
+        break;
+        }
     }
     update()
     {
@@ -5976,7 +5830,6 @@ class SpriteSelector {
             {
                 this.spritesCount = this.sprites()?this.sprites().length:0;
                 this.selectedSprite = this.spritesCount - 1;
-                this.loadSprite();
             }
         }
     }
@@ -6015,11 +5868,6 @@ class SpriteSelector {
     {
         if(this.sprites().length > 1)
             this.sprites().splice(this.selectedSprite--, 1);
-    }
-    loadSprite()
-    {
-        if(this.selectedSpriteVal())
-            this.selectedSpriteVal().copyToBuffer(this.drawingField.layer().screenBuffer, this.drawingField.layer().dimensions.first, this.drawingField.layer().dimensions.second);
     }
     pushSelectedToCanvas()
     {
@@ -6065,10 +5913,12 @@ class AnimationGroup {
     dragSprite:SpriteAnimation;
     dragSpritePos:number[];
     listener:SingleTouchListener;
-    constructor(drawingField:LayeredDrawingScreen, keyboardHandler:KeyboardHandler, animiationsID:string, animationsSpritesID:string, spritesPerRow:number = 10, spriteWidth:number = 64, spriteHeight:number = 64, animationWidth:number = 128, animationHeight:number = 128, animationsPerRow:number = 5)
+    spriteSelectorListener:SingleTouchListener;
+    constructor(listener:SingleTouchListener, spriteSelectorListener:SingleTouchListener, drawingField:LayeredDrawingScreen, keyboardHandler:KeyboardHandler, animiationsID:string, animationsSpritesID:string, spritesPerRow:number = 10, spriteWidth:number = 64, spriteHeight:number = 64, animationWidth:number = 128, animationHeight:number = 128, animationsPerRow:number = 5)
     {
         this.drawingField = drawingField;
         this.keyboardHandler = keyboardHandler;
+        this.spriteSelectorListener = spriteSelectorListener;
         this.animationDiv = document.getElementById(animiationsID);
         this.animations = new Array<SpriteAnimation>();
         this.animationCanvas = <HTMLCanvasElement> document.getElementById(animiationsID);
@@ -6076,18 +5926,23 @@ class AnimationGroup {
         this.animationsPerRow = animationsPerRow;
         this.animationWidth = animationWidth;
         this.animationHeight = animationHeight;
-        this.dragSpritePos = [0, 0];
-        this.spriteSelector = new SpriteSelector(document.getElementById(animationsSpritesID), this.drawingField, this, keyboardHandler, spritesPerRow, spriteWidth, spriteHeight);
-        this.dragSprite = null;
-        const listener:SingleTouchListener = new SingleTouchListener(this.animationCanvas, false, true);
         this.listener = listener;
-        listener.registerCallBack("touchstart", e => true, e => {
+        this.dragSpritePos = [0, 0];
+        this.spriteSelector = new SpriteSelector(document.getElementById(animationsSpritesID), spriteSelectorListener, this.drawingField, this, keyboardHandler, spritesPerRow, spriteWidth, spriteHeight);
+        this.dragSprite = null;
+        this.autoResizeCanvas();
+    }
+    handleTouchEvents(type, e)
+    {
+        switch(type)
+        {
+            case("touchstart"):
             (<any>document.activeElement).blur();
-        });
-        listener.registerCallBack("touchmove", e => true, e => {
+            break;
+            case("touchmove"):
             if(e.moveCount === 1 && this.animations.length > 1)
             { 
-                const clickedSprite:number = Math.floor(e.touchPos[0] / spriteWidth) + Math.floor(e.touchPos[1] / spriteHeight) * animationsPerRow;
+                const clickedSprite:number = Math.floor(e.touchPos[0] / this.spriteSelector.spriteWidth) + Math.floor(e.touchPos[1] / this.spriteSelector.spriteHeight) * this.animationsPerRow;
     
                 this.dragSprite = this.animations.splice(clickedSprite, 1)[0];
                 this.dragSpritePos[0] = e.touchPos[0] - this.animationWidth / 2;
@@ -6098,9 +5953,9 @@ class AnimationGroup {
                 this.dragSpritePos[0] += e.deltaX;
                 this.dragSpritePos[1] += e.deltaY;
             }
-        });
-        listener.registerCallBack("touchend", e => true, e => {
-            let clickedSprite:number = Math.floor(e.touchPos[0] / animationWidth) + Math.floor(e.touchPos[1] / animationHeight) * animationsPerRow;
+            break;
+            case("touchend"):
+            let clickedSprite:number = Math.floor(e.touchPos[0] / this.animationWidth) + Math.floor(e.touchPos[1] / this.animationHeight) * this.animationsPerRow;
 
             if(clickedSprite >= 0)
             {
@@ -6127,8 +5982,8 @@ class AnimationGroup {
                     sprite.copyToBuffer(this.drawingField.layer().screenBuffer, this.drawingField.layer().dimensions.first, this.drawingField.layer().dimensions.second);
                 }
             }
-        });
-        this.autoResizeCanvas();
+
+        }
     }
     pushAnimationOnly(animation:SpriteAnimation):void {
         
@@ -6236,7 +6091,7 @@ class AnimationGroup {
             if(j != 0)
                 throw new Error("Corrupted File, animation group project header corrupted");
             const animationSize:number = binary[i+1];
-            groups.push(new AnimationGroup(this.drawingField, this.keyboardHandler, "animations", "sprites_canvas", this.spriteSelector.spritesPerRow, this.spriteSelector.spriteWidth, this.spriteSelector.spriteHeight)
+            groups.push(new AnimationGroup(this.listener, this.spriteSelectorListener, this.drawingField, this.keyboardHandler, "animations", "sprites_canvas", this.spriteSelector.spritesPerRow, this.spriteSelector.spriteWidth, this.spriteSelector.spriteHeight)
                 );
             if(binary[i + 2] != 1)
                 throw new Error("Corrupted File, animation header corrupted value is:" + binary[(i+2)] + " should be 1");
@@ -6358,6 +6213,8 @@ class AnimationGroupsSelector {
     ctx:CanvasRenderingContext2D;
     keyboardHandler:KeyboardHandler;
     listener:SingleTouchListener;
+    listenerAnimationsSelector:SingleTouchListener;
+    listenerSpritesSelector:SingleTouchListener;
     field:LayeredDrawingScreen;
 
     animationsCanvasId:string;
@@ -6423,6 +6280,45 @@ class AnimationGroupsSelector {
                     this.selectedAnimationGroup = clickedIndex;
             }
         });
+
+        this.listenerAnimationsSelector = new SingleTouchListener(document.getElementById(animationsCanvasId), false, true);
+        this.listenerAnimationsSelector.registerCallBack("touchstart", e => true, e => {
+            if(this.animationGroup())
+            {
+                this.animationGroup().handleTouchEvents("touchstart", e);
+            }
+        });
+        this.listenerAnimationsSelector.registerCallBack("touchmove", e => true, e => {
+            if(this.animationGroup())
+            {
+                this.animationGroup().handleTouchEvents("touchmove", e);
+            }
+        });
+        this.listenerAnimationsSelector.registerCallBack("touchend", e => true, e => {
+            if(this.animationGroup())
+            {
+                this.animationGroup().handleTouchEvents("touchend", e);
+            }
+        });
+        this.listenerSpritesSelector = new SingleTouchListener(document.getElementById(spritesCanvasId), false, true);
+        this.listenerSpritesSelector.registerCallBack("touchstart", e => true, e => {
+            if(this.animationGroup() && this.animationGroup().spriteSelector)
+            {
+                this.animationGroup().spriteSelector.handleTouchEvents("touchstart", e);
+            }
+        });
+        this.listenerSpritesSelector.registerCallBack("touchmove", e => true, e => {
+            if(this.animationGroup() && this.animationGroup().spriteSelector)
+            {
+                this.animationGroup().spriteSelector.handleTouchEvents("touchmove", e);
+            }
+        });
+        this.listenerSpritesSelector.registerCallBack("touchend", e => true, e => {
+            if(this.animationGroup() && this.animationGroup().spriteSelector)
+            {
+                this.animationGroup().spriteSelector.handleTouchEvents("touchend", e);
+            }
+        });
     }  
     maxAnimationsOnCanvas():number
     {
@@ -6475,13 +6371,13 @@ class AnimationGroupsSelector {
         }
     }
     createEmptyAnimationGroup():AnimationGroup {
-        this.animationGroups.push(new Pair(new AnimationGroup(this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
+        this.animationGroups.push(new Pair(new AnimationGroup(this.listenerAnimationsSelector, this.listenerSpritesSelector, this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
         this.autoResizeCanvas();
         return this.animationGroups[this.animationGroups.length-1].first;
     }
     createAnimationGroup():AnimationGroup
     {
-        this.animationGroups.push(new Pair(new AnimationGroup(this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
+        this.animationGroups.push(new Pair(new AnimationGroup(this.listenerAnimationsSelector, this.listenerSpritesSelector, this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
         this.animationGroups[this.animationGroups.length-1].first.pushAnimation(new SpriteAnimation(0, 0, dim[0], dim[1]));
         this.autoResizeCanvas();
         return this.animationGroups[this.animationGroups.length-1].first;
@@ -6508,7 +6404,7 @@ class AnimationGroupsSelector {
     }
     cloneSelectedAnimationGroup():void
     {
-        this.animationGroups.push(new Pair(new AnimationGroup(this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
+        this.animationGroups.push(new Pair(new AnimationGroup(this.listenerAnimationsSelector, this.listenerSpritesSelector, this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
         const animationGroup:AnimationGroup = this.animationGroups[this.animationGroups.length - 1].first;
         this.animationGroup().animations.forEach(animation => {
             animationGroup.pushAnimation(animation.cloneAnimation());
@@ -6611,7 +6507,7 @@ class AnimationGroupsSelector {
             this.dragAnimationGroup.first.drawAnimation(ctx, animationIndex, spriteIndex, this.listener.touchPos[0] - this.renderWidth/2, this.listener.touchPos[1] - this.renderHeight/2, this.renderWidth, this.renderHeight)
             }
             if(this.animationGroup())
-        {
+            {
             const x:number = this.selectedAnimationGroup % this.spritesPerRow;
             const y:number = Math.floor(this.selectedAnimationGroup / this.spritesPerRow);
             
