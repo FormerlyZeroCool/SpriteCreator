@@ -115,6 +115,31 @@ When checked, and Auto Select is also checked only pixels of the same color will
 When checked rotation tool will not anti-alias the rotations, and as such will only rotate in 90 degree increments
 <h4>Allow Dropping Outside Select</h4>
 When checked any pixels rotated outside of selection made with the Selection Tool will be put onto the screen, if not these pixels will be disregarded
+<h3>13.) Auto Outline Tool</h3>
+When clicking on a group of pixels this tool will automatically outline them with the selected color
+<h3>14.) Layers Manager Tool</h3>
+Used to create, delete, rearrange, and control transparency on entire layers of the drawing screen. Click on a layer in the list to select it for editing.<br>
+Drag, and drop them to rearrange their order. The sliders control transparency used when rendering each layer, and the checkboxes control whether or not a layer will be rendered.
+<h3>Selection Tool</h3>
+Use this tool to create a selection area which you may not draw outside of (also works with drag, copy, and rotation tools see them for instructions)
+<h4>Polygonal Selector</h4>
+When checked each time you click on the screen another point in a polygonal area will be added to the selection, anything within the polygonal area is selected, otherwise a dragged rectangular selection will be made
+<h4>Reset Selection</h4>
+Click this button to reset the selection made
+<h4>Undo Last Point</h4>
+Undo setting the last point added to the selection polygon when polygonal selection is checked
+<h3>Save Tool</h3>
+<h4>Save PNG</h4>
+Saves what is currently rendered to the drawing screen as a png with the file name supplied in the textbox
+<h4>Save Animation</h4>
+Saves the currently selected animation as a gif with the file name supplied in the textbox
+<h4>Save Project</h4>
+Saves all data in project to one binary file that can be loaded by sprite creator at a later time using the "Choose project to load" button
+<h3>Settings Tool</h3>
+<h4>Sprite Resolution</h4>
+Set the width, and height of the current drawing space in pixels
+<h4>Resize</h4>
+When checked the current image data will be resied to fit the new resolution using anti-aliasing.  Otherwise the existing pixel data will remain in it's current state on the newly sized canvas.<br>
 <h3>Notes on the clipboard viewer</h3>
 1.) If you click on the clipboard its contents will rotate 90 degrees so no antialiasing will be applied.<br>
 2.) Its contents will be filled by using the copy tool, and it shows a preview of what will be pasted with the paste tool<br>
