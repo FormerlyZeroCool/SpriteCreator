@@ -1,6 +1,11 @@
-A small animation creation tool that allows users to do pixel art, and make animations from that pixel art.
+An animation creation tool that allows users to do pixel art, and make animations from that pixel art.
 You can try it out: <a href="http://andrew-rubinstein.com/SpriteCreator/web">Here!</a>
 <br>
+<h2>Animation Groups</h2>
+These are meant to organize animations, so that for instance if you wish to create the animations for a game you may organize the groups so each group is all the animations for one character in the game.
+You can add new animation groups at any time by pressing the "Add Animation Group" button.<br>
+You can delete an existing animation group by selecting the animation you want to delete by left clicking on it, and then pressing the "Delete Animation Group" button.<br>
+You can clone, or copy an existing animation group by left clicking the animation you wish to clone to select it, and then clicking the "Clone Animation Group" button<br>
 <h2>Animations</h2>
 Animations are groups of sprites(small images, for more see below) that make up a single small flip book of sprites, or frames.<br>
 You can add new animations at any time by pressing the "Add Animation" button, or when you haven't created one yet by pressing the "Add Sprite" button.<br>
