@@ -54,8 +54,6 @@ Depress, and hold left mouse button as you drag you'll see a preview of the line
 <br>
 See Pen Tool options descriptions
 <br>
-Hold s while filling to activate "slow mode", and show pixel by pixel how the Line Drawing algorithm colors in the pixels in the line
-<br>
 <h3>4.) Rectangle Tool</h3>
 The Rectangle Tool is used to draw a rectangle of the color selected in the color palette.<br>
 To draw press, and hold the mouse where you want one corner of the rectangle to begin, drag till the preview of the rectangle is the size you wish.<br>
