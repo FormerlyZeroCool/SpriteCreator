@@ -2112,7 +2112,7 @@ class RotateTool extends ExtendedTool {
         this.localLayout.addElement(new GuiSpacer([100, 50]));
         this.localLayout.addElement(new GuiLabel("anti-alias\nrotation:", 90, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.checkBoxAntiAlias);
-        this.localLayout.addElement(new GuiLabel("Auto select\nwhen dragging:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
+        this.localLayout.addElement(new GuiLabel("Auto select:\n ", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.checkboxAutoSelect);
         this.localLayout.addElement(new GuiLabel("Allow dropping\noutside select:", 150, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.checkboxAllowDropOutsideSelection);
@@ -6762,7 +6762,7 @@ async function main()
         //if(canvas.width !== getWidth() / 2 - (getWidth() / 8) * +(!isTouchSupported()))
         {
             canvas.width = getWidth() - 350;
-            canvas.height = screen.height * 0.6;
+            canvas.height = screen.height;
             if(pallette.canvas.width !== canvas.width)
                 pallette.canvas.width = canvas.width;
         }
