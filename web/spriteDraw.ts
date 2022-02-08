@@ -664,6 +664,23 @@ class SimpleGridLayoutManager implements GuiElement {
         ctx.drawImage(this.canvas, xPos + offsetX, yPos + offsetY);
     }
 };
+class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
+    offset:number[];
+    scrolledCanvas:HTMLCanvasElement;
+
+    constructor(matrixDim:number[], pixelDim:number[], x:number = 0, y:number = 0)
+    {
+        super(matrixDim, pixelDim, x, y);
+    }
+    handleScrollEvent(event)
+    {
+
+    }
+    refreshCanvas():void {
+        super.refreshCanvas();
+    }
+
+}
 class GuiListItem extends SimpleGridLayoutManager {
     textBox:GuiTextBox;
     checkBox:GuiCheckBox;
@@ -2082,10 +2099,14 @@ class DragTool extends ExtendedTool {
     
 };
 class OutlineTool extends ExtendedTool {
+    checkboxOnlyOneColor:GuiCheckBox;
     constructor(name:string, imagePath:string, toolSelector:ToolSelector, optionPanes:SimpleGridLayoutManager[] = [])
     {
-        super(name, imagePath, optionPanes, [200, 50]);
+        super(name, imagePath, optionPanes, [200, 110]);
+        this.checkboxOnlyOneColor = new GuiCheckBox(() => {}, 40, 40, false);
         this.localLayout.addElement(new GuiLabel("Outline tool:", 200, 16, GuiTextBox.bottom | GuiTextBox.left));
+        this.localLayout.addElement(new GuiLabel("Outline only one color:", 200, 16, GuiTextBox.bottom | GuiTextBox.left));
+        this.localLayout.addElement(this.checkboxOnlyOneColor);
     }
 };
 class RotateTool extends ExtendedTool {
@@ -2907,7 +2928,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             switch (field.layer().toolSelector.selectedToolName())
             {
                 case("outline"):
-                field.layer().autoOutline(new Pair<number>(gx, gy), false);
+                field.layer().autoOutline(new Pair<number>(gx, gy), this.outLineTool.checkboxOnlyOneColor.checked);
                 break;
                 case("spraycan"):
                 this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
@@ -3291,39 +3312,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     }
 
 };
-class DrawingScreenState {
-    color:RGB;
-    lineWidth:number;
-    screenBufUnlocked:boolean;
-    ignoreAlphaInFill:boolean;
-    drawCircular:boolean;
-    dragOnlyOneColor:boolean;
-    rotateOnlyOneColor:boolean;
-    blendAlphaOnPaste:boolean;
-    blendAlphaOnPutSelectedPixels:boolean;
-    antiAliasRotation:boolean;
-    sprayProbability:number;
-    slow:boolean;
-    resizeSprite:boolean;
-    bufferBitMask:boolean[];
-    allowDropOutsideSelection:boolean;
-    constructor(lineWidth:number) {
-        this.allowDropOutsideSelection = false;
-        this.bufferBitMask = [];
-        this.sprayProbability = 1;
-        this.antiAliasRotation = true;
-        this.screenBufUnlocked = true;
-        this.blendAlphaOnPutSelectedPixels = true;
-        this.ignoreAlphaInFill = false;
-        this.dragOnlyOneColor = false;
-        this.rotateOnlyOneColor = false;
-        this.drawCircular = true;
-        this.slow = false;
-        this.blendAlphaOnPaste = true;
-        this.resizeSprite = false;
-        this.lineWidth = lineWidth;//dimensions[0] / bounds[0] * 4;
-    }
-};
 function segmentOrientation(p:number[], q:number[], r:number[]):number
 {
     const val:number = (q[1] - p[1]) * (r[0] - q[0]) -
@@ -3381,6 +3369,39 @@ function insidePolygon(point:number[], shape:number[][]):boolean
     }
     return (intersectionCount & 1) === 1;
 }
+class DrawingScreenState {
+    color:RGB;
+    lineWidth:number;
+    screenBufUnlocked:boolean;
+    ignoreAlphaInFill:boolean;
+    drawCircular:boolean;
+    dragOnlyOneColor:boolean;
+    rotateOnlyOneColor:boolean;
+    blendAlphaOnPaste:boolean;
+    blendAlphaOnPutSelectedPixels:boolean;
+    antiAliasRotation:boolean;
+    sprayProbability:number;
+    slow:boolean;
+    resizeSprite:boolean;
+    bufferBitMask:boolean[];
+    allowDropOutsideSelection:boolean;
+    constructor(lineWidth:number) {
+        this.allowDropOutsideSelection = false;
+        this.bufferBitMask = [];
+        this.sprayProbability = 1;
+        this.antiAliasRotation = true;
+        this.screenBufUnlocked = true;
+        this.blendAlphaOnPutSelectedPixels = true;
+        this.ignoreAlphaInFill = false;
+        this.dragOnlyOneColor = false;
+        this.rotateOnlyOneColor = false;
+        this.drawCircular = true;
+        this.slow = false;
+        this.blendAlphaOnPaste = true;
+        this.resizeSprite = false;
+        this.lineWidth = lineWidth;//dimensions[0] / bounds[0] * 4;
+    }
+};
 class DrawingScreen {
     offset:Pair<number>;
     bounds:Pair<number>;
@@ -5896,7 +5917,7 @@ class SpriteSelector {
         }
         this.animationGroup.selectedAnimation = -1;
         return null;
-        }
+    }
 };
 class AnimationGroup {
     drawingField:LayeredDrawingScreen;

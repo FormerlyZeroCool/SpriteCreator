@@ -524,6 +524,16 @@ class SimpleGridLayoutManager {
     }
 }
 ;
+class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
+    constructor(matrixDim, pixelDim, x = 0, y = 0) {
+        super(matrixDim, pixelDim, x, y);
+    }
+    handleScrollEvent(event) {
+    }
+    refreshCanvas() {
+        super.refreshCanvas();
+    }
+}
 class GuiListItem extends SimpleGridLayoutManager {
     constructor(text, state, pixelDim, fontSize = 16, callBack = () => null, genericCallBack = () => null, slideMoved, flags = GuiTextBox.left | GuiTextBox.bottom, genericTouchType = "touchend") {
         super([20, 1], pixelDim);
@@ -1677,8 +1687,11 @@ class DragTool extends ExtendedTool {
 ;
 class OutlineTool extends ExtendedTool {
     constructor(name, imagePath, toolSelector, optionPanes = []) {
-        super(name, imagePath, optionPanes, [200, 50]);
+        super(name, imagePath, optionPanes, [200, 110]);
+        this.checkboxOnlyOneColor = new GuiCheckBox(() => { }, 40, 40, false);
         this.localLayout.addElement(new GuiLabel("Outline tool:", 200, 16, GuiTextBox.bottom | GuiTextBox.left));
+        this.localLayout.addElement(new GuiLabel("Outline only one color:", 200, 16, GuiTextBox.bottom | GuiTextBox.left));
+        this.localLayout.addElement(this.checkboxOnlyOneColor);
     }
 }
 ;
@@ -2355,7 +2368,7 @@ class ToolSelector {
                 else
                     switch (field.layer().toolSelector.selectedToolName()) {
                         case ("outline"):
-                            field.layer().autoOutline(new Pair(gx, gy), false);
+                            field.layer().autoOutline(new Pair(gx, gy), this.outLineTool.checkboxOnlyOneColor.checked);
                             break;
                         case ("spraycan"):
                             this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get() ? this.penTool.tbSize.asNumber.get() : this.field.layer().state.lineWidth;
@@ -2703,25 +2716,6 @@ class ToolSelector {
     }
 }
 ;
-class DrawingScreenState {
-    constructor(lineWidth) {
-        this.allowDropOutsideSelection = false;
-        this.bufferBitMask = [];
-        this.sprayProbability = 1;
-        this.antiAliasRotation = true;
-        this.screenBufUnlocked = true;
-        this.blendAlphaOnPutSelectedPixels = true;
-        this.ignoreAlphaInFill = false;
-        this.dragOnlyOneColor = false;
-        this.rotateOnlyOneColor = false;
-        this.drawCircular = true;
-        this.slow = false;
-        this.blendAlphaOnPaste = true;
-        this.resizeSprite = false;
-        this.lineWidth = lineWidth; //dimensions[0] / bounds[0] * 4;
-    }
-}
-;
 function segmentOrientation(p, q, r) {
     const val = (q[1] - p[1]) * (r[0] - q[0]) -
         (q[0] - p[0]) * (r[1] - q[1]);
@@ -2773,6 +2767,25 @@ function insidePolygon(point, shape) {
     }
     return (intersectionCount & 1) === 1;
 }
+class DrawingScreenState {
+    constructor(lineWidth) {
+        this.allowDropOutsideSelection = false;
+        this.bufferBitMask = [];
+        this.sprayProbability = 1;
+        this.antiAliasRotation = true;
+        this.screenBufUnlocked = true;
+        this.blendAlphaOnPutSelectedPixels = true;
+        this.ignoreAlphaInFill = false;
+        this.dragOnlyOneColor = false;
+        this.rotateOnlyOneColor = false;
+        this.drawCircular = true;
+        this.slow = false;
+        this.blendAlphaOnPaste = true;
+        this.resizeSprite = false;
+        this.lineWidth = lineWidth; //dimensions[0] / bounds[0] * 4;
+    }
+}
+;
 class DrawingScreen {
     constructor(canvas, keyboardHandler, palette, offset, dimensions, toolSelector, state, clipBoard) {
         const bounds = [dim[0], dim[1]];
