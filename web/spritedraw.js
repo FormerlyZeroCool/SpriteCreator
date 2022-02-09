@@ -3697,8 +3697,8 @@ class LayeredDrawingScreen {
             this.maskWorkers.push(worker);
             worker.addEventListener("message", (event) => {
                 let j = 0;
-                for (let i = event.data.start; i < event.data.end; i++) {
-                    this.state.bufferBitMask[i] = event.data.result[j++];
+                for (let i = event.data.start; i < event.data.end; i++, j++) {
+                    this.state.bufferBitMask[i] = event.data.result[j];
                 }
             });
         }
@@ -3773,14 +3773,6 @@ class LayeredDrawingScreen {
      }*/
     updateMaskPolygon(shape) {
         if (shape.length > 2) {
-            /*for(let y = 0; y < this.layer().dimensions.second; ++y)
-            {
-                for(let x = 0; x < this.layer().dimensions.first; ++x)
-                {
-                    const key:number = x + y * this.layer().dimensions.first;
-                    this.state.bufferBitMask[key] = insidePolygon([x, y], shape);
-                }
-            }*/
             const lenPerWorker = Math.floor(this.state.bufferBitMask.length / this.maskWorkers.length);
             const remainder = this.state.bufferBitMask.length - Math.floor(this.state.bufferBitMask.length / lenPerWorker) * lenPerWorker;
             let i = 0;
