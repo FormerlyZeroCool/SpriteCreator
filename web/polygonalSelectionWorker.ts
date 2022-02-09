@@ -1,0 +1,62 @@
+
+function segmentOrientation(p:number[], q:number[], r:number[]):number
+{
+    const val:number = (q[1] - p[1]) * (r[0] - q[0]) -
+              (q[0] - p[0]) * (r[1] - q[1]);
+    return 1 + +(val > 0) - +(val === 0); 
+}
+function onSegment(p:number[], q:number[], r:number[]):boolean
+{
+    return (q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0], r[0]) &&
+            q[1] <= Math.max(p[1], r[1]) && q[1] >= Math.min(p[1], r[1]))
+}
+function segmentsIntersect(p1:number[], q1:number[], p2:number[], q2:number[]):boolean
+{
+    const o1:number = segmentOrientation(p1, q1, p2);
+    const o2:number = segmentOrientation(p1, q1, q2);
+    const o3:number = segmentOrientation(p2, q2, p1);
+    const o4:number = segmentOrientation(p2, q2, q1);
+    return (o1 !== o2 && o3 !== o4 || o1 === 0 && onSegment(p1, p2, q1) || o2 === 0 && onSegment(p1, q2, q1) || o3 === 0 && onSegment(p2, p1, q2) || o3 === 0 && onSegment(p2, p1, q2)
+      || o4 === 0 && onSegment(p2, q1, q2));
+}
+function insidePolygon(point:number[], shape:number[][]):boolean
+{
+    let intersectionCount:number = 0;
+    let startPoint:number[] = shape[shape.length - 1];
+    point[0] += 0.5;
+    point[1] += 0.5;
+    for(let i = 0; i < shape.length; ++i)
+    {
+        const endPoint:number[] = [shape[i][0], shape[i][1]];
+        if(segmentsIntersect(point, [1000000000, point[1] + 1], startPoint, endPoint))
+        {
+            if (segmentOrientation(startPoint, point, endPoint) === 0)
+                return onSegment(startPoint, point, endPoint);
+            intersectionCount++;
+        }
+        startPoint = shape[i];
+    }
+    return (intersectionCount & 1) === 1;
+}
+interface MessageData {
+    start:number;
+    end:number;
+    height:number;
+    width:number;
+    polygon:number[][];
+};
+self.onmessage = function handleMessage(message) {
+    const data:MessageData = message.data;
+    const result:boolean[] = [];
+    const shape:number[][] = data.polygon;
+    if(shape.length > 2)
+    {
+        for(let i = data.start; i < data.end; ++i)
+        {
+            const x:number = i % data.width;
+            const y:number = Math.floor(i / data.width);
+            result.push(insidePolygon([x, y], shape));
+        }
+        self.postMessage({start:data.start, end:data.end, result:result});
+    }
+};

@@ -82,7 +82,7 @@ class Queue {
 }
 ;
 class RollingStack {
-    constructor(size = 35) {
+    constructor(size = 75) {
         this.data = [];
         this.start = 0;
         this.end = 0;
@@ -2716,57 +2716,6 @@ class ToolSelector {
     }
 }
 ;
-function segmentOrientation(p, q, r) {
-    const val = (q[1] - p[1]) * (r[0] - q[0]) -
-        (q[0] - p[0]) * (r[1] - q[1]);
-    if (val === 0)
-        return 0; // collinear
-    return (val > 0) ? 1 : 2;
-}
-function onSegment(p, q, r) {
-    if (q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0], r[0]) &&
-        q[1] <= Math.max(p[1], r[1]) && q[1] >= Math.min(p[1], r[1]))
-        return true;
-    return false;
-}
-function segmentsIntersect(p1, q1, p2, q2) {
-    const o1 = segmentOrientation(p1, q1, p2);
-    const o2 = segmentOrientation(p1, q1, q2);
-    const o3 = segmentOrientation(p2, q2, p1);
-    const o4 = segmentOrientation(p2, q2, q1);
-    if (o1 !== o2 && o3 !== o4)
-        return true;
-    // Special Cases
-    // p1, q1 and p2 are collinear and p2 lies on segment p1q1
-    if (o1 === 0 && onSegment(p1, p2, q1))
-        return true;
-    // p1, q1 and p2 are collinear and q2 lies on segment p1q1
-    if (o2 === 0 && onSegment(p1, q2, q1))
-        return true;
-    // p2, q2 and p1 are collinear and p1 lies on segment p2q2
-    if (o3 === 0 && onSegment(p2, p1, q2))
-        return true;
-    // p2, q2 and q1 are collinear and q1 lies on segment p2q2
-    if (o4 === 0 && onSegment(p2, q1, q2))
-        return true;
-    return false;
-}
-function insidePolygon(point, shape) {
-    let intersectionCount = 0;
-    let startPoint = shape[shape.length - 1];
-    point[0] += 0.5;
-    point[1] += 0.5;
-    for (let i = 0; i < shape.length; ++i) {
-        const endPoint = [shape[i][0], shape[i][1]];
-        if (segmentsIntersect(point, [1 << 30, point[1] + 1], startPoint, endPoint)) {
-            if (segmentOrientation(startPoint, point, endPoint) === 0)
-                return onSegment(startPoint, point, endPoint);
-            intersectionCount++;
-        }
-        startPoint = shape[i];
-    }
-    return (intersectionCount & 1) === 1;
-}
 class DrawingScreenState {
     constructor(lineWidth) {
         this.allowDropOutsideSelection = false;
@@ -3734,13 +3683,25 @@ class ZoomState {
     }
 }
 ;
+;
 class LayeredDrawingScreen {
     constructor(keyboardHandler, pallette) {
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
         this.glCanvas = document.createElement("canvas");
-        //this.initWebGL();
+        this.maskWorkers = [];
+        const poolSize = window.navigator.hardwareConcurrency < 3 ? 3 : window.navigator.hardwareConcurrency;
+        for (let i = 0; i < poolSize; i++) {
+            const worker = new Worker("polygonalSelectionWorker.js");
+            this.maskWorkers.push(worker);
+            worker.addEventListener("message", (event) => {
+                let j = 0;
+                for (let i = event.data.start; i < event.data.end; i++) {
+                    this.state.bufferBitMask[i] = event.data.result[j++];
+                }
+            });
+        }
         this.state = new DrawingScreenState(3);
         this.dim = [524, 524];
         this.canvas.width = this.dim[0];
@@ -3812,14 +3773,39 @@ class LayeredDrawingScreen {
      }*/
     updateMaskPolygon(shape) {
         if (shape.length > 2) {
-            for (let i = 0; i < this.state.bufferBitMask.length; i++)
-                this.state.bufferBitMask[i] = true;
-            for (let y = 0; y < this.layer().dimensions.second; ++y) {
-                for (let x = 0; x < this.layer().dimensions.first; ++x) {
-                    const key = x + y * this.layer().dimensions.first;
+            /*for(let y = 0; y < this.layer().dimensions.second; ++y)
+            {
+                for(let x = 0; x < this.layer().dimensions.first; ++x)
+                {
+                    const key:number = x + y * this.layer().dimensions.first;
                     this.state.bufferBitMask[key] = insidePolygon([x, y], shape);
                 }
+            }*/
+            const lenPerWorker = Math.floor(this.state.bufferBitMask.length / this.maskWorkers.length);
+            const remainder = this.state.bufferBitMask.length - Math.floor(this.state.bufferBitMask.length / lenPerWorker) * lenPerWorker;
+            let i = 0;
+            for (; i < this.maskWorkers.length - 1; i++) {
+                const message = {
+                    start: i * lenPerWorker,
+                    end: (i + 1) * lenPerWorker,
+                    height: this.layer().dimensions.first,
+                    width: this.layer().dimensions.second,
+                    polygon: shape
+                };
+                this.maskWorkers[i].postMessage(message);
             }
+            const message = {
+                start: i * lenPerWorker,
+                end: (i + 1) * lenPerWorker + remainder,
+                height: this.layer().dimensions.first,
+                width: this.layer().dimensions.second,
+                polygon: shape
+            };
+            this.maskWorkers[i].postMessage(message);
+        }
+        else {
+            for (let i = 0; i < this.state.bufferBitMask.length; i++)
+                this.state.bufferBitMask[i] = true;
         }
     }
     updateBitMaskRectangle(rect) {
