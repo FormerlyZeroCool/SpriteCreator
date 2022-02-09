@@ -3686,6 +3686,8 @@ class ZoomState {
 ;
 class LayeredDrawingScreen {
     constructor(keyboardHandler, pallette) {
+        this.maskWorkerExecutionCount = 0;
+        this.scheduledMaskOperation = [];
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
@@ -3698,6 +3700,7 @@ class LayeredDrawingScreen {
             worker.addEventListener("message", (event) => {
                 let j = 0;
                 console.log(event.data);
+                this.maskWorkerExecutionCount--;
                 for (let i = event.data.start; i < event.data.end; i++) {
                     this.state.bufferBitMask[i] = event.data.result[j++];
                 }
@@ -3719,6 +3722,15 @@ class LayeredDrawingScreen {
         this.setDimOnCurrent(this.dim);
         this.zoom = new ZoomState();
         this.clipBoard = new ClipBoard(document.getElementById("clipboard_canvas"), keyboardHandler, 128, 128);
+    }
+    update() {
+        if (this.maskWorkerExecutionCount === 0 && this.scheduledMaskOperation.length) {
+            for (let i = 0; i < this.scheduledMaskOperation.length; i++) {
+                this.maskWorkers[i].postMessage(this.scheduledMaskOperation[i]);
+                this.maskWorkerExecutionCount++;
+            }
+            this.scheduledMaskOperation = [];
+        }
     }
     //possible replace these functions with one that first calculates the functions for all the lines in the polygon
     //check each point if it can solve the equation for the function, and the x is within the bounds of the line segment then the point intersects the line segment
@@ -3777,24 +3789,29 @@ class LayeredDrawingScreen {
             const lenPerWorker = Math.floor(this.state.bufferBitMask.length / this.maskWorkers.length);
             const remainder = this.state.bufferBitMask.length - Math.floor(this.state.bufferBitMask.length / lenPerWorker) * lenPerWorker;
             let i = 0;
+            this.scheduledMaskOperation = [];
             for (; i < this.maskWorkers.length - 1; i++) {
                 const message = {
                     start: i * lenPerWorker,
                     end: (i + 1) * lenPerWorker,
                     height: this.layer().dimensions.first,
                     width: this.layer().dimensions.second,
-                    polygon: shape
+                    polygon: shape,
+                    poolIndex: i
                 };
-                this.maskWorkers[i].postMessage(message);
+                this.scheduledMaskOperation.push(message);
+                //this.maskWorkers[i].postMessage(message);
             }
             const message = {
                 start: i * lenPerWorker,
                 end: (i + 1) * lenPerWorker + remainder,
                 height: this.layer().dimensions.first,
                 width: this.layer().dimensions.second,
-                polygon: shape
+                polygon: shape,
+                poolIndex: i
             };
-            this.maskWorkers[i].postMessage(message);
+            this.scheduledMaskOperation.push(message);
+            //this.maskWorkers[i].postMessage(message);
         }
         else {
             for (let i = 0; i < this.state.bufferBitMask.length; i++)
@@ -5514,6 +5531,7 @@ async function main() {
     while (true) {
         const start = Date.now();
         toolSelector.draw();
+        field.update();
         //if(canvas.width !== getWidth() / 2 - (getWidth() / 8) * +(!isTouchSupported()))
         {
             canvas.width = getWidth() - 350;
@@ -5521,7 +5539,6 @@ async function main() {
             if (pallette.canvas.width !== canvas.width)
                 pallette.canvas.width = canvas.width;
         }
-        //if(field.repaint())
         {
             field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
         }

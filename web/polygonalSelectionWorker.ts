@@ -1,4 +1,3 @@
-
 function segmentOrientation(p:number[], q:number[], r:number[]):number
 {
     const val:number = (q[1] - p[1]) * (r[0] - q[0]) -
@@ -54,7 +53,6 @@ self.onmessage = function handleMessage(message) {
     const shape:number[][] = data.polygon;
     if(shape.length > 2)
     {
-
         let startPoint:number[] = [0, 0];
         const endPoint:number[] = [0, 0];
         const segmentEndPoint:number[] = [0, 0];
