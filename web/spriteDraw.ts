@@ -2732,7 +2732,7 @@ class SelectionTool extends ExtendedTool {
         this.localLayout.addElement(new GuiSpacer([200,10]));
         this.localLayout.addElement(new GuiButton(() => {toolSelector.polygon = [], toolSelector.field.layer().selectionRect = [0,0,0,0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true}, 
             "Reset Selection", 150, 40, 16));
-        this.localLayout.addElement(new GuiButton(() => {toolSelector.polygon.pop(), toolSelector.field.layer().selectionRect = [0,0,0,0]; toolSelector.field.updateMaskPolygon(toolSelector.polygon); toolSelector.field.layer().repaint = true}, 
+        this.localLayout.addElement(new GuiButton(() => {toolSelector.polygon.pop(), toolSelector.field.layer().selectionRect = [0,0,0,0]; toolSelector.field.scheduleUpdateMaskPolygon(toolSelector.polygon); toolSelector.field.layer().repaint = true}, 
         "Undo last point", 150, 40, 16))
     }
 };
@@ -3169,7 +3169,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 case("selection"):
                 if(this.selectionTool.checkboxComplexPolygon.checked && this.polygon.length > 2)
                 {
-                    field.updateMaskPolygon(this.polygon);
+                    field.scheduleUpdateMaskPolygon(this.polygon);
                 }
                 else
                 {
@@ -4561,7 +4561,7 @@ class LayeredDrawingScreen {
 //check each point if it can solve the equation for the function, and the x is within the bounds of the line segment then the point intersects the line segment
 //iterating through each row of the bit mask buffer count the number of intersections per row, if the current count of intersections is odd
 //then you are inside the shape
-   /* updateMaskPolygon(polygon:number[][])
+   /* scheduleUpdateMaskPolygon(polygon:number[][])
     {
         if(polygon.length < 3)
             return;
@@ -4609,7 +4609,7 @@ class LayeredDrawingScreen {
         }
         
     }*/
-    updateMaskPolygon(shape:number[][])
+    scheduleUpdateMaskPolygon(shape:number[][])
     {
         if(shape.length > 2)
         {
@@ -4629,7 +4629,6 @@ class LayeredDrawingScreen {
                     poolIndex: i
                 };
                 this.scheduledMaskOperation.push(message);
-                //this.maskWorkers[i].postMessage(message);
             }
             const message:MessageData = {
                 start: i * lenPerWorker,
@@ -4640,7 +4639,6 @@ class LayeredDrawingScreen {
                 poolIndex: i
             };
             this.scheduledMaskOperation.push(message);
-            //this.maskWorkers[i].postMessage(message);
         }
         else
         {
