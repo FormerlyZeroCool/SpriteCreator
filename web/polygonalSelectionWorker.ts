@@ -3,7 +3,7 @@ function segmentOrientation(p:number[], q:number[], r:number[]):number
 {
     const val:number = (q[1] - p[1]) * (r[0] - q[0]) -
               (q[0] - p[0]) * (r[1] - q[1]);
-    return 1 + +(val > 0) - +(val === 0); 
+    return 1 + <number> <any> (val > 0) - <number> <any> (val === 0); 
 }
 function onSegment(p:number[], q:number[], r:number[]):boolean
 {

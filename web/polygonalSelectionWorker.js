@@ -1,7 +1,7 @@
 function segmentOrientation(p, q, r) {
     const val = (q[1] - p[1]) * (r[0] - q[0]) -
         (q[0] - p[0]) * (r[1] - q[1]);
-    return 1 + +(val > 0) - +(val === 0);
+    return 1 + (val > 0) - (val === 0);
 }
 function onSegment(p, q, r) {
     return (q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0], r[0]) &&

@@ -4516,9 +4516,10 @@ class LayeredDrawingScreen {
             this.maskWorkers.push(worker);
             worker.addEventListener("message", (event) => {
                 let j:number = 0;
-                for(let i = event.data.start; i < event.data.end; i++, j++)
+                console.log(event.data);
+                for(let i = event.data.start; i < event.data.end; i++)
                 {
-                    this.state.bufferBitMask[i] = event.data.result[j];
+                    this.state.bufferBitMask[i] = event.data.result[j++];
                 }
             });
         }
