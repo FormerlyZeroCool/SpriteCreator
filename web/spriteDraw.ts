@@ -3554,9 +3554,10 @@ class DrawingScreen {
                         const ngy:number = (gy+Math.round(i));
                         const dx:number = ngx - gx;
                         const dy:number = ngy - gy;
-                        const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
-                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx*dx+dy*dy) <= radius){
-                            this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
+                        const key = ngx + ngy*this.dimensions.first;
+                        const pixel:RGB = this.screenBuffer[key];
+                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && this.state.bufferBitMask[key] && Math.sqrt(dx*dx+dy*dy) <= radius){
+                            this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(key, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
                             pixel.copy(this.state.color);
                         }
                     }
@@ -3571,9 +3572,10 @@ class DrawingScreen {
                     {
                         const ngx:number = gx+Math.round(j);
                         const ngy:number = (gy+Math.round(i));
-                        const pixel:RGB = this.screenBuffer[ngx + ngy*this.dimensions.first];
-                        if(this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color)){
-                            this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(ngx + ngy*this.dimensions.first, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
+                        const key = ngx + ngy*this.dimensions.first;
+                        const pixel:RGB = this.screenBuffer[key];
+                        if(this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color)){
+                            this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(key, new RGB(pixel.red(),pixel.green(),pixel.blue(), pixel.alpha()))); 
                             pixel.copy(this.state.color);
                         }
                     }

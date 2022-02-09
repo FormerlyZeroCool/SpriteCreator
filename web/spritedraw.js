@@ -2893,9 +2893,10 @@ class DrawingScreen {
                         const ngy = (gy + Math.round(i));
                         const dx = ngx - gx;
                         const dy = ngy - gy;
-                        const pixel = this.screenBuffer[ngx + ngy * this.dimensions.first];
-                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius) {
-                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(ngx + ngy * this.dimensions.first, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
+                        const key = ngx + ngy * this.dimensions.first;
+                        const pixel = this.screenBuffer[key];
+                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && this.state.bufferBitMask[key] && Math.sqrt(dx * dx + dy * dy) <= radius) {
+                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
                     }
@@ -2907,9 +2908,10 @@ class DrawingScreen {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
-                        const pixel = this.screenBuffer[ngx + ngy * this.dimensions.first];
-                        if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color)) {
-                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(ngx + ngy * this.dimensions.first, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
+                        const key = ngx + ngy * this.dimensions.first;
+                        const pixel = this.screenBuffer[key];
+                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color)) {
+                            this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
                     }
