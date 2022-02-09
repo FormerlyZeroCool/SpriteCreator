@@ -2766,7 +2766,7 @@ class DrawingScreen {
         }
         const colorBackup = new RGB(this.noColor.red(), this.noColor.green(), this.noColor.blue(), this.noColor.alpha());
         this.state.color = new RGB(0, 0, 0, 255);
-        this.setDim(dim);
+        //this.setDim(dim);
     }
     updateLabelUndoRedoCount() {
         this.toolSelector.undoTool.updateLabel(this.undoneUpdatesStack.length(), this.updatesStack.length());
@@ -3301,11 +3301,6 @@ class DrawingScreen {
             }
             const bounds = [this.bounds.first, this.bounds.second];
             const dimensions = [this.dimensions.first, this.dimensions.second];
-            if (this.state.bufferBitMask.length != newDim[0] * newDim[1]) {
-                this.state.bufferBitMask = [];
-                for (let i = 0; i < newDim[0] * newDim[1]; ++i)
-                    this.state.bufferBitMask.push(true);
-            }
             if (this.screenBuffer.length != newDim[0] * newDim[1]) {
                 const canvas = document.createElement("canvas");
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -3794,8 +3789,8 @@ class LayeredDrawingScreen {
                 const message = {
                     start: i * lenPerWorker,
                     end: (i + 1) * lenPerWorker,
-                    height: this.layer().dimensions.first,
-                    width: this.layer().dimensions.second,
+                    height: this.layer().dimensions.second,
+                    width: this.layer().dimensions.first,
                     polygon: shape,
                     poolIndex: i
                 };
@@ -3804,8 +3799,8 @@ class LayeredDrawingScreen {
             const message = {
                 start: i * lenPerWorker,
                 end: (i + 1) * lenPerWorker + remainder,
-                height: this.layer().dimensions.first,
-                width: this.layer().dimensions.second,
+                height: this.layer().dimensions.second,
+                width: this.layer().dimensions.first,
                 polygon: shape,
                 poolIndex: i
             };
@@ -3870,6 +3865,11 @@ class LayeredDrawingScreen {
                 this.zoom.zoomX = zoom.first;
                 this.zoom.zoomY = zoom.second;
             });
+            if (this.state.bufferBitMask.length !== dim[0] * dim[1]) {
+                this.state.bufferBitMask = [];
+                for (let i = 0; i < dim[0] * dim[1]; ++i)
+                    this.state.bufferBitMask.push(true);
+            }
             const bounds = [this.layer().bounds.first, this.layer().bounds.second];
             this.dim = [bounds[0], bounds[1]];
             this.canvas.width = bounds[0];
@@ -3934,7 +3934,7 @@ class LayeredDrawingScreen {
     }
     addBlankLayer() {
         const layer = new DrawingScreen(document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [this.dim[0], this.dim[1]], this.toolSelector, this.state, this.clipBoard);
-        layer.setDim(this.toolSelector.settingsTool ? this.toolSelector.settingsTool.dim : this.dim);
+        this.setDimOnCurrent(this.dim);
         this.layers.push(layer);
         this.layersState.push(true);
         return layer;
@@ -5457,7 +5457,7 @@ async function main() {
             img.onload = () => {
                 toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`);
                 field.loadImageToLayer(img);
-                toolSelector.settingsTool.setDim([img.width, img.height]);
+                field.setDimOnCurrent([img.width, img.height]);
             };
             img.src = reader.result;
         });
