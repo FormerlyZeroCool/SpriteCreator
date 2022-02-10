@@ -3635,27 +3635,6 @@ class DrawingScreen {
                 }
             }
             spriteScreenBuf.putPixels(ctx);
-            if (this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length) {
-                let start = this.toolSelector.polygon.length - 1;
-                ctx.lineWidth = cellWidth;
-                ctx.beginPath();
-                ctx.strokeStyle = "#FF4040";
-                for (let i = 0; i < this.toolSelector.polygon.length; i++) {
-                    const lineStart = this.toolSelector.polygon[start];
-                    const lineEnd = this.toolSelector.polygon[i];
-                    ctx.moveTo(lineStart[0] * cellWidth, lineStart[1] * cellHeight);
-                    ctx.lineTo(lineEnd[0] * cellWidth, lineEnd[1] * cellHeight);
-                    start++;
-                    start %= this.toolSelector.polygon.length;
-                }
-                const lastIndex = this.toolSelector.polygon.length - 1;
-                ctx.lineWidth = 1;
-                ctx.stroke();
-                ctx.fillStyle = "#0000FF";
-                ctx.moveTo(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight);
-                ctx.ellipse(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight, 5, 5, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
             if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
                 let touchStart = [this.selectionRect[0], this.selectionRect[1]];
                 ctx.lineWidth = 6;
@@ -4067,6 +4046,30 @@ class LayeredDrawingScreen {
                     const layer = this.layers[i];
                     layer.drawToContext(this.ctx, 0, 0, this.width(), this.height());
                 }
+            }
+            if (this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length) {
+                const cellWidth = this.width() / this.layer().dimensions.first;
+                const cellHeight = this.height() / this.layer().dimensions.second;
+                let start = this.toolSelector.polygon.length - 1;
+                this.ctx.lineWidth = cellWidth;
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "#FF4040";
+                for (let i = 0; i < this.toolSelector.polygon.length; i++) {
+                    const lineStart = this.toolSelector.polygon[start];
+                    const lineEnd = this.toolSelector.polygon[i];
+                    this.ctx.moveTo(lineStart[0] * cellWidth, lineStart[1] * cellHeight);
+                    this.ctx.lineTo(lineEnd[0] * cellWidth, lineEnd[1] * cellHeight);
+                    start++;
+                    start %= this.toolSelector.polygon.length;
+                }
+                const lastIndex = this.toolSelector.polygon.length - 1;
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+                this.ctx.fillStyle = "#0000FF";
+                this.ctx.moveTo(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight);
+                this.ctx.ellipse(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight, 5, 5, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = "#000000";
             }
         }
         {
