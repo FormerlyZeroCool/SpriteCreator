@@ -4617,9 +4617,29 @@ class LayeredDrawingScreen {
             worker.addEventListener("message", (event) => {
                 let j:number = 0;
                 this.maskWorkerExecutionCount--;
-                for(let i = event.data.start; i < event.data.end; i++)
+                let i = event.data.start;
+                for(; i < event.data.end - 16;)
                 {
-                    this.state.bufferBitMask[i] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
+                }
+                for(; i < event.data.end;)
+                {
+                    this.state.bufferBitMask[i++] = event.data.result[j++];
                 }
             });
         }
