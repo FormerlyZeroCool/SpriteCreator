@@ -2766,7 +2766,7 @@ class DrawingScreen {
         }
         const colorBackup = new RGB(this.noColor.red(), this.noColor.green(), this.noColor.blue(), this.noColor.alpha());
         this.state.color = new RGB(0, 0, 0, 255);
-        //this.setDim(dim);
+        this.setDim(dim);
     }
     updateLabelUndoRedoCount() {
         this.toolSelector.undoTool.updateLabel(this.undoneUpdatesStack.length(), this.updatesStack.length());
@@ -3690,13 +3690,12 @@ class LayeredDrawingScreen {
         this.canvasTransparency = document.createElement("canvas");
         this.glCanvas = document.createElement("canvas");
         this.maskWorkers = [];
-        const poolSize = window.navigator.hardwareConcurrency < 3 ? 3 : window.navigator.hardwareConcurrency;
+        const poolSize = window.navigator.hardwareConcurrency < 4 ? 4 : window.navigator.hardwareConcurrency;
         for (let i = 0; i < poolSize; i++) {
             const worker = new Worker("polygonalSelectionWorker.js");
             this.maskWorkers.push(worker);
             worker.addEventListener("message", (event) => {
                 let j = 0;
-                console.log(event.data);
                 this.maskWorkerExecutionCount--;
                 for (let i = event.data.start; i < event.data.end; i++) {
                     this.state.bufferBitMask[i] = event.data.result[j++];
@@ -3814,9 +3813,7 @@ class LayeredDrawingScreen {
         }
     }
     updateBitMaskRectangle(rect) {
-        if (rect.length === 4 && this.layer()) {
-            for (let i = 0; i < this.state.bufferBitMask.length; i++)
-                this.state.bufferBitMask[i] = true;
+        if (rect.length === 4) {
             for (let y = 0; y < this.layer().dimensions.second; ++y) {
                 for (let x = 0; x < this.layer().dimensions.first; ++x) {
                     const key = x + y * this.layer().dimensions.first;
@@ -3860,18 +3857,19 @@ class LayeredDrawingScreen {
         return repaint;
     }
     setDimOnCurrent(dim) {
-        if (this.layer()) {
+        if (this.toolSelector && this.toolSelector.settingsTool)
             this.toolSelector.settingsTool.setDim(dim);
-            this.layers.forEach(layer => {
-                const zoom = layer.setDim(dim);
-                this.zoom.zoomX = zoom.first;
-                this.zoom.zoomY = zoom.second;
-            });
-            if (this.state.bufferBitMask.length !== dim[0] * dim[1]) {
-                this.state.bufferBitMask = [];
-                for (let i = 0; i < dim[0] * dim[1]; ++i)
-                    this.state.bufferBitMask.push(true);
-            }
+        this.layers.forEach(layer => {
+            const zoom = layer.setDim(dim);
+            this.zoom.zoomX = zoom.first;
+            this.zoom.zoomY = zoom.second;
+        });
+        if (this.state.bufferBitMask.length !== dim[0] * dim[1]) {
+            this.state.bufferBitMask = [];
+            for (let i = 0; i < dim[0] * dim[1]; ++i)
+                this.state.bufferBitMask.push(true);
+        }
+        if (this.layer()) {
             const bounds = [this.layer().bounds.first, this.layer().bounds.second];
             this.dim = [bounds[0], bounds[1]];
             this.canvas.width = bounds[0];
@@ -3935,8 +3933,16 @@ class LayeredDrawingScreen {
         sprite.copyToBuffer(layer.screenBuffer, bounds[0], bounds[1]);
     }
     addBlankLayer() {
-        const layer = new DrawingScreen(document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [this.dim[0], this.dim[1]], this.toolSelector, this.state, this.clipBoard);
-        this.setDimOnCurrent(this.dim);
+        let finalDim;
+        if (this.toolSelector.settingsTool) {
+            finalDim = this.toolSelector.settingsTool.dim;
+        }
+        const dim = this.dim;
+        const layer = new DrawingScreen(document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [dim[0], dim[1]], this.toolSelector, this.state, this.clipBoard);
+        layer.setDim(dim);
+        //layer.setDim(dim);
+        if (finalDim)
+            layer.setDim(finalDim);
         this.layers.push(layer);
         this.layersState.push(true);
         return layer;
@@ -5000,7 +5006,6 @@ class AnimationGroup {
                 const sprites = animations[animations.length - 1].sprites;
                 let k = 0;
                 const spriteSize = binary[i + j + 5];
-                console.log(spriteSize);
                 if (binary[i + j + 6] != 2)
                     throw new Error("Corrupted sprite header file value is: " + binary[i + j + 6] + ", and should be 2");
                 for (; k < animationSize; k += spriteSize) {
@@ -5009,7 +5014,6 @@ class AnimationGroup {
                     const spriteWidth = binary[i + j + k + 7] & ((1 << 16) - 1);
                     const spriteHeight = binary[i + j + k + 7] >> 16;
                     let binaryPixelIndex = i + j + k + 8;
-                    console.log(binaryPixelIndex);
                     let l = 0;
                     const sprite = new Sprite([], spriteWidth, spriteHeight);
                     sprites.push(sprite);
