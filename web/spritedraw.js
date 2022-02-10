@@ -2218,6 +2218,7 @@ class SelectionTool extends ExtendedTool {
     }
 }
 ;
+//megadrive mode adds 6 colors to palette, restricts color selection to 8 red 8 green 8 blue, and 1 transparent color
 // To do refactor tools to make sure they load in the same order every time
 class ToolSelector {
     constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 50, imgHeight = 50) {
@@ -2891,8 +2892,8 @@ class DrawingScreen {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
-                        const dx = ngx - gx;
-                        const dy = ngy - gy;
+                        const dx = ngx + 0.5 - gx;
+                        const dy = ngy + 0.5 - gy;
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
                         if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && this.state.bufferBitMask[key] && Math.sqrt(dx * dx + dy * dy) <= radius) {
@@ -2908,9 +2909,11 @@ class DrawingScreen {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
+                        const dx = ngx + 0.5 - gx;
+                        const dy = ngy + 0.5 - gy;
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
-                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color)) {
+                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius) {
                             this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
@@ -2933,8 +2936,8 @@ class DrawingScreen {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
-                        const dx = ngx - gx;
-                        const dy = ngy - gy;
+                        const dx = ngx + 0.5 - gx;
+                        const dy = ngy + 0.5 - gy;
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
                         if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius && Math.random() < this.state.sprayProbability) {
@@ -2952,7 +2955,9 @@ class DrawingScreen {
                         const ngy = (gy + Math.round(i));
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
-                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability) {
+                        const dx = ngx + 0.5 - gx;
+                        const dy = ngy + 0.5 - gy;
+                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && Math.sqrt(dx * dx + dy * dy) <= radius && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability) {
                             this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
@@ -3302,7 +3307,6 @@ class DrawingScreen {
                 this.bounds.second = newDim[1];
             }
             const bounds = [this.bounds.first, this.bounds.second];
-            const dimensions = [this.dimensions.first, this.dimensions.second];
             if (this.screenBuffer.length != newDim[0] * newDim[1]) {
                 const canvas = document.createElement("canvas");
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -3940,7 +3944,6 @@ class LayeredDrawingScreen {
         const dim = this.dim;
         const layer = new DrawingScreen(document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [dim[0], dim[1]], this.toolSelector, this.state, this.clipBoard);
         layer.setDim(dim);
-        //layer.setDim(dim);
         if (finalDim)
             layer.setDim(finalDim);
         this.layers.push(layer);
