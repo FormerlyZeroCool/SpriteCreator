@@ -3370,11 +3370,15 @@ class DrawingScreen {
     setDim(newDim) {
         let zoom = new Pair(1, 1);
         if (newDim.length === 2) {
-            if (newDim[0] <= 512) {
+            if (newDim[0] <= 512 && newDim[1] <= 512) {
                 this.bounds.first = newDim[0] * Math.floor(1024 / newDim[0]);
                 zoom.first = 1 / Math.floor(1024 / newDim[0]);
                 this.bounds.second = newDim[1] * Math.floor(1024 / newDim[1]);
                 zoom.second = 1 / Math.floor(1024 / newDim[1]);
+            }
+            else if (newDim[0] <= 1024 && newDim[1] <= 1024) {
+                this.bounds.first = newDim[0] * 2;
+                this.bounds.second = newDim[1] * 2;
             }
             else {
                 this.bounds.first = newDim[0];
@@ -3568,6 +3572,39 @@ class DrawingScreen {
                 spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
                 spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
                 index++;
+            }
+        }
+        else if (this.dimensions.first * 2 === this.canvas.width && this.dimensions.second * 2 === this.canvas.height) {
+            let index = 0;
+            let bufferIndex = 0;
+            for (let y = 0; y < spriteBuffer.height; y += 2) {
+                for (let x = 0; x < spriteBuffer.width; x += 2) {
+                    const red = this.screenBuffer[index].red();
+                    const green = this.screenBuffer[index].green();
+                    const blue = this.screenBuffer[index].blue();
+                    const alpha = this.screenBuffer[index].alpha();
+                    bufferIndex = (x + y * spriteBuffer.width) * 4;
+                    spriteBuffer.pixels[bufferIndex] = red;
+                    spriteBuffer.pixels[bufferIndex + 1] = green;
+                    spriteBuffer.pixels[bufferIndex + 2] = blue;
+                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
+                    bufferIndex += 4;
+                    spriteBuffer.pixels[bufferIndex] = red;
+                    spriteBuffer.pixels[bufferIndex + 1] = green;
+                    spriteBuffer.pixels[bufferIndex + 2] = blue;
+                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
+                    bufferIndex += spriteBuffer.width * 4;
+                    spriteBuffer.pixels[bufferIndex] = red;
+                    spriteBuffer.pixels[bufferIndex + 1] = green;
+                    spriteBuffer.pixels[bufferIndex + 2] = blue;
+                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
+                    bufferIndex -= 4;
+                    spriteBuffer.pixels[bufferIndex] = red;
+                    spriteBuffer.pixels[bufferIndex + 1] = green;
+                    spriteBuffer.pixels[bufferIndex + 2] = blue;
+                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
+                    index++;
+                }
             }
         }
         else //use fill rect method to fill rectangle the size of pixels(more branch mispredicts, but more general)
