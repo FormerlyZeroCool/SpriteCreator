@@ -2983,11 +2983,9 @@ class DrawingScreen {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
-                        const dx = ngx + 0.5 - gx;
-                        const dy = ngy + 0.5 - gy;
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
-                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius) {
+                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color)) {
                             this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
@@ -3029,9 +3027,7 @@ class DrawingScreen {
                         const ngy = (gy + Math.round(i));
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
-                        const dx = ngx + 0.5 - gx;
-                        const dy = ngy + 0.5 - gy;
-                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && Math.sqrt(dx * dx + dy * dy) <= radius && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability) {
+                        if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.random() < this.state.sprayProbability) {
                             this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(key, new RGB(pixel.red(), pixel.green(), pixel.blue(), pixel.alpha())));
                             pixel.copy(this.state.color);
                         }
@@ -3545,32 +3541,32 @@ class DrawingScreen {
         if (this.dimensions.first === this.canvas.width && this.dimensions.second === this.canvas.height) { //if drawing screen dimensions, and canvas dimensions are the same just update per pixel
             let index = 0;
             for (; index < this.screenBuffer.length - 4;) {
-                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
-                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                spriteBuffer.pixels[(index * 4)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index * 4) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index * 4) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index * 4) + 3] = this.screenBuffer[index].alpha();
                 ++index;
-                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
-                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                spriteBuffer.pixels[(index * 4)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index * 4) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index * 4) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index * 4) + 3] = this.screenBuffer[index].alpha();
                 ++index;
-                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
-                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                spriteBuffer.pixels[(index * 4)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index * 4) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index * 4) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index * 4) + 3] = this.screenBuffer[index].alpha();
                 ++index;
-                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
-                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                spriteBuffer.pixels[(index * 4)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index * 4) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index * 4) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index * 4) + 3] = this.screenBuffer[index].alpha();
                 ++index;
             }
             for (; index < this.screenBuffer.length;) {
-                spriteBuffer.pixels[(index << 2)] = this.screenBuffer[index].red();
-                spriteBuffer.pixels[(index << 2) + 1] = this.screenBuffer[index].green();
-                spriteBuffer.pixels[(index << 2) + 2] = this.screenBuffer[index].blue();
-                spriteBuffer.pixels[(index << 2) + 3] = this.screenBuffer[index].alpha();
+                spriteBuffer.pixels[(index * 4)] = this.screenBuffer[index].red();
+                spriteBuffer.pixels[(index * 4) + 1] = this.screenBuffer[index].green();
+                spriteBuffer.pixels[(index * 4) + 2] = this.screenBuffer[index].blue();
+                spriteBuffer.pixels[(index * 4) + 3] = this.screenBuffer[index].alpha();
                 index++;
             }
         }
@@ -3584,25 +3580,24 @@ class DrawingScreen {
                     const blue = this.screenBuffer[index].blue();
                     const alpha = this.screenBuffer[index].alpha();
                     bufferIndex = (x + y * spriteBuffer.width) * 4;
-                    spriteBuffer.pixels[bufferIndex] = red;
-                    spriteBuffer.pixels[bufferIndex + 1] = green;
-                    spriteBuffer.pixels[bufferIndex + 2] = blue;
-                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
-                    bufferIndex += 4;
-                    spriteBuffer.pixels[bufferIndex] = red;
-                    spriteBuffer.pixels[bufferIndex + 1] = green;
-                    spriteBuffer.pixels[bufferIndex + 2] = blue;
-                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
-                    bufferIndex += spriteBuffer.width * 4;
-                    spriteBuffer.pixels[bufferIndex] = red;
-                    spriteBuffer.pixels[bufferIndex + 1] = green;
-                    spriteBuffer.pixels[bufferIndex + 2] = blue;
-                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
-                    bufferIndex -= 4;
-                    spriteBuffer.pixels[bufferIndex] = red;
-                    spriteBuffer.pixels[bufferIndex + 1] = green;
-                    spriteBuffer.pixels[bufferIndex + 2] = blue;
-                    spriteBuffer.pixels[bufferIndex + 3] = alpha;
+                    spriteBuffer.pixels[bufferIndex++] = red;
+                    spriteBuffer.pixels[bufferIndex++] = green;
+                    spriteBuffer.pixels[bufferIndex++] = blue;
+                    spriteBuffer.pixels[bufferIndex++] = alpha;
+                    spriteBuffer.pixels[bufferIndex++] = red;
+                    spriteBuffer.pixels[bufferIndex++] = green;
+                    spriteBuffer.pixels[bufferIndex++] = blue;
+                    spriteBuffer.pixels[bufferIndex++] = alpha;
+                    bufferIndex += (spriteBuffer.width - 1) * 4;
+                    spriteBuffer.pixels[bufferIndex++] = red;
+                    spriteBuffer.pixels[bufferIndex++] = green;
+                    spriteBuffer.pixels[bufferIndex++] = blue;
+                    spriteBuffer.pixels[bufferIndex++] = alpha;
+                    bufferIndex -= 8;
+                    spriteBuffer.pixels[bufferIndex++] = red;
+                    spriteBuffer.pixels[bufferIndex++] = green;
+                    spriteBuffer.pixels[bufferIndex++] = blue;
+                    spriteBuffer.pixels[bufferIndex++] = alpha;
                     index++;
                 }
             }
