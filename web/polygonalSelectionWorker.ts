@@ -49,7 +49,7 @@ interface MessageData {
 };
 self.onmessage = function handleMessage(message) {
     const data:MessageData = message.data;
-    const result:boolean[] = [];
+    const result:Uint8Array = new Uint8Array(data.end - data.start);
     const shape:number[][] = data.polygon;
     if(shape.length > 2)
     {
@@ -61,8 +61,8 @@ self.onmessage = function handleMessage(message) {
         {
             point[0] = i % data.width;
             point[1] = Math.floor(i / data.width);
-            result.push(insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint));
+            result[i - data.start] = +(insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint));
         }
-        self.postMessage({start:data.start, end:data.end, result:result});
+        self.postMessage({start:data.start, end:data.end, result:result}, message.window, [result]);
     }
 };

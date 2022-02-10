@@ -37,7 +37,7 @@ function insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint) {
 ;
 self.onmessage = function handleMessage(message) {
     const data = message.data;
-    const result = [];
+    const result = new Uint8Array(data.end - data.start);
     const shape = data.polygon;
     if (shape.length > 2) {
         let startPoint = [0, 0];
@@ -47,8 +47,8 @@ self.onmessage = function handleMessage(message) {
         for (let i = data.start; i < data.end; ++i) {
             point[0] = i % data.width;
             point[1] = Math.floor(i / data.width);
-            result.push(insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint));
+            result[i - data.start] = +(insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint));
         }
-        self.postMessage({ start: data.start, end: data.end, result: result });
+        self.postMessage({ start: data.start, end: data.end, result: result }, message.window, [result]);
     }
 };

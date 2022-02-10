@@ -514,6 +514,11 @@ class SimpleGridLayoutManager {
         this.refreshCanvas();
         return inserted;
     }
+    removeElement(element) {
+        this.elements.splice(this.elements.indexOf(element), 1);
+        this.refreshMetaData();
+        this.refreshCanvas();
+    }
     elementPosition(element) {
         const elPos = this.elementsPositions.find(el => el.element === element);
         return [elPos.x, elPos.y];
@@ -1493,9 +1498,6 @@ class GuiToolBar {
             if (image) {
                 this.ctx.drawImage(image, pixelX, pixelY, this.toolRenderDim[0], this.toolRenderDim[1]);
             }
-            else {
-                console.log("Still loading image for: ", this.tools[i].name());
-            }
             if (this.selected === i) {
                 this.ctx.strokeRect(pixelX + 1, pixelY + 1, this.toolRenderDim[0] - 2, this.toolRenderDim[1] - 2);
             }
@@ -2219,7 +2221,6 @@ class SelectionTool extends ExtendedTool {
 }
 ;
 //megadrive mode adds 6 colors to palette, restricts color selection to 8 red 8 green 8 blue, and 1 transparent color
-// To do refactor tools to make sure they load in the same order every time
 class ToolSelector {
     constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 50, imgHeight = 50) {
         this.lastDrawTime = Date.now();
@@ -2671,6 +2672,80 @@ class ToolSelector {
         this.repaint = true;
         this.lastDrawTime = Date.now();
     }
+    setNormalInputValidation() {
+        this.settingsTool.tbX.validationCallback = (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            return true;
+        };
+        this.settingsTool.tbY.validationCallback = (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            return true;
+        };
+        this.settingsTool.recalcDim = () => {
+            let x = this.settingsTool.dim[0];
+            let y = this.settingsTool.dim[1];
+            if (this.settingsTool.tbX.asNumber.get())
+                x = this.settingsTool.tbX.asNumber.get();
+            if (this.settingsTool.tbY.asNumber.get())
+                y = this.settingsTool.tbY.asNumber.get();
+            this.settingsTool.dim = [x, y];
+            this.field.setDimOnCurrent(this.settingsTool.dim);
+        };
+        this.colorPickerTool.tbColor.validationCallback = (e) => {
+            const color = new RGB(0, 0, 0, 0);
+            const code = color.loadString(e.textbox.text);
+            if (code === 2) //overflow
+             {
+                e.textbox.text = (color.htmlRBGA());
+            }
+            else if (code === 1) //parse error
+             {
+                return false;
+            }
+            return true;
+        };
+    }
+    setMegaDriveInputValidation() {
+        this.settingsTool.tbX.validationCallback = (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            return true;
+        };
+        this.settingsTool.tbY.validationCallback = (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            return true;
+        };
+        this.settingsTool.recalcDim = () => {
+            let x = this.settingsTool.dim[0];
+            let y = this.settingsTool.dim[1];
+            if (this.settingsTool.tbX.asNumber.get())
+                x = this.settingsTool.tbX.asNumber.get();
+            if (this.settingsTool.tbY.asNumber.get())
+                y = this.settingsTool.tbY.asNumber.get();
+            this.settingsTool.dim = [x, y];
+            this.field.setDimOnCurrent(this.settingsTool.dim);
+        };
+        this.colorPickerTool.tbColor.validationCallback = (e) => {
+            const color = new RGB(0, 0, 0, 0);
+            const code = color.loadString(e.textbox.text);
+            if (code === 2) //overflow
+             {
+                e.textbox.text = (color.htmlRBGA());
+            }
+            else if (code === 1) //parse error
+             {
+                return false;
+            }
+            return true;
+        };
+    }
     selected() {
         return this.toolBar.selected;
     }
@@ -2767,7 +2842,6 @@ class DrawingScreen {
         }
         const colorBackup = new RGB(this.noColor.red(), this.noColor.green(), this.noColor.blue(), this.noColor.alpha());
         this.state.color = new RGB(0, 0, 0, 255);
-        this.setDim(dim);
     }
     updateLabelUndoRedoCount() {
         this.toolSelector.undoTool.updateLabel(this.undoneUpdatesStack.length(), this.updatesStack.length());
