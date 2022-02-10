@@ -2503,6 +2503,8 @@ class ToolSelector {
                             break;
                         case ("selection"):
                             if (this.selectionTool.checkboxComplexPolygon.checked) {
+                                if (e.moveCount % 10 === 0)
+                                    this.polygon.push([gx, gy]);
                                 break;
                             }
                         case ("line"):
