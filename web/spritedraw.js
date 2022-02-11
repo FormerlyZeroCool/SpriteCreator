@@ -2978,14 +2978,15 @@ class DrawingScreen {
         if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked) {
             this.state.screenBufUnlocked = false;
             const radius = this.state.lineWidth * 0.5;
+            const offset = this.state.lineWidth > 1 ? 0.5 : 0;
             if (this.state.drawCircular) {
                 const radius = this.state.lineWidth * 0.5;
                 for (let i = -0.5 * this.state.lineWidth; i < radius; i++) {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
-                        const dx = ngx + 0.5 - gx;
-                        const dy = ngy + 0.5 - gy;
+                        const dx = ngx + offset - gx;
+                        const dy = ngy + offset - gy;
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
                         if (this.inBufferBounds(ngx, ngy) && !pixel.compare(this.state.color) && this.state.bufferBitMask[key] && Math.sqrt(dx * dx + dy * dy) <= radius) {
@@ -3021,13 +3022,14 @@ class DrawingScreen {
             this.state.screenBufUnlocked = false;
             const radius = this.state.lineWidth * 0.5;
             if (this.state.drawCircular) {
+                const offset = this.state.lineWidth > 1 ? 0.5 : 0;
                 const radius = this.state.lineWidth * 0.5;
                 for (let i = -0.5 * this.state.lineWidth; i < radius; i++) {
                     for (let j = -0.5 * this.state.lineWidth; j < radius; j++) {
                         const ngx = gx + Math.round(j);
                         const ngy = (gy + Math.round(i));
-                        const dx = ngx + 0.5 - gx;
-                        const dy = ngy + 0.5 - gy;
+                        const dx = ngx + offset - gx;
+                        const dy = ngy + offset - gy;
                         const key = ngx + ngy * this.dimensions.first;
                         const pixel = this.screenBuffer[key];
                         if (this.inBufferBounds(ngx, ngy) && this.state.bufferBitMask[key] && !pixel.compare(this.state.color) && Math.sqrt(dx * dx + dy * dy) <= radius && Math.random() < this.state.sprayProbability) {
