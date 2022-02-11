@@ -63,6 +63,7 @@ self.onmessage = function handleMessage(message) {
             point[1] = Math.floor(i / data.width);
             result[i - data.start] = +(insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint));
         }
-        self.postMessage({start:data.start, end:data.end, result:result}, message.window, [result]);
+        const answer = {start:data.start, end:data.end, result:result};
+        self.postMessage(answer, null, [answer.result.buffer]);
     }
 };

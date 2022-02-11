@@ -1,7 +1,7 @@
-function sleep(ms):Promise<void> {
-    return new Promise<void>(resolve => setTimeout(resolve, ms));
+function sleep(ms:number):Promise<void> {
+    return new Promise<void>((resolve:any) => setTimeout(resolve, ms));
 }
-function changeFavicon(src): void
+function changeFavicon(src:string): void
 {
     let link = document.createElement('link'),
         oldLink = document.getElementById('dynamic-favicon');
@@ -50,7 +50,7 @@ class Queue<T> {
         this.end = 0;
         this.length = 0;
     }
-    push(val):void
+    push(val:T):void
     {
         if(this.length === this.data.length)
         {
@@ -128,7 +128,7 @@ class RollingStack<T> {
     {
         return this.size;
     }
-    pop():T
+    pop():T | null
     {
         if(this.size)
         {
@@ -138,6 +138,7 @@ class RollingStack<T> {
                 this.end = this.reserve - 1;
             return this.data[this.end];
         }
+        return null;
     }
     push(val:T):void
     {
@@ -360,9 +361,9 @@ class Pair<T,U = T> {
     }
 };
 class ImageContainer {
-    image:HTMLImageElement;
+    image:HTMLImageElement | null;
     name:string;
-    constructor(imageName:string, imagePath:string, callBack:(HTMLImageElement) => void = (img) => console.log(imageName + " loaded."))
+    constructor(imageName:string, imagePath:string, callBack:((image:HTMLImageElement) => void) = (img) => console.log(imageName + " loaded."))
     {
         this.image = null;
         fetchImage(imagePath).then(img => { 
@@ -379,7 +380,7 @@ interface GuiElement {
     width():number;
     height():number;
     refresh():void;
-    draw(ctx:CanvasRenderingContext2D, x:number, y:number, offsetX:number, offsetY:number);
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, offsetX:number, offsetY:number): void;
     handleKeyBoardEvents(type:string, e:any):void;
     handleTouchEvents(type:string, e:any):void;
     isLayoutManager():boolean;
@@ -413,7 +414,7 @@ class RowRecord {
     width:number;
     height:number;
     element:GuiElement;
-    constructor(x:number, y:number, width:number, height:number, element)
+    constructor(x:number, y:number, width:number, height:number, element:GuiElement)
     {
         this.x = x;
         this.y = y;
@@ -448,28 +449,28 @@ class SimpleGridLayoutManager implements GuiElement {
         this.frameCounter = 0;
         this.elements = [];
         this.elementsPositions = [];
-        this.canvas = document.createElement("canvas");
+        this.canvas = document.createElement("canvas")!;
         this.canvas.width = pixelDim[0];
         this.canvas.height = pixelDim[1];
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
     } 
     createHandlers(keyboardHandler:KeyboardHandler, touchHandler:SingleTouchListener):void
     {
         if(keyboardHandler)
         {
-            keyboardHandler.registerCallBack("keydown", e => this.active(), 
-            e => {e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keydown", e))});
-            keyboardHandler.registerCallBack("keyup", e => this.active(), 
-            e => {e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keyup", e))});
+            keyboardHandler.registerCallBack("keydown", (e:any) => this.active(), 
+            (e:any) => {e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keydown", e))});
+            keyboardHandler.registerCallBack("keyup", (e:any) => this.active(), 
+            (e:any) => {e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keyup", e))});
         }
         if(touchHandler)
         {
-            touchHandler.registerCallBack("touchstart", e => this.active(), 
-            e => this.handleTouchEvents("touchstart", e));
-            touchHandler.registerCallBack("touchmove", e => this.active(), 
-            e => this.handleTouchEvents("touchmove", e));
-            touchHandler.registerCallBack("touchend", e => this.active(), 
-            e => this.handleTouchEvents("touchend", e));
+            touchHandler.registerCallBack("touchstart", (e:any) => this.active(), 
+            (e:any) => this.handleTouchEvents("touchstart", e));
+            touchHandler.registerCallBack("touchmove", (e:any) => this.active(), 
+            (e:any) => this.handleTouchEvents("touchmove", e));
+            touchHandler.registerCallBack("touchend", (e:any) => this.active(), 
+            (e:any) => this.handleTouchEvents("touchend", e));
         }
     }  
     isLayoutManager():boolean {
@@ -488,7 +489,7 @@ class SimpleGridLayoutManager implements GuiElement {
         if(e.touchPos[0] >= 0 && e.touchPos[0] < this.width() &&
             e.touchPos[1] >= 0 && e.touchPos[1] < this.height())
         {
-            let record:RowRecord = null;
+            let record:RowRecord = <any> null;
             let index:number = 0;
             let runningNumber:number = 0;
             this.elementsPositions.forEach(el => {
@@ -661,7 +662,9 @@ class SimpleGridLayoutManager implements GuiElement {
     }
     elementPosition(element:GuiElement):number[]
     {
-        const elPos:RowRecord = this.elementsPositions.find(el => el.element === element);
+        const elPos:RowRecord | undefined = this.elementsPositions.find((el:RowRecord) => el.element === element);
+        if(elPos === undefined)
+            return [-1, -1];
         return [elPos.x, elPos.y];
     }
     draw(ctx:CanvasRenderingContext2D, xPos:number = this.x, yPos:number = this.y, offsetX:number = 0, offsetY:number = 0)
@@ -677,8 +680,10 @@ class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
     constructor(matrixDim:number[], pixelDim:number[], x:number = 0, y:number = 0)
     {
         super(matrixDim, pixelDim, x, y);
+        this.scrolledCanvas = document.createElement("canvas");
+        this.offset = [0, 0];
     }
-    handleScrollEvent(event)
+    handleScrollEvent(event:any)
     {
 
     }
@@ -693,8 +698,8 @@ class GuiListItem extends SimpleGridLayoutManager {
     slider:GuiSlider;
     sliderX:number;
     callBackType:string;
-    callBack:(e) => void;
-    constructor(text:string, state:boolean, pixelDim:number[], fontSize:number = 16, callBack:(e) => void = () => null, genericCallBack:(e) => void = () => null, slideMoved:(event:SlideEvent) => void, flags:number = GuiTextBox.left | GuiTextBox.bottom, genericTouchType:string = "touchend")
+    callBack:((e:any) => void) | null;
+    constructor(text:string, state:boolean, pixelDim:number[], fontSize:number = 16, callBack:((e:any) => void) | null = () => {}, genericCallBack:((e:any) => void) | null = null, slideMoved:((event:SlideEvent) => void) | null = null, flags:number = GuiTextBox.default, genericTouchType:string = "touchend")
     {
         super([20, 1], pixelDim);
         this.callBackType = genericTouchType;
@@ -716,7 +721,8 @@ class GuiListItem extends SimpleGridLayoutManager {
         if(this.active() && type === this.callBackType)
         {
             e.item = this;
-            this.callBack(e);
+            if(this.callBack)
+                this.callBack(e);
         }
     }
     state():boolean {
@@ -729,20 +735,21 @@ class SlideEvent {
     constructor(value:number, element:GuiSlider)
     {
         this.value = value;
+        this.element = element;
     }
 }
 class GuiCheckList implements GuiElement {
     limit:number;
     list:GuiListItem[];
-    dragItem:GuiListItem;
+    dragItem:GuiListItem | null;
     dragItemLocation:number[];
     dragItemInitialIndex:number;
     layoutManager:SimpleGridLayoutManager;
     fontSize:number;
     focused:boolean;
-    swapElementsInParallelArray:(x1, x2) => void;
-    slideMoved:(SlideEvent) => void;
-    constructor(matrixDim:number[], pixelDim:number[], fontSize:number, swap:(x1, x2) => void = null, slideMoved:(event:SlideEvent) => void)
+    swapElementsInParallelArray:((x1:number, x2:number) => void) | null;
+    slideMoved:((event:SlideEvent) => void) | null;
+    constructor(matrixDim:number[], pixelDim:number[], fontSize:number, swap:((x1:number, x2:number) => void) | null = null, slideMoved:((event:SlideEvent) => void) | null)
     {
         this.focused = true;
         this.fontSize = fontSize;
@@ -755,7 +762,7 @@ class GuiCheckList implements GuiElement {
         this.slideMoved = slideMoved;
         this.swapElementsInParallelArray = swap;
     }
-    push(text:string, state:boolean = true, checkBoxCallback:(event) => void, onClickGeneral:(event) => void): void
+    push(text:string, state:boolean = true, checkBoxCallback:(event:any) => void, onClickGeneral:(event:any) => void): void
     {
         const newElement:GuiListItem = new GuiListItem(text, state, [this.width(),
             this.height() / this.layoutManager.matrixDim[1] - 5], this.fontSize, checkBoxCallback, onClickGeneral, this.slideMoved);
@@ -765,7 +772,7 @@ class GuiCheckList implements GuiElement {
     {
         return this.layoutManager.lastTouched;
     }
-    selectedItem():GuiListItem
+    selectedItem():GuiListItem | null
     {
         if(this.selected() !== -1)
             return this.list[this.selected()];
@@ -782,7 +789,7 @@ class GuiCheckList implements GuiElement {
         }
         return index;
     }
-    get(index:number):GuiListItem
+    get(index:number):GuiListItem | null
     {
         if(this.list[index])
             return this.list[index];
@@ -791,7 +798,7 @@ class GuiCheckList implements GuiElement {
     }
     isChecked(index:number):boolean
     {
-        return this.list[index] ? this.list[index].checkBox.checked : null;
+        return this.list[index] ? this.list[index].checkBox.checked : false;
     }
     delete(index:number):void 
     {
@@ -826,7 +833,7 @@ class GuiCheckList implements GuiElement {
         this.layoutManager.elements = this.list;
         this.layoutManager.refresh();
     }
-    draw(ctx:CanvasRenderingContext2D, x:number, y:number, offsetX:number, offsetY:number)
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, offsetX:number, offsetY:number): void
     {
         //this.layoutManager.draw(ctx, x, y, offsetX, offsetY);
         const itemsPositions:RowRecord[] = this.layoutManager.elementsPositions;
@@ -870,12 +877,12 @@ class GuiCheckList implements GuiElement {
                 this.dragItemLocation[0] = -1;
                 this.dragItemLocation[1] = -1;
             }
-            if(this.selectedItem())
-                this.selectedItem().callBack(e);
+            if(this.selectedItem() && this.selectedItem()!.callBack)
+                this.selectedItem()!.callBack!(e);
             break;
             case("touchmove"):
             const movesNeeded:number = isTouchSupported()?7:2;
-            if(this.selectedItem() && e.touchPos[0] < this.selectedItem().sliderX)
+            if(this.selectedItem() && e.touchPos[0] < this.selectedItem()!.sliderX)
             {
                 if(e.moveCount === movesNeeded && this.selectedItem() && this.list.length > 1)
                 {
@@ -908,8 +915,8 @@ class GuiSlider implements GuiElement {
     focused:boolean;
     dim:number[];
     canvas:HTMLCanvasElement;
-    callBack:(event:SlideEvent) => void;
-    constructor(state:number, dim:number[], movedCallBack:(event:SlideEvent) => void){
+    callBack:((event:SlideEvent) => void) | null;
+    constructor(state:number, dim:number[], movedCallBack:((event:SlideEvent) => void) | null){
         this.state = state;
         this.callBack = movedCallBack;
         this.focused = false;
@@ -941,7 +948,7 @@ class GuiSlider implements GuiElement {
     }
     refresh():void
     {
-        const ctx:CanvasRenderingContext2D = this.canvas.getContext("2d");
+        const ctx:CanvasRenderingContext2D = this.canvas.getContext("2d")!;
         ctx.clearRect(0, 0, this.width(), this.height());
         ctx.fillStyle = "#FFFFFF";
         //ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
@@ -978,7 +985,8 @@ class GuiSlider implements GuiElement {
             this.state = 1;
         else if(this.state < 0)
             this.state = 0;
-        this.callBack({value:this.state, element:this});
+        if(this.callBack)
+            this.callBack({value:this.state, element:this});
         this.refresh();
     }
     isLayoutManager():boolean
@@ -1034,15 +1042,16 @@ class GuiButton implements GuiElement {
     focused:boolean;
     font:FontFace;
     fontName:string
-    callback:() => void;constructor(callBack:() => void, text:string, width:number = 200, height:number = 50, fontSize:number = 12, pressedColor:RGB = new RGB(150, 150, 200, 1), unPressedColor:RGB = new RGB(255, 255, 255), fontName:string = "button_font")
+    callback:(() => void) | null;
+    constructor(callBack:() => void | null, text:string, width:number = 200, height:number = 50, fontSize:number = 12, pressedColor:RGB = new RGB(150, 150, 200, 1), unPressedColor:RGB = new RGB(255, 255, 255), fontName:string = "button_font")
     {
         this.text = text;
         this.fontSize = fontSize;
         this.dimensions = [width, height];
-        this.canvas = document.createElement("canvas");
+        this.canvas = document.createElement("canvas")!;
         this.canvas.width = width;
         this.canvas.height = height;
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.pressedColor = pressedColor;
         this.unPressedColor = unPressedColor;
         this.pressed = false;
@@ -1057,7 +1066,7 @@ class GuiButton implements GuiElement {
                 this.drawInternal();
             }, (error:Error) => {
                 this.font = new FontFace(`${this.fontName}`, 'url(/fonts/Minecraft.ttf)');
-                this.font.load().then(loaded_face => {
+                this.font.load().then((loaded_face:any) => {
                         document.fonts.add(loaded_face);
                         this.drawInternal();
                     }, (error:Error) => {
@@ -1078,6 +1087,7 @@ class GuiButton implements GuiElement {
                         this.drawInternal();
                     break;
                     case("keyup"):
+                    if(this.callback)
                         this.callback();
                         this.pressed = false;
                         this.drawInternal();
@@ -1097,6 +1107,7 @@ class GuiButton implements GuiElement {
                     this.drawInternal();
                 break;
                 case("touchend"):
+                if(this.callback)
                     this.callback();
                     this.pressed = false;
                     this.drawInternal();
@@ -1165,8 +1176,8 @@ class GuiCheckBox implements GuiElement {
     unPressedColor:RGB;
     pressed:boolean;
     focused:boolean;
-    callback:(event) => void;
-    constructor(callBack:(event) => void, width:number = 50, height:number = 50, checked:boolean = false, unPressedColor:RGB = new RGB(255, 255, 255, 0), pressedColor:RGB = new RGB(150, 150, 200, 255), fontSize:number = height - 10)
+    callback:((event:any) => void) | null;
+    constructor(callBack:((event:any) => void) | null, width:number = 50, height:number = 50, checked:boolean = false, unPressedColor:RGB = new RGB(255, 255, 255, 0), pressedColor:RGB = new RGB(150, 150, 200, 255), fontSize:number = height - 10)
     {
         this.checked = checked;
         this.fontSize = fontSize;
@@ -1174,7 +1185,7 @@ class GuiCheckBox implements GuiElement {
         this.canvas = document.createElement("canvas");
         this.canvas.width = width;
         this.canvas.height = height;
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.pressedColor = pressedColor;
         this.unPressedColor = unPressedColor;
         this.pressed = false;
@@ -1194,7 +1205,8 @@ class GuiCheckBox implements GuiElement {
                     break;
                     case("keyup"):
                         e.checkBox = this;
-                        this.callback(e);
+                        if(this.callback)
+                            this.callback(e);
                         this.pressed = false;
                         this.drawInternal();
                         this.deactivate();
@@ -1219,7 +1231,8 @@ class GuiCheckBox implements GuiElement {
                     this.checked = !this.checked;
                     this.pressed = false;
                     e.checkBox = this;
-                    this.callback(e);
+                    if(this.callback)
+                        this.callback(e);
                     this.drawInternal();
                 break;
             }
@@ -1290,11 +1303,11 @@ class TextRow {
     }
 };
 class Optional<T> {
-    data:T;
+    data:T | null;
     constructor() {
         this.data = null;
     }
-    get():T
+    get():T | null
     {
         return this.data;
     } 
@@ -1345,14 +1358,14 @@ class GuiTextBox implements GuiElement {
     static textBoxRunningNumber:number = 0;
     textBoxId:number;
     flags:number;
-    submissionButton:GuiButton;
+    submissionButton:GuiButton | null;
     promptText:string;
     font:FontFace;
     fontName:string;
     handleKeyEvents:boolean;
-    validationCallback:(tb:TextBoxEvent) => boolean;
-    constructor(keyListener:boolean, width:number, submit:GuiButton = null, fontSize:number = 16, height:number = 2*fontSize, flags:number = GuiTextBox.default,
-        validationCallback:(event:TextBoxEvent) => boolean = null, selectedColor:RGB = new RGB(80, 80, 220), unSelectedColor:RGB = new RGB(100, 100, 100), fontName = "textBox_default", customFontFace:FontFace = null)
+    validationCallback:((tb:TextBoxEvent) => boolean) | null;
+    constructor(keyListener:boolean, width:number, submit:GuiButton | null = null, fontSize:number = 16, height:number = 2*fontSize, flags:number = GuiTextBox.default,
+        validationCallback:((event:TextBoxEvent) => boolean) | null = null, selectedColor:RGB = new RGB(80, 80, 220), unSelectedColor:RGB = new RGB(100, 100, 100), fontName = "textBox_default", customFontFace:FontFace | null = null)
     {
         this.handleKeyEvents = keyListener;
         this.validationCallback = validationCallback;
@@ -1374,7 +1387,7 @@ class GuiTextBox implements GuiElement {
         this.canvas = document.createElement("canvas");
         this.canvas.width = width;
         this.canvas.height = height;
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.dimensions = [width, height];
         this.fontSize = fontSize;
         this.fontName = fontName;
@@ -1390,7 +1403,7 @@ class GuiTextBox implements GuiElement {
                 this.drawInternalAndClear();
             }, (error:Error) => {
                 this.font = new FontFace(fontName, 'url(/fonts/Minecraft.ttf)');
-                this.font.load().then(loaded_face => {
+                this.font.load().then((loaded_face:any) => {
                         document.fonts.add(loaded_face);
                         this.refresh();
                     }, (error:Error) => {
@@ -1489,12 +1502,12 @@ class GuiTextBox implements GuiElement {
                         let letter:string = e.code.substring(e.code.length - 1);
                         if(!e.keysHeld["ShiftRight"] && !e.keysHeld["ShiftLeft"])
                             letter = letter.toLowerCase();
-                        if(GuiTextBox.textLookup[e.code] || GuiTextBox.numbers[e.code])
+                        if((<any> GuiTextBox.textLookup)[e.code] || (<any> GuiTextBox.numbers)[e.code])
                         {
                             this.text = this.text.substring(0, this.cursor) + letter + this.text.substring(this.cursor, this.text.length);
                             this.cursor++;
                         }
-                        else if(GuiTextBox.specialChars[e.code])
+                        else if((<any> GuiTextBox.specialChars)[e.code])
                         {
                             //todo
                         }
@@ -1560,8 +1573,8 @@ class GuiTextBox implements GuiElement {
                         this.deactivate();
                         if(this.submissionButton)
                         {
-                            this.submissionButton.activate();
-                            this.submissionButton.callback();
+                            this.submissionButton!.activate();
+                            this.submissionButton!.callback!();
                         }
                     }
                 }
@@ -1573,12 +1586,12 @@ class GuiTextBox implements GuiElement {
     static initGlobalText():void
     {
         for(let i = 65; i < 65+26; i++)
-            GuiTextBox.textLookup["Key" + String.fromCharCode(i)] = true;
+            (<any> GuiTextBox.textLookup)["Key" + String.fromCharCode(i)] = true;
     };
     static initGlobalNumbers():void
     {
         for(let i = 48; i < 48+10; i++){
-            GuiTextBox.numbers["Digit" + String.fromCharCode(i)] = true;
+            (<any> GuiTextBox.numbers)["Digit" + String.fromCharCode(i)] = true;
         }
     };
     static initGlobalSpecialChars():void
@@ -1669,7 +1682,7 @@ class GuiTextBox implements GuiElement {
         for(let i = 0; i < this.rows.length; i++)
         {
             const row:TextRow = this.rows[i];
-            if(row.y === this.cursor[1])
+            if(row.y === Math.floor(this.cursor / this.fontSize))
                 index = i;
         }
         return index;
@@ -1822,14 +1835,14 @@ class GuiToolBar implements GuiElement {
         this.canvas = document.createElement("canvas");
         this.canvas.height = this.height();
         this.canvas.width = this.width();
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.ctx.strokeStyle = "#000000";
     }
     resize(width:number = this.width(), height:number = this.height()):void
     {
         this.canvas.width = width;
         this.canvas.height = height;
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.ctx.strokeStyle = "#000000";
     }
     active():boolean {
@@ -1919,15 +1932,15 @@ class ToolBarItem {
     }
     width():number
     {
-        return this.toolImage.image.width;
+        return this.toolImage.image!.width;
     }
     height():number
     {
-        return this.toolImage.image.height;
+        return this.toolImage.image!.height;
     }
     image():HTMLImageElement
     {
-        return this.toolImage.image;
+        return this.toolImage.image!;
     }
     name():string
     {
@@ -1949,8 +1962,8 @@ abstract class Tool extends ToolBarItem{
     abstract optionPanelSize():number[];
     abstract activateOptionPanel():void;
     abstract deactivateOptionPanel():void;
-    abstract getOptionPanel():SimpleGridLayoutManager;
-    abstract drawOptionPanel(ctx, x:number, y:number):void;
+    abstract getOptionPanel():SimpleGridLayoutManager | null;
+    abstract drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void;
 
 };
 class ViewLayoutTool extends Tool {
@@ -1963,16 +1976,16 @@ class ViewLayoutTool extends Tool {
 
     activateOptionPanel():void { this.layoutManager.activate(); }
     deactivateOptionPanel():void { this.layoutManager.deactivate(); }
-    getOptionPanel():SimpleGridLayoutManager {
+    getOptionPanel():SimpleGridLayoutManager | null {
         return this.layoutManager;
     }
     optionPanelSize():number[]
     {
         return [this.layoutManager.canvas.width, this.layoutManager.canvas.height];
     }
-    drawOptionPanel(ctx, x:number, y:number):void
+    drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void
     {
-        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel();
+        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel()!;
         optionPanel.x = x;
         optionPanel.y = y;
         optionPanel.draw(ctx, x, y);
@@ -1985,14 +1998,14 @@ class GenericTool extends Tool {
     }
     activateOptionPanel():void {}
     deactivateOptionPanel():void {}
-    getOptionPanel():SimpleGridLayoutManager {
+    getOptionPanel():SimpleGridLayoutManager | null {
         return null;
     }
     optionPanelSize():number[]
     {
         return [0, 0];
     }
-    drawOptionPanel(ctx, x:number, y:number):void {}
+    drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void {}
 };
 class ExtendedTool extends ViewLayoutTool {
     localLayout:SimpleGridLayoutManager;
@@ -2001,12 +2014,12 @@ class ExtendedTool extends ViewLayoutTool {
     {
         super(new SimpleGridLayoutManager([parentMatrixDim[0],parentMatrixDim[1]], [dim[0], dim[1]]), name, path);
         this.localLayout = new SimpleGridLayoutManager([matrixDim[0],matrixDim[1]], [dim[0], dim[1]]);
-        const parentPanel:SimpleGridLayoutManager = this.getOptionPanel();
+        const parentPanel:SimpleGridLayoutManager = this.getOptionPanel()!;
         parentPanel.addElement(this.localLayout);
         this.optionPanels = [this.localLayout];
         let maxY:number = this.localLayout.height();
         let maxX:number = this.localLayout.width();
-        optionPanes.forEach(pane => {
+        optionPanes.forEach((pane:any) => {
             parentPanel.addElement(pane);
             this.optionPanels.push(pane);
             maxY += pane.height();
@@ -2027,13 +2040,13 @@ class ExtendedTool extends ViewLayoutTool {
 
     }
     activateOptionPanel(): void {
-        this.getOptionPanel().activate();
+        this.getOptionPanel()!.activate();
         this.optionPanels.forEach(element => {
             element.activate();
         });
     }
     deactivateOptionPanel(): void {
-        this.getOptionPanel().deactivate();
+        this.getOptionPanel()!.deactivate();
         this.optionPanels.forEach(element => {
             element.deactivate();
         });
@@ -2052,15 +2065,15 @@ class SingleCheckBoxTool extends GenericTool {
     }
     activateOptionPanel():void { this.optionPanel.activate(); }
     deactivateOptionPanel():void { this.optionPanel.deactivate(); }
-    getOptionPanel():SimpleGridLayoutManager {
+    getOptionPanel():SimpleGridLayoutManager | null {
         return this.optionPanel;
     }
     optionPanelSize():number[]
     {
         return [this.optionPanel.width(), this.optionPanel.height()];
     }
-    drawOptionPanel(ctx, x:number, y:number):void {
-        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel();
+    drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void {
+        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel()!;
         optionPanel.x = x;
         optionPanel.y = y;
         optionPanel.draw(ctx, x, y);
@@ -2175,13 +2188,12 @@ class PenViewTool extends ViewLayoutTool {
     pen:PenTool;
     constructor(pen:PenTool, name:string, path:string)
     {
-        super(pen.getOptionPanel(), name, path);
+        super(pen.getOptionPanel()!, name, path);
         this.pen = pen;
     }
 };
 class PenTool extends ExtendedTool {
     lineWidth:number;
-    layoutManager:SimpleGridLayoutManager;
     tbSize:GuiTextBox;
     btUpdate:GuiButton;
     static checkboxSprayPaint:GuiCheckBox = new GuiCheckBox(null, 40, 40);
@@ -2196,7 +2208,7 @@ class PenTool extends ExtendedTool {
             {
                 return false;
             }
-            else if(event.textbox.asNumber.get() > 128)
+            else if(event.textbox.asNumber.get()! > 128)
             {
                 event.textbox.setText("128");
             }
@@ -2205,7 +2217,7 @@ class PenTool extends ExtendedTool {
         this.tbSize.promptText = "Enter line width:";
         this.tbSize.setText(String(this.lineWidth));
         this.btUpdate = new GuiButton(() => { 
-            this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get() <= 128 ? this.tbSize.asNumber.get() : 128):this.lineWidth; 
+            this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get()! <= 128 ? this.tbSize.asNumber.get()! : 128):this.lineWidth; 
             this.tbSize.setText(String(this.lineWidth))},
             "Update", 75, this.tbSize.height(), 16);
         this.tbSize.submissionButton = this.btUpdate;
@@ -2225,7 +2237,7 @@ class PenTool extends ExtendedTool {
         this.layoutManager.deactivate(); 
         //this.tbSize.refresh();
     }
-    getOptionPanel():SimpleGridLayoutManager {
+    getOptionPanel():SimpleGridLayoutManager | null {
         return this.layoutManager;
     }
     optionPanelSize():number[]
@@ -2234,7 +2246,7 @@ class PenTool extends ExtendedTool {
     }
     drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void 
     {
-        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel();
+        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel()!;
         optionPanel.x = x;
         optionPanel.y = y;
         optionPanel.draw(ctx, x, y);
@@ -2254,7 +2266,7 @@ class SprayCanTool extends PenTool {
             {
                 return false;
             }
-            else if(event.textbox.asNumber.get() > 1 && event.textbox.text.length > 0)
+            else if(event.textbox.asNumber.get()! > 1 && event.textbox.text.length > 0)
             {
                 event.textbox.setText((1).toString());
                 event.textbox.cursor = 1;
@@ -2262,7 +2274,7 @@ class SprayCanTool extends PenTool {
             return true;
         });
         this.btUpdate.callback = () => { 
-            this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get() <= 128 ? this.tbSize.asNumber.get() : 128):this.lineWidth; 
+            this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get()! <= 128 ? this.tbSize.asNumber.get()! : 128):this.lineWidth; 
             this.tbSize.setText(String(this.lineWidth));
             callBack(this.tbProbability);
         };
@@ -2331,7 +2343,7 @@ class ColorPickerTool extends ExtendedTool {
     }
     activateOptionPanel():void { this.layoutManager.activate(); }
     deactivateOptionPanel():void { this.layoutManager.deactivate(); }
-    getOptionPanel():SimpleGridLayoutManager {
+    getOptionPanel():SimpleGridLayoutManager | null {
         return this.layoutManager;
     }
     optionPanelSize():number[]
@@ -2340,15 +2352,13 @@ class ColorPickerTool extends ExtendedTool {
     }
     drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void 
     {
-        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel();
+        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel()!;
         optionPanel.x = x;
         optionPanel.y = y;
         optionPanel.draw(ctx, x, y);
     }
 };
 class DrawingScreenSettingsTool extends ExtendedTool {
-
-    layoutManager:SimpleGridLayoutManager;
     tbX:GuiTextBox;
     tbY:GuiTextBox;
     btUpdate:GuiButton;
@@ -2404,7 +2414,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
     }
     activateOptionPanel():void { this.layoutManager.activate(); }
     deactivateOptionPanel():void { this.layoutManager.deactivate(); }
-    getOptionPanel():SimpleGridLayoutManager {
+    getOptionPanel():SimpleGridLayoutManager | null {
         return this.layoutManager;
     }
     recalcDim():void
@@ -2412,9 +2422,9 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         let x:number = this.dim[0];
         let y:number = this.dim[1];
         if(this.tbX.asNumber.get())
-            x = this.tbX.asNumber.get();
+            x = this.tbX.asNumber.get()!;
         if(this.tbY.asNumber.get())
-            y = this.tbY.asNumber.get();
+            y = this.tbY.asNumber.get()!;
         this.dim = [x, y];
         this.field.setDimOnCurrent(this.dim);
     }
@@ -2424,7 +2434,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
     }
     drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void 
     {
-        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel();
+        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel()!;
         optionPanel.x = x;
         optionPanel.y = y;
         optionPanel.draw(ctx, x, y);
@@ -2434,7 +2444,6 @@ class ClipBoard {
     canvas:HTMLCanvasElement;
     ctx:CanvasRenderingContext2D;
     sprite:Sprite;
-    touchListener:SingleTouchListener;
     angle:number;
     repaint:boolean;
     focused:boolean;
@@ -2443,7 +2452,7 @@ class ClipBoard {
         this.repaint = true;
         this.canvas = document.createElement("canvas");
         this.focused = false;
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.canvas.height = pixelCountX;
         this.canvas.width = pixelCountY;
         this.sprite = new Sprite([new RGB(0,0,0,0)], pixelCountX, pixelCountY);
@@ -2620,8 +2629,8 @@ class LayerManagerTool extends Tool {
                 (e) => {
                     this.field.selected = this.list.selected();
                     this.list.list.forEach(el => el.textBox.deactivate());
-                    if(this.list.selectedItem() && this.list.selectedItem().checkBox.checked)
-                        this.list.selectedItem().textBox.activate();
+                    if(this.list.selectedItem() && this.list.selectedItem()!.checkBox.checked)
+                        this.list.selectedItem()!.textBox.activate();
 
                 });
                 this.list.refresh();
@@ -2629,16 +2638,16 @@ class LayerManagerTool extends Tool {
     }
     activateOptionPanel():void { this.layoutManager.activate(); }
     deactivateOptionPanel():void { this.layoutManager.deactivate(); }
-    getOptionPanel():SimpleGridLayoutManager {
+    getOptionPanel():SimpleGridLayoutManager | null {
         return this.layoutManager;
     }
     optionPanelSize():number[]
     {
         return [this.layoutManager.canvas.width, this.layoutManager.canvas.height];
     }
-    drawOptionPanel(ctx, x:number, y:number):void
+    drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void
     {
-        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel();
+        const optionPanel:SimpleGridLayoutManager = this.getOptionPanel()!;
         optionPanel.x = x;
         optionPanel.y = y;
         optionPanel.draw(ctx, x, y);
@@ -2654,8 +2663,8 @@ class ScreenTransformationTool extends ExtendedTool {
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio:number = 1;
             if(this.textBoxZoom.asNumber.get()) {
-                ratio = this.textBoxZoom.asNumber.get() / field.zoom.zoomX;
-                field.zoom.zoomX = this.textBoxZoom.asNumber.get();
+                ratio = this.textBoxZoom.asNumber.get()! / field.zoom.zoomX;
+                field.zoom.zoomX = this.textBoxZoom.asNumber.get()!;
                 field.zoom.zoomY = field.zoom.zoomY * ratio;
             }
         }, "Set Zoom", 100, 40, 16);
@@ -2687,7 +2696,7 @@ class FilesManagerTool extends ExtendedTool {
             return true;
         });
         this.saveGif = new GuiButton(() => {
-            field.toolSelector.animationsGroupsSelector.selectedAnimation().toGifBlob(blob => {
+            field.toolSelector.animationsGroupsSelector.selectedAnimation()!.toGifBlob(blob => {
             saveBlob(blob, this.gifName.text);
         });
         }, "Save Gif", 85, 35, 16);
@@ -2771,6 +2780,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     {
         this.lastDrawTime = Date.now();
         this.polygon = [];
+        this.animationsGroupsSelector = <any> null;
         const field:LayeredDrawingScreen = new LayeredDrawingScreen(keyboardHandler, pallette);
         field.toolSelector = this;
         field.addBlankLayer();
@@ -2784,7 +2794,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.toolPixelDim = [imgWidth,imgHeight*10];
         this.canvas = <HTMLCanvasElement> document.getElementById("tool_selector_screen");
         this.keyboardHandler = keyboardHandler;
-        this.keyboardHandler.registerCallBack("keydown", e => true, event => {
+        this.keyboardHandler.registerCallBack("keydown", (e:any) => true, event => {
             switch(event.code) {
                 case('KeyC'):
                 if(this.keyboardHandler.keysHeld["KeyC"] === 1) {
@@ -2807,12 +2817,12 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 event.preventDefault();
             }
         });
-        this.keyboardHandler.registerCallBack("keydown", e => this.tool().getOptionPanel(), e => {this.tool().getOptionPanel().handleKeyBoardEvents("keydown", e); this.repaint = true;});
-        this.keyboardHandler.registerCallBack("keyup", e => this.tool().getOptionPanel(), e => {this.tool().getOptionPanel().handleKeyBoardEvents("keyup", e); this.repaint = true;});
-        this.keyboardHandler.registerCallBack("keydown", e => {if(e.code === "ArrowUp" || e.code === "ArrowDown" || e.code === "ArrowLeft" || e.code === "ArrowRight") return true;},
-            e => {
+        this.keyboardHandler.registerCallBack("keydown", (e:any) => <boolean> <any> this.tool()!.getOptionPanel(), (e:any) => {this.tool()!.getOptionPanel()!.handleKeyBoardEvents("keydown", e); this.repaint = true;});
+        this.keyboardHandler.registerCallBack("keyup", (e:any) =>   <boolean> <any> this.tool()!.getOptionPanel(), (e:any) => {this.tool()!.getOptionPanel()!.handleKeyBoardEvents("keyup", e); this.repaint = true;});
+        this.keyboardHandler.registerCallBack("keydown", (e:any) => (e.code === "ArrowUp" || e.code === "ArrowDown" || e.code === "ArrowLeft" || e.code === "ArrowRight"),
+            (e:any) => {
                 const imgPerColumn:number = (this.canvas.height / this.toolBar.toolRenderDim[1]);
-                if((this.keyboardHandler.keysHeld["AltLeft"] || this.keyboardHandler.keysHeld["AltRight"]) && (document.activeElement.id === "body" || field.layer().canvas === document.activeElement || this.canvas === document.activeElement))
+                if((this.keyboardHandler.keysHeld["AltLeft"] || this.keyboardHandler.keysHeld["AltRight"]) && (document.activeElement!.id === "body" || field.layer().canvas === document.activeElement! || this.canvas === document.activeElement!))
                 {
                     e.preventDefault();
                     let newToolIndex:number = this.selected();
@@ -2840,26 +2850,26 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     }
 
                     if(this.tool() && this.selected() !== newToolIndex){
-                        this.tool().deactivateOptionPanel();
+                        this.tool()!.deactivateOptionPanel();
                         this.toolBar.selected = newToolIndex;
-                        this.tool().activateOptionPanel();
+                        this.tool()!.activateOptionPanel();
                     }
                 }  
                 this.repaint = true;
             });
         this.touchListener = new SingleTouchListener(this.canvas, true, true);  
-        this.touchListener.registerCallBack("touchstart", e => this.tool().getOptionPanel(),  e => {
-            e.translateEvent(e, -this.tool().getOptionPanel().x , -this.tool().getOptionPanel().y);
-            this.tool().getOptionPanel().handleTouchEvents("touchstart", e); this.repaint = true;
-            e.translateEvent(e, this.tool().getOptionPanel().x , this.tool().getOptionPanel().y);});
+        this.touchListener.registerCallBack("touchstart", (e:any) => <boolean> <any> this.tool()!.getOptionPanel(),  (e:any) => {
+            e.translateEvent(e, -this.tool()!.getOptionPanel()!.x , -this.tool()!.getOptionPanel()!.y);
+            this.tool()!.getOptionPanel()!.handleTouchEvents("touchstart", e); this.repaint = true;
+            e.translateEvent(e, this.tool()!.getOptionPanel()!.x , this.tool()!.getOptionPanel()!.y);});
 
-        this.touchListener.registerCallBack("touchmove", e => this.tool().getOptionPanel(),  e => {
-            e.translateEvent(e, -this.tool().getOptionPanel().x , -this.tool().getOptionPanel().y);this.tool().getOptionPanel().handleTouchEvents("touchmove", e); this.repaint = true;
-            e.translateEvent(e, this.tool().getOptionPanel().x , this.tool().getOptionPanel().y);});
-        this.touchListener.registerCallBack("touchend", e => this.tool().getOptionPanel(),  e => {
-            e.translateEvent(e, -this.tool().getOptionPanel().x , -this.tool().getOptionPanel().y);this.tool().getOptionPanel().handleTouchEvents("touchend", e); this.repaint = true;
-            e.translateEvent(e, this.tool().getOptionPanel().x , this.tool().getOptionPanel().y);});     
-        this.touchListener.registerCallBack("touchstart", e => true, e => {
+        this.touchListener.registerCallBack("touchmove", (e:any) => <boolean> <any> this.tool()!.getOptionPanel(),  (e:any) => {
+            e.translateEvent(e, -this.tool()!.getOptionPanel()!.x , -this.tool()!.getOptionPanel()!.y);this.tool()!.getOptionPanel()!.handleTouchEvents("touchmove", e); this.repaint = true;
+            e.translateEvent(e, this.tool()!.getOptionPanel()!.x , this.tool()!.getOptionPanel()!.y);});
+        this.touchListener.registerCallBack("touchend", (e:any) => <boolean> <any> this.tool()!.getOptionPanel(),  (e:any) => {
+            e.translateEvent(e, -this.tool()!.getOptionPanel()!.x , -this.tool()!.getOptionPanel()!.y);this.tool()!.getOptionPanel()!.handleTouchEvents("touchend", e); this.repaint = true;
+            e.translateEvent(e, this.tool()!.getOptionPanel()!.x , this.tool()!.getOptionPanel()!.y);});     
+        this.touchListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
             (<any>document.activeElement).blur();
             const previousTool:number = this.selected();
             const imgPerColumn:number = (this.canvas.height / this.toolBar.toolRenderDim[1]);
@@ -2869,7 +2879,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             if(clicked >= 0 && clicked < this.toolBar.tools.length)
             {
                 if(this.tool())
-                    this.tool().deactivateOptionPanel();
+                    this.tool()!.deactivateOptionPanel();
                 this.toolBar.handleTouchEvents("touchstart", e);
                 
             }
@@ -2886,7 +2896,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 this.toolBar.selected = previousTool;
             }
             if(this.tool()){
-                this.tool().activateOptionPanel();
+                this.tool()!.activateOptionPanel();
             }
             this.repaint = true;
         });
@@ -2895,8 +2905,8 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         const colorBackup:RGB = new RGB(0,0,0,0);
         this.drawingScreenListener = drawingScreenListener;
         this.drawingScreenListener.registerCallBack("touchstart", 
-            e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, 
-            e => {
+            (e:any) => this.layersTool.list.selectedItem()! && this.layersTool.list.selectedItem()!.checkBox.checked, 
+            (e:any) => {
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
                 
             const gx:number = Math.floor((touchPos[0]-field.layer().offset.first)/field.layer().bounds.first*field.layer().dimensions.first);
@@ -2932,7 +2942,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.layer().autoOutline(new Pair<number>(gx, gy), this.outLineTool.checkboxOnlyOneColor.checked);
                 break;
                 case("spraycan"):
-                this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
+                this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get()!:this.field.layer().state.lineWidth;
                 field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                 break;
                 case("eraser"):
@@ -3005,8 +3015,8 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         });
 
         this.drawingScreenListener.registerCallBack("touchmove",
-            e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked,
-            e => {
+            (e:any) => this.layersTool.list.selectedItem()! && this.layersTool.list.selectedItem()!.checkBox.checked,
+            (e:any) => {
             const deltaX:number = this.field.zoom.invJustZoomX(e.deltaX);
             const deltaY:number = this.field.zoom.invJustZoomY(e.deltaY);
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
@@ -3048,8 +3058,8 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
                 break;
                 case("drag"):
-                field.layer().dragData.first.first += (deltaX / field.layer().bounds.first) * field.layer().dimensions.first;
-                field.layer().dragData.first.second += (deltaY / field.layer().bounds.second) * field.layer().dimensions.second;
+                field.layer().dragData!.first.first += (deltaX / field.layer().bounds.first) * field.layer().dimensions.first;
+                field.layer().dragData!.first.second += (deltaY / field.layer().bounds.second) * field.layer().dimensions.second;
                 break;
                 case("rotate"):
                 let angle:number = Math.PI / 2;
@@ -3067,7 +3077,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                             (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
                     
                     if(field.state.antiAliasRotation){
-                        field.layer().dragData.second;
+                        field.layer().dragData!.second;
                     }
                 break;
                 case("fill"):
@@ -3107,8 +3117,8 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         });
 
         this.drawingScreenListener.registerCallBack("touchend",
-        e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked,
-        e => {
+        (e:any) => this.layersTool.list.selectedItem()! && this.layersTool.list.selectedItem()!.checkBox.checked,
+        (e:any) => {
             const deltaX:number = this.field.zoom.invJustZoomX(e.deltaX);
             const deltaY:number = this.field.zoom.invJustZoomY(e.deltaY);
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
@@ -3215,13 +3225,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
         this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,
         () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move","images/settingsSprite.png", [ this.transformTool.getOptionPanel() ]);
+        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move","images/settingsSprite.png", [ this.transformTool.getOptionPanel()! ]);
         this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack:(tb:GuiTextBox) => void = (tbprob)=>{
-            this.field.layer().state.sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get() <= 1 && tbprob.asNumber.get() > 0?tbprob.asNumber.get():this.field.layer().state.sprayProbability;
-            this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get():this.field.layer().state.lineWidth;
+            this.field.layer().state.sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get()! <= 1 && tbprob.asNumber.get()! > 0?tbprob.asNumber.get()!:this.field.layer().state.sprayProbability;
+            this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get()!:this.field.layer().state.lineWidth;
             tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
@@ -3242,7 +3252,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", "images/rectSprite.png"));
         this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", "images/ovalSprite.png"));
         this.toolBar.tools.push(this.copyTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel(), "paste", "images/pasteSprite.png"));
+        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel()!, "paste", "images/pasteSprite.png"));
         this.toolBar.tools.push(this.dragTool);
         this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", "images/redoSprite.png"));
         this.toolBar.tools.push(this.undoTool);
@@ -3256,7 +3266,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.toolBar.tools.push(this.settingsTool);
         //this.toolBar.tools.push(this.transformTool);
         this.toolBar.resize();
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.ctx.lineWidth = 2;
         this.ctx.strokeStyle = "#000000";
         this.ctx.fillStyle = "#FFFFFF";
@@ -3282,9 +3292,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             let x:number = this.settingsTool.dim[0];
             let y:number = this.settingsTool.dim[1];
             if(this.settingsTool.tbX.asNumber.get())
-                x = this.settingsTool.tbX.asNumber.get();
+                x = this.settingsTool.tbX.asNumber.get()!;
             if(this.settingsTool.tbY.asNumber.get())
-                y = this.settingsTool.tbY.asNumber.get();
+                y = this.settingsTool.tbY.asNumber.get()!;
             this.settingsTool.dim = [x, y];
             this.field.setDimOnCurrent(this.settingsTool.dim);
         };
@@ -3322,9 +3332,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             let x:number = this.settingsTool.dim[0];
             let y:number = this.settingsTool.dim[1];
             if(this.settingsTool.tbX.asNumber.get())
-                x = this.settingsTool.tbX.asNumber.get();
+                x = this.settingsTool.tbX.asNumber.get()!;
             if(this.settingsTool.tbY.asNumber.get())
-                y = this.settingsTool.tbY.asNumber.get();
+                y = this.settingsTool.tbY.asNumber.get()!;
             this.settingsTool.dim = [x, y];
             this.field.setDimOnCurrent(this.settingsTool.dim);
         };
@@ -3354,13 +3364,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     {
         const imgPerColumn:number = (this.toolPixelDim[1] / this.toolBar.toolRenderDim[1]);
         const imgPerRow:number = (this.toolPixelDim[0] / this.toolBar.toolRenderDim[0]);
-        if(this.tool() && this.tool().image() && this.toolBar.tools.length > imgPerColumn * imgPerRow){
+        if(this.tool() && this.tool()!.image() && this.toolBar.tools.length > imgPerColumn * imgPerRow){
             this.toolPixelDim[0] = this.toolBar.toolRenderDim[0] * Math.ceil(this.toolBar.tools.length / imgPerColumn);
-            this.canvas.width = this.toolPixelDim[0] + this.tool().optionPanelSize()[0];
+            this.canvas.width = this.toolPixelDim[0] + this.tool()!.optionPanelSize()[0];
             this.toolPixelDim[1] = this.toolBar.toolRenderDim[1] * 10;
 
-            this.canvas.height = this.toolPixelDim[1] > this.tool().height() ? this.toolPixelDim[1] : this.tool().height();
-            this.ctx = this.canvas.getContext("2d");
+            this.canvas.height = this.toolPixelDim[1] > this.tool()!.height() ? this.toolPixelDim[1] : this.tool()!.height();
+            this.ctx = this.canvas.getContext("2d")!;
         }
     }
     draw()
@@ -3380,13 +3390,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             }
         }
     }
-    selectedToolName():string
+    selectedToolName():string | null
     {
         if(this.tool())
-            return this.tool().name();
+            return this.tool()!.name();
         return null;
     }
-    tool():Tool
+    tool():Tool | null
     {
         if(this.selected() >= 0 && this.selected() < this.toolBar.tools.length){
             return <Tool> this.toolBar.tools[this.selected()];
@@ -3412,6 +3422,7 @@ class DrawingScreenState {
     bufferBitMask:boolean[];
     allowDropOutsideSelection:boolean;
     constructor(lineWidth:number) {
+        this.color = new RGB(0,0,0);
         this.allowDropOutsideSelection = false;
         this.bufferBitMask = [];
         this.sprayProbability = 1;
@@ -3445,7 +3456,7 @@ class DrawingScreen {
     updatesStack:RollingStack<Array<Pair<number,RGB>>>;
     undoneUpdatesStack:RollingStack<Array<Pair<number,RGB>>>;
     toolSelector:ToolSelector;
-    dragData:Pair<Pair<number>, number[] >;
+    dragData:Pair<Pair<number>, number[] > | null;
     dragDataMaxPoint:number;
     dragDataMinPoint:number;
     state:DrawingScreenState;
@@ -3453,6 +3464,8 @@ class DrawingScreen {
     constructor(canvas:HTMLCanvasElement, keyboardHandler:KeyboardHandler, palette:Pallette, offset:Array<number>, dimensions:Array<number>, toolSelector:ToolSelector, state:DrawingScreenState, clipBoard:ClipBoard)
     {
         const bounds:Array<number> = [dim[0], dim[1]];
+        this.dragDataMaxPoint = -1;
+        this.dragDataMinPoint = -1;
         this.clipBoard = clipBoard;
         this.palette = palette;
         this.noColor = new RGB(255, 255, 255, 0);
@@ -3462,7 +3475,7 @@ class DrawingScreen {
         this.dimensions = new Pair<number>(dimensions[0], dimensions[1]);
         this.offset = new Pair<number>(offset[0], offset[1]);
         this.bounds = new Pair<number>(bounds[0], bounds[1]);
-        this.ctx = canvas.getContext("2d");
+        this.ctx = canvas.getContext("2d")!;
         canvas.width = bounds[0];
         canvas.height = bounds[1];
         this.dragDataMaxPoint = 0;
@@ -3739,7 +3752,7 @@ class DrawingScreen {
             const length:number = this.screenBuffer.length;
             while(stack.length > 0)
             {
-                const cur:number = stack.pop();
+                const cur:number = <number> stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
                 if(cur >= 0 && cur < length && 
                     (pixelColor.compare(spc) || (this.state.ignoreAlphaInFill && pixelColor.alpha() === 0)) && !checkedMap[cur] && this.state.bufferBitMask[cur])
@@ -3808,7 +3821,7 @@ class DrawingScreen {
             this.dragDataMinPoint = this.dimensions.first*this.dimensions.second;
             while(stack.length > 0)
             {
-                const cur:number = stack.pop();
+                const cur:number = <number> stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
                 if(cur >= 0 && cur < this.dimensions.first * this.dimensions.second && 
                     (pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color)) && !checkedMap[cur] && this.state.bufferBitMask[cur])
@@ -3876,7 +3889,7 @@ class DrawingScreen {
             stack.push(startIndex);
             while(stack.length > 0)
             {
-                const cur:number = stack.pop();
+                const cur:number = <number> stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
                 if(pixelColor && 
                     pixelColor.alpha() !== 0 && (!countColor || pixelColor.color === spc.color) && !checkedMap[cur] && this.state.bufferBitMask[cur])
@@ -3912,6 +3925,8 @@ class DrawingScreen {
     }
     rotateSelectedPixelGroup(theta:number, centerPoint:number[]):void
     {
+        if(this.dragData === null)
+            return;
         const min = [this.dragDataMinPoint%this.dimensions.first, Math.floor(this.dragDataMinPoint/this.dimensions.first)];
         const max = [this.dragDataMaxPoint%this.dimensions.first, Math.floor(this.dragDataMaxPoint/this.dimensions.first)];
         const dx:number = Math.floor(centerPoint[0]);
@@ -4024,7 +4039,7 @@ class DrawingScreen {
         if(this.updatesStack.length() && this.state.screenBufUnlocked)
         {
             this.state.screenBufUnlocked = false;
-            const data:Pair<number, RGB>[] = this.updatesStack.pop();
+            const data:Pair<number, RGB>[] = this.updatesStack.pop()!;
             const backedUpFrame = [];
             const divisor:number =  60*10;
             const interval:number = Math.floor(data.length/divisor) === 0 ? 1 : Math.floor(data.length / divisor);
@@ -4057,7 +4072,7 @@ class DrawingScreen {
         if(this.undoneUpdatesStack.length() && this.state.screenBufUnlocked)
         {
             this.state.screenBufUnlocked = false;
-            const data = this.undoneUpdatesStack.pop();
+            const data = this.undoneUpdatesStack.pop()!;
             const backedUpFrame = [];
             const divisor:number =  60*10;
             const interval:number = Math.floor(data.length/divisor) === 0 ? 1 : Math.floor(data.length / divisor);
@@ -4128,7 +4143,7 @@ class DrawingScreen {
                     this.updatesStack.empty();
                     canvas.width = newDim[0];
                     canvas.height = newDim[1];
-                    const ctx = canvas.getContext("2d");
+                    const ctx = canvas.getContext("2d")!;
                     ctx.drawImage(this.canvas, 0, 0, newDim[0], newDim[1]);
                     sprite.imageData = ctx.getImageData(0, 0, newDim[0], newDim[1]);
                     sprite.pixels = sprite.imageData.data;
@@ -4138,7 +4153,7 @@ class DrawingScreen {
                 {
                     canvas.width = this.dimensions.first;
                     canvas.height = this.dimensions.second;
-                    const ctx = canvas.getContext("2d");
+                    const ctx = canvas.getContext("2d")!;
                     ctx.drawImage(this.canvas, 0, 0, this.dimensions.first, this.dimensions.second);
                     
                     sprite.width = this.dimensions.first;
@@ -4151,7 +4166,7 @@ class DrawingScreen {
             }
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
-            this.ctx = this.canvas.getContext("2d");
+            this.ctx = this.canvas.getContext("2d")!;
             this.dimensions = new Pair(newDim[0], newDim[1]);
             this.clipBoard.resize(newDim);
             this.repaint = true;
@@ -4182,10 +4197,10 @@ class DrawingScreen {
     setPixel(index:number, color:RGB)
     {
         index <<= 2;
-        this.spriteScreenBuf[index++] = color.red();
-        this.spriteScreenBuf[index++] = color.green();
-        this.spriteScreenBuf[index++] = color.blue();
-        this.spriteScreenBuf[index++] = color.alpha();
+        this.spriteScreenBuf.pixels[index++] = color.red();
+        this.spriteScreenBuf.pixels[index++] = color.green();
+        this.spriteScreenBuf.pixels[index++] = color.blue();
+        this.spriteScreenBuf.pixels[index++] = color.alpha();
     }
     saveDragDataToScreen():void
     {
@@ -4250,7 +4265,7 @@ class DrawingScreen {
                             const sub_x:number = Math.floor(k*ratio * deltaX + j*ratio * deltaX2 + x1);
                             const sub_y:number = Math.floor(k*ratio * deltaY + j*ratio * deltaY2 + y1);
                             const pixelIndex = sub_x + sub_y * this.dimensions.first;
-                            let color:number[] = map.get((sub_x << 16) | sub_y);
+                            let color:number[] | undefined = map.get((sub_x << 16) | sub_y);
                             if(!color)
                             {
                                 color = [0, 0, 0, 0, 0];
@@ -4592,20 +4607,17 @@ class LayeredDrawingScreen {
     toolSelector:ToolSelector;
     offscreenCanvas:HTMLCanvasElement;
     zoom:ZoomState;
-    glCanvas:HTMLCanvasElement;
-    glctx:WebGL2RenderingContext;
-    glProgram;
-    vao;
     maskWorkers:Worker[];
     maskWorkerExecutionCount:number;
     scheduledMaskOperation:MessageData[];
     constructor(keyboardHandler:KeyboardHandler, pallette:Pallette) {
+        this.toolSelector = <any> null;
+        this.redraw = false;
         this.maskWorkerExecutionCount = 0;
         this.scheduledMaskOperation = [];
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
-        this.glCanvas = document.createElement("canvas");
         this.maskWorkers = [];
         const poolSize:number = window.navigator.hardwareConcurrency < 4 ? 4 : window.navigator.hardwareConcurrency;
         for(let i = 0; i < poolSize; i++) {
@@ -4645,7 +4657,7 @@ class LayeredDrawingScreen {
         this.canvas.width = this.dim[0];
         this.canvas.height = this.dim[1];
         this.spriteTest = new Sprite([], this.dim[0], this.dim[1], false);
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.ctx.fillStyle = "#FFFFFF";
         this.selected = 0;
         this.layers = [];
@@ -4832,7 +4844,7 @@ class LayeredDrawingScreen {
             this.dim = [bounds[0], bounds[1]];
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
-            this.ctx = this.canvas.getContext("2d");
+            this.ctx = this.canvas.getContext("2d")!;
         }
         //this.resizeTransparencyCanvas(this.dim);
     }
@@ -4842,7 +4854,7 @@ class LayeredDrawingScreen {
         {
             this.canvasTransparency.width = bounds[0];
             this.canvasTransparency.height = bounds[0];
-            const ctx:CanvasRenderingContext2D = this.canvasTransparency.getContext("2d");
+            const ctx:CanvasRenderingContext2D = this.canvasTransparency.getContext("2d")!;
             ctx.fillStyle = "#DCDCDF";
             ctx.globalAlpha = 0.7;
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
@@ -4887,7 +4899,7 @@ class LayeredDrawingScreen {
         this.offscreenCanvas.height = bounds[1];
         const sprite:Sprite = new Sprite([], bounds[0], bounds[1], false);
         this.setDimOnCurrent([bounds[0], bounds[1]]);
-        const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d");
+        const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d")!;
         ctx.clearRect(0, 0, bounds[0], bounds[1]);
         ctx.drawImage(image, 0, 0);
         sprite.imageData = ctx.getImageData(0, 0, bounds[0], bounds[1]);
@@ -4901,7 +4913,7 @@ class LayeredDrawingScreen {
 
     addBlankLayer():DrawingScreen
     {
-        let finalDim:number[];
+        let finalDim:number[] | null = null;
         if(this.toolSelector.settingsTool)
         {
             finalDim = this.toolSelector.settingsTool.dim;
@@ -4927,9 +4939,12 @@ class LayeredDrawingScreen {
         const a:HTMLAnchorElement = document.createElement("a");
         this.toSprite();
         this.offscreenCanvas.toBlob(blob => {
-            a.href = window.URL.createObjectURL(blob);
-            a.download = fileName;
-            a.click();
+            if(blob)
+            {
+                a.href = window.URL.createObjectURL(blob);
+                a.download = fileName;
+                a.click();
+            }
         });
     }
     toSprite():Sprite
@@ -4937,7 +4952,7 @@ class LayeredDrawingScreen {
         //set offscreen canvas state, and get ctx for rescale
         this.offscreenCanvas.width = this.layer().dimensions.first;
         this.offscreenCanvas.height = this.layer().dimensions.second;
-        const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d");
+        const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d")!;
         //rescale main canvas with offscreen canvas
 
         for(let i = 0; i < this.layers.length; i++)
@@ -5048,25 +5063,25 @@ class KeyboardHandler {
     {
         this.keysHeld = {};
         this.listenerTypeMap = new KeyListenerTypes();
-        document.addEventListener("keyup", e => this.keyUp(e));
-        document.addEventListener("keydown", e => this.keyDown(e));
-        document.addEventListener("keypressed", e => this.keyPressed(e));
+        document.addEventListener("keyup", (e:any) => this.keyUp(e));
+        document.addEventListener("keydown", (e:any) => this.keyDown(e));
+        document.addEventListener("keypressed", (e:any) => this.keyPressed(e));
     }
-    registerCallBack(listenerType:string, predicate, callBack):void
+    registerCallBack(listenerType:string, predicate:(event:any) => boolean, callBack:(event:any) => void):void
     {
-        this.listenerTypeMap[listenerType].push(new TouchHandler(predicate, callBack));
+        (<any> this.listenerTypeMap)[listenerType].push(new TouchHandler(predicate, callBack));
     }
-    callHandler(type:string, event):void
+    callHandler(type:string, event:any):void
     {
-        const handlers = this.listenerTypeMap[type];
-        handlers.forEach(handler => {
+        const handlers:TouchHandler[] = (<any> this.listenerTypeMap)[type];
+        handlers.forEach((handler:TouchHandler) => {
             if(handler.pred(event))
             {
                 handler.callBack(event);
             }
         });
     }
-    keyDown(event)
+    keyDown(event:any)
     {
         if(this.keysHeld[event.code] === undefined || this.keysHeld[event.code] === null)
             this.keysHeld[event.code] = 1;
@@ -5075,13 +5090,13 @@ class KeyboardHandler {
         event.keysHeld = this.keysHeld;
         this.callHandler("keydown", event);
     }
-    keyUp(event)
+    keyUp(event:any)
     {
         this.keysHeld[event.code] = 0;
         event.keysHeld = this.keysHeld;
         this.callHandler("keyup", event);
     }
-    keyPressed(event)
+    keyPressed(event:any)
     {
         event.keysHeld = this.keysHeld;
         this.callHandler("keypressed", event);
@@ -5089,9 +5104,9 @@ class KeyboardHandler {
     
 };
 class TouchHandler {
-    pred:(event) => void; 
-    callBack:(event) => void;
-    constructor(pred:(event) => void, callBack:(event) => void)
+    pred:(event:any) => boolean; 
+    callBack:(event:any) => void;
+    constructor(pred:(event:any) => boolean, callBack:(event:any) => void)
     {
         this.pred = pred;
         this.callBack = callBack;
@@ -5120,7 +5135,7 @@ interface TouchMoveEvent {
     eventTime:number;
     moveCount:number;
 
-}
+};
 function isTouchSupported():boolean {
     return (('ontouchstart' in window) ||
       (navigator.maxTouchPoints > 0));
@@ -5161,13 +5176,15 @@ class SingleTouchListener
     component:HTMLElement;
     touchMoveEvents:TouchMoveEvent[];
     translateEvent:(event:any, dx:number, dy:number) => void;
-    constructor(component:HTMLElement, preventDefault:boolean, mouseEmulation:boolean)
+    constructor(component:HTMLElement | null, preventDefault:boolean, mouseEmulation:boolean)
     {
         this.lastTouchTime = Date.now();
         this.offset = [];
+        this.moveCount = 0;
+        this.touchMoveEvents = [];
         this.translateEvent = (e:any, dx:number, dy:number) => e.touchPos = [e.touchPos[0] + dx, e.touchPos[1] + dy];
         this.startTouchPos = [0, 0];
-        this.component = component;
+        this.component = component!;
         this.preventDefault = preventDefault;
         this.touchStart = null;
         this.registeredTouch = false;
@@ -5180,27 +5197,30 @@ class SingleTouchListener
             touchmove:[],
             touchend:[]
         };
-        if(isTouchSupported())
+        if(component)
         {
-            component.addEventListener('touchstart', event => {this.touchStartHandler(event);}, false);
-            component.addEventListener('touchmove', event => this.touchMoveHandler(event), false);
-            component.addEventListener('touchend', event => this.touchEndHandler(event), false);
-        }
-        if(mouseEmulation && !isTouchSupported()){
-            component.addEventListener('mousedown', event => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = x => event; this.touchStartHandler(event)});
-            component.addEventListener('mousemove', event => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = x => event; this.touchMoveHandler(event)});
-            component.addEventListener('mouseup', event => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = x => event; this.touchEndHandler(event)});
-    
+            if(isTouchSupported())
+            {
+                component.addEventListener('touchstart', (event:any) => {this.touchStartHandler(event);}, false);
+                component.addEventListener('touchmove', (event:any) => this.touchMoveHandler(event), false);
+                component.addEventListener('touchend', (event:any) => this.touchEndHandler(event), false);
+            }
+            if(mouseEmulation && !isTouchSupported()){
+                component.addEventListener('mousedown', (event:any) => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = (x:any) => event; this.touchStartHandler(event)});
+                component.addEventListener('mousemove', (event:any) => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = (x:any) => event; this.touchMoveHandler(event)});
+                component.addEventListener('mouseup', (event:any) => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = (x:any) => event; this.touchEndHandler(event)});
+        
+            }
         }
     }
-    registerCallBack(listenerType:string, predicate, callBack):void
+    registerCallBack(listenerType:string, predicate:(event:any) => boolean, callBack:(event:any) => void):void
     {
-        this.listenerTypeMap[listenerType].push(new TouchHandler(predicate, callBack));
+        (<any> this.listenerTypeMap)[listenerType].push(new TouchHandler(predicate, callBack));
     }
-    callHandler(type:string, event):void
+    callHandler(type:string, event:any):void
     {
-        const handlers = this.listenerTypeMap[type];
-        handlers.forEach(handler => {
+        const handlers:TouchHandler[] = (<any> this.listenerTypeMap)[type];
+        handlers.forEach((handler:TouchHandler) => {
             if(!event.defaultPrevented && handler.pred(event))
             {
                 handler.callBack(event);
@@ -5285,7 +5305,7 @@ class SingleTouchListener
         }
         return true;
     }
-    touchEndHandler(event):void
+    touchEndHandler(event:any):void
     {
         if(this.registeredTouch)
         {
@@ -5343,18 +5363,18 @@ class SingleTouchListener
             this.registeredTouch = false;
         }
     }
-    mag(a):number
+    mag(a:number[]):number
     {
         return Math.sqrt(a[0]*a[0]+a[1]*a[1]);
     }
-    normalize(a):Array<number>
+    normalize(a:number[]):Array<number>
     {
         const magA = this.mag(a);
         a[0] /= magA;
         a[1] /= magA;
         return a;
     }
-    dotProduct(a, b):number
+    dotProduct(a:number[], b:number[]):number
     {
         return a[0]*b[0]+a[1]*b[1];
     }
@@ -5382,21 +5402,21 @@ class MultiTouchListener {
             component.addEventListener('touchend', event => {this.registeredMultiTouchEvent = false; event.preventDefault()}, false);
         }
     }    
-    registerCallBack(listenerType:string, predicate, callBack):void
+    registerCallBack(listenerType:string, predicate:(event:any) => boolean, callBack:() => void):void
     {
-        this.listenerTypeMap[listenerType].push(new TouchHandler(predicate, callBack));
+        (<any> this.listenerTypeMap)[listenerType].push(new TouchHandler(predicate, callBack));
     }
-    callHandler(type:string, event):void
+    callHandler(type:string, event:any):void
     {
-        const handlers = this.listenerTypeMap[type];
-        handlers.forEach(handler => {
+        const handlers:TouchHandler[] = (<any>this.listenerTypeMap)[type];
+        handlers.forEach((handler:TouchHandler) => {
             if(!event.defaultPrevented && handler.pred(event))
             {
                 handler.callBack(event);
             }
         });
     }
-    touchMoveHandler(event):void
+    touchMoveHandler(event:any):void
     {
         const touch1 = event.changedTouches.item(0);
         const touch2 = event.changedTouches.item(1);
@@ -5429,12 +5449,12 @@ class Pallette {
     ctx:any;
     repaint:boolean;
 
-    constructor(canvas:any, keyboardHandler:KeyboardHandler, colorCount:number = 10, colors:Array<RGB> = null)
+    constructor(canvas:any, keyboardHandler:KeyboardHandler, colorCount:number = 10, colors:Array<RGB> | null = null)
     {
         this.repaint = true;
         this.canvas = canvas;
         this.keyboardHandler = keyboardHandler;
-        this.ctx = canvas.getContext("2d");
+        this.ctx = canvas.getContext("2d")!;
         this.highLightedCell = 0;
         this.listeners = new SingleTouchListener(canvas, true, true);
         this.colors = new Array<RGB>();
@@ -5468,18 +5488,18 @@ class Pallette {
             this.colors.push(new RGB(224, 49, 213, 255));
             this.colors.push(new RGB(24, 220, 229, 255));
         }
-        this.listeners.registerCallBack("touchstart", e => true, e => {
+        this.listeners.registerCallBack("touchstart", (e:any) => true, (e:any) => {
             (<any>document.activeElement).blur();
             this.handleClick(e);
             this.repaint = true;
         });
-        this.listeners.registerCallBack("touchmove", e => true, e => {
+        this.listeners.registerCallBack("touchmove", (e:any) => true, (e:any) => {
             (<any>document.activeElement).blur();
             this.handleClick(e);
             this.repaint = true;
         });
-        this.keyboardHandler.registerCallBack("keydown", e => true, e => this.repaint = true);
-        this.keyboardHandler.registerCallBack("keyup", e => true, e => this.repaint = true);
+        this.keyboardHandler.registerCallBack("keydown", (e:any) => true, (e:any) => this.repaint = true);
+        this.keyboardHandler.registerCallBack("keyup", (e:any) => true, (e:any) => this.repaint = true);
 
     }
     calcColor(i:number = this.highLightedCell):RGB
@@ -5494,7 +5514,7 @@ class Pallette {
         }
         return color;
     }
-    handleClick(event):void
+    handleClick(event:any):void
     {
         this.highLightedCell = Math.floor((event.touchPos[0] / this.canvas.width) * this.colors.length);
     }
@@ -5587,7 +5607,7 @@ function buildSpriteAnimationFromBuffer(buffer:Uint32Array, index:number):Pair<S
         animation.pushSprite(result.first);
     }
     let spriteMemory:number = 0;
-    animation.sprites.forEach(sprite => spriteMemory += (sprite.pixels.length >> 2) + 3);
+    animation.sprites.forEach((sprite:Sprite) => spriteMemory += (sprite.pixels.length >> 2) + 3);
     if(spriteMemory !== size - 2)
         throw new Error("Error invalid group size: " + size.toString() + " should be: " + size.toString());
     return new Pair(animation, size);
@@ -5642,8 +5662,12 @@ class Sprite {
     constructor(pixels:Array<RGB>, width:number, height:number, fillBackground:boolean = true)
     {
         this.fillBackground = fillBackground;
+        this.imageData = <any> null;
+        this.pixels = <any> null;
         this.image = document.createElement("canvas");
-        this.ctx = this.image.getContext("2d");
+        this.ctx = this.image.getContext("2d")!;
+        this.width = width;
+        this.height = height;
         this.copy(pixels, width, height);
     }
     
@@ -5655,7 +5679,7 @@ class Sprite {
             canvas.width = this.width;
             canvas.height = this.height;
         }
-        this.ctx = canvas.getContext('2d');
+        this.ctx = canvas.getContext('2d')!;
 
         return this.ctx.createImageData(this.width, this.height);
     }
@@ -5769,7 +5793,7 @@ class Sprite {
         {
             canvas.width = this.width;
             canvas.height = this.height;
-            this.ctx = canvas.getContext("2d");
+            this.ctx = canvas.getContext("2d")!;
         }
         this.putPixels(this.ctx);
     }
@@ -5818,7 +5842,7 @@ class Sprite {
             this.pixels[i+3] = t.alpha();
         }
     }
-    draw(ctx, x:number, y:number, width:number, height:number):void
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void
     {
         if(this.pixels){ 
             if(this.fillBackground){
@@ -5852,7 +5876,7 @@ class SpriteAnimation {
     binaryFileSize():number
     {
         let size:number = 2;
-        this.sprites.forEach(sprite => size += sprite.binaryFileSize());
+        this.sprites.forEach((sprite:Sprite) => size += sprite.binaryFileSize());
         return size;
     }
     toGifBlob(callBack:(blob:Blob) => void, fps:number = 30):void
@@ -5866,7 +5890,7 @@ class SpriteAnimation {
           for(let i = 0; i < this.sprites.length; i++)
             gif.addFrame(this.sprites[i].image, {delay:Math.ceil(frameTime)});
           
-          gif.on('finished', function(blob) {
+          gif.on('finished', function(blob:Blob) {
             callBack(blob);
           });
           
@@ -5876,7 +5900,7 @@ class SpriteAnimation {
     {
         buf[index++] = this.binaryFileSize();
         buf[index++] = 2;
-        this.sprites.forEach(sprite => index = sprite.saveToUint32Buffer(buf, index));
+        this.sprites.forEach((sprite:Sprite) => index = sprite.saveToUint32Buffer(buf, index));
         return index;
     }
     cloneAnimation():SpriteAnimation
@@ -5884,7 +5908,7 @@ class SpriteAnimation {
         
         const cloned:SpriteAnimation = new SpriteAnimation(0, 0, this.width, this.height);
         const original:SpriteAnimation = this;
-        original.sprites.forEach(sprite => {
+        original.sprites.forEach((sprite:Sprite) => {
             const clonedSprite:Sprite = new Sprite([], sprite.width, sprite.height);
             clonedSprite.copySprite(sprite);
             clonedSprite.refreshImage();
@@ -5892,7 +5916,7 @@ class SpriteAnimation {
         });
         return cloned;
     }
-    draw(ctx, x:number, y:number, width:number, height:number):void
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void
     {
         if(this.sprites.length){
             ++this.animationIndex;
@@ -5915,13 +5939,12 @@ class SpriteSelector {
     drawingField:LayeredDrawingScreen;
     animationGroup:AnimationGroup;
     spritesCount:number;
-    dragSprite:Sprite;
+    dragSprite:Sprite | null;
     dragSpriteLocation:Array<number>;
-    clickTime:number;
-    constructor(canvas, listener:SingleTouchListener, drawingField:LayeredDrawingScreen, animationGroup:AnimationGroup, keyboardHandler:KeyboardHandler, spritesPerRow:number, width:number, height:number)
+    constructor(canvas:HTMLCanvasElement, listener:SingleTouchListener, drawingField:LayeredDrawingScreen, animationGroup:AnimationGroup, keyboardHandler:KeyboardHandler, spritesPerRow:number, width:number, height:number)
     {
         this.canvas = canvas;
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.ctx.strokeStyle = "#000000";
         this.ctx.lineWidth = 2;
         this.dragSprite = null;
@@ -5935,10 +5958,10 @@ class SpriteSelector {
         this.selectedSprite = 0;
         canvas.height = this.spriteWidth;
         this.listener = listener;
-        this.spritesCount = this.sprites()?this.sprites().length:0;
+        this.spritesCount = this.sprites()?this.sprites()!.length:0;
        
     }
-    handleTouchEvents(type:string, e):void
+    handleTouchEvents(type:string, e:any):void
     {
         const clickedSprite:number = Math.floor(e.touchPos[0]/this.canvas.width*this.spritesPerRow) + this.spritesPerRow*Math.floor(e.touchPos[1] / this.spriteHeight);
         switch(type) {
@@ -5946,18 +5969,18 @@ class SpriteSelector {
             (<any>document.activeElement).blur();
             break;
             case("touchmove"):
-            if(e.moveCount === 3 && this.sprites() && this.sprites()[clickedSprite] && this.sprites().length > 1)
+            if(e.moveCount === 3 && this.sprites() && this.sprites()![clickedSprite] && this.sprites()!.length > 1)
             {
                 if(this.keyboardHandler.keysHeld["AltLeft"] || this.keyboardHandler.keysHeld["AltRight"])
                 {
                     const dragSprite = new Sprite([],1,1);
-                    dragSprite.copySprite(this.sprites()[clickedSprite]);
+                    dragSprite.copySprite(this.sprites()![clickedSprite]);
                     dragSprite.refreshImage();
                     this.dragSprite = dragSprite;
 
                 }
                 else
-                    this.dragSprite = this.sprites().splice(clickedSprite, 1)[0];
+                    this.dragSprite = this.sprites()!.splice(clickedSprite, 1)[0];
                 this.dragSpriteLocation[0] = e.touchPos[0];
                 this.dragSpriteLocation[1] = e.touchPos[1];
             }
@@ -5970,25 +5993,25 @@ class SpriteSelector {
         break;
         case("touchend"):
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            if(clickedSprite >= 0 && this.dragSprite !== null)
+            if(this.sprites() && clickedSprite >= 0 && this.dragSprite !== null)
             {
-                this.sprites().splice(clickedSprite, 0, this.dragSprite);
-                this.spritesCount = this.sprites().length;
+                this.sprites()!.splice(clickedSprite, 0, this.dragSprite);
+                this.spritesCount = this.sprites()!.length;
                 this.dragSprite = null;
             }
-            if(this.sprites() && this.sprites()[clickedSprite])
+            if(this.sprites() && this.sprites()![clickedSprite])
             {
                 this.selectedSprite = clickedSprite;
 
-                const sprite:Sprite = this.sprites()[clickedSprite];
+                const sprite:Sprite = this.sprites()![clickedSprite];
                 if(sprite.width !== this.drawingField.layer().spriteScreenBuf.width || sprite.height !== this.drawingField.layer().spriteScreenBuf.height)
                 {
                     this.drawingField.setDimOnCurrent([sprite.width, sprite.height]);
                 }
                 this.drawingField.layer().loadSprite(sprite);
             }
-            else if(this.sprites() && this.sprites().length > 1)
-                this.selectedSprite = this.sprites().length - 1;
+            else if(this.sprites() && this.sprites()!.length > 1)
+                this.selectedSprite = this.sprites()!.length - 1;
             else
                 this.selectedSprite = 0;
         break;
@@ -5998,13 +6021,13 @@ class SpriteSelector {
     {
         if(this.sprites())
         {
-            if((1+Math.floor(this.sprites().length / this.spritesPerRow) * this.spriteHeight) > this.canvas.height)
+            if((1+Math.floor(this.sprites()!.length / this.spritesPerRow) * this.spriteHeight) > this.canvas.height)
             {
-                this.canvas.height = (1+Math.floor(this.sprites().length / this.spritesPerRow)) * this.spriteHeight;
+                this.canvas.height = (1+Math.floor(this.sprites()!.length / this.spritesPerRow)) * this.spriteHeight;
             }
-            if(this.spritesCount !== this.sprites().length)
+            if(this.spritesCount !== this.sprites()!.length)
             {
-                this.spritesCount = this.sprites()?this.sprites().length:0;
+                this.spritesCount = this.sprites()?this.sprites()!.length:0;
                 this.selectedSprite = this.spritesCount - 1;
             }
         }
@@ -6020,13 +6043,13 @@ class SpriteSelector {
                 const touchX:number = Math.floor(this.listener.touchPos[0] / this.canvas.width * this.spritesPerRow);
                 const touchY:number = Math.floor(this.listener.touchPos[1] / this.canvas.height * Math.floor(this.canvas.height / this.spriteHeight));
                 let setOffForDragSprite:number = 0;
-                for(let i = 0; i < this.sprites().length; i++)
+                for(let i = 0; i < this.sprites()!.length; i++)
             {
                 if(this.dragSprite && i === touchX + touchY * this.spritesPerRow)
                     setOffForDragSprite++;
                 const x:number = (setOffForDragSprite % this.spritesPerRow) * this.spriteWidth;
                 const y:number = Math.floor(setOffForDragSprite / this.spritesPerRow) * this.spriteHeight;
-                this.sprites()[i].draw(this.ctx, x, y, this.spriteHeight, this.spriteWidth);
+                this.sprites()![i].draw(this.ctx, x, y, this.spriteHeight, this.spriteWidth);
                 setOffForDragSprite++;
                 } 
                 if(this.dragSprite)
@@ -6042,8 +6065,8 @@ class SpriteSelector {
     }
     deleteSelectedSprite()
     {
-        if(this.sprites().length > 1)
-            this.sprites().splice(this.selectedSprite--, 1);
+        if(this.sprites() && this.sprites()!.length > 1)
+            this.sprites()!.splice(this.selectedSprite--, 1);
     }
     pushSelectedToCanvas()
     {
@@ -6051,17 +6074,17 @@ class SpriteSelector {
         const spriteHeight:number = this.drawingField.layer().dimensions.second;
         if(this.selectedSpriteVal())
         {
-            this.selectedSpriteVal().copySprite(this.drawingField.toSprite());
-            this.selectedSpriteVal().refreshImage();
+            this.selectedSpriteVal()!.copySprite(this.drawingField.toSprite());
+            this.selectedSpriteVal()!.refreshImage();
         }
     }
-    selectedSpriteVal():Sprite
+    selectedSpriteVal():Sprite | null
     {
         if(this.sprites())
-            return this.sprites()[this.selectedSprite];
+            return this.sprites()![this.selectedSprite];
         return null;
     }
-    sprites():Array<Sprite>
+    sprites():Array<Sprite> | null
     {
         if(this.animationGroup.animations[this.animationGroup.selectedAnimation] && this.animationGroup.animations[this.animationGroup.selectedAnimation].sprites)
             return this.animationGroup.animations[this.animationGroup.selectedAnimation].sprites;
@@ -6086,7 +6109,7 @@ class AnimationGroup {
     animationsPerRow:number;
     animationWidth:number;
     animationHeight:number;
-    dragSprite:SpriteAnimation;
+    dragSprite:SpriteAnimation | null;
     dragSpritePos:number[];
     listener:SingleTouchListener;
     spriteSelectorListener:SingleTouchListener;
@@ -6104,11 +6127,11 @@ class AnimationGroup {
         this.animationHeight = animationHeight;
         this.listener = listener;
         this.dragSpritePos = [0, 0];
-        this.spriteSelector = new SpriteSelector(document.getElementById(animationsSpritesID), spriteSelectorListener, this.drawingField, this, keyboardHandler, spritesPerRow, spriteWidth, spriteHeight);
+        this.spriteSelector = new SpriteSelector(<HTMLCanvasElement> document.getElementById(animationsSpritesID)!, spriteSelectorListener, this.drawingField, this, keyboardHandler, spritesPerRow, spriteWidth, spriteHeight);
         this.dragSprite = null;
         this.autoResizeCanvas();
     }
-    handleTouchEvents(type, e)
+    handleTouchEvents(type:string, e:any): void
     {
         switch(type)
         {
@@ -6148,9 +6171,9 @@ class AnimationGroup {
             if(clickedSprite < this.animations.length && this.spriteSelector.sprites())
             {
                 this.selectedAnimation = clickedSprite;
-                if(this.spriteSelector.sprites().length)
+                if(this.spriteSelector.sprites()!.length)
                 {
-                    const sprite:Sprite = this.spriteSelector.sprites()[0];
+                    const sprite:Sprite = this.spriteSelector.sprites()![0];
                     if(sprite.width !== this.drawingField.layer().spriteScreenBuf.width || sprite.height !== this.drawingField.layer().spriteScreenBuf.height)
                     {
                         this.drawingField.setDimOnCurrent([sprite.width, sprite.height]);
@@ -6191,7 +6214,7 @@ class AnimationGroup {
         }
         return false;
     }
-    cloneAnimation(index:number):SpriteAnimation
+    cloneAnimation(index:number):SpriteAnimation | null
     {
         if(index >= 0 && index < this.animations.length)
         {
@@ -6343,9 +6366,10 @@ class AnimationGroup {
             this.spriteSelector.update();
             this.spriteSelector.draw();
         }
-        if(position.top < window.innerHeight && position.bottom >= 0) 
+        let ctx1:CanvasRenderingContext2D | null;
+        if((ctx1 = this.animationCanvas.getContext("2d")) && position.top < window.innerHeight && position.bottom >= 0) 
         {
-            const ctx:CanvasRenderingContext2D = this.animationCanvas.getContext("2d");
+            const ctx:CanvasRenderingContext2D = ctx1;
             ctx.clearRect(0, 0, this.animationCanvas.width, this.animationCanvas.height);
             let dragSpriteAdjustment:number = 0;
             const touchX:number = Math.floor(this.listener.touchPos[0] / this.animationCanvas.width * this.animationsPerRow);
@@ -6381,7 +6405,7 @@ class AnimationGroupsSelector {
     selectedAnimationGroup:number;
     //group, then index of current sprite, and animation to draw in each group
     animationGroups:Pair<AnimationGroup, Pair<number> >[];
-    dragAnimationGroup:Pair<AnimationGroup, Pair<number> >;
+    dragAnimationGroup:Pair<AnimationGroup, Pair<number> > | null;
     dragAnimationGroupPos:number[];
     canvas:HTMLCanvasElement;
     ctx:CanvasRenderingContext2D;
@@ -6403,6 +6427,7 @@ class AnimationGroupsSelector {
     constructor(field:LayeredDrawingScreen, keyboardHandler:KeyboardHandler,animationGroupSelectorId:string, animationsCanvasId:string, spritesCanvasId:string, spriteWidth:number, spriteHeight:number, renderWidth:number, renderHeight:number, spritesPerRow:number = 5)
     {
         this.animationGroups = [];
+        this.selectedAnimationGroup = 0;
         this.field = field;
         this.dragAnimationGroup = null;
         this.dragAnimationGroupPos = [0, 0];
@@ -6412,17 +6437,17 @@ class AnimationGroupsSelector {
         this.canvas = <HTMLCanvasElement> document.getElementById(animationGroupSelectorId);
         this.canvas.height = renderHeight;
         this.canvas.width = renderWidth * spritesPerRow;
-        this.ctx = this.canvas.getContext("2d");
+        this.ctx = this.canvas.getContext("2d")!;
         this.animationsCanvasId = animationsCanvasId;
         this.spritesCanvasId = spritesCanvasId;
         this.spriteWidth = spriteWidth;
         this.spriteHeight = spriteHeight;
         this.keyboardHandler = keyboardHandler;
         this.listener = new SingleTouchListener(this.canvas, true, true);
-        this.listener.registerCallBack("touchstart", e => true, e => {
+        this.listener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
             (<any>document.activeElement).blur();
         });
-        this.listener.registerCallBack("touchmove", e => true, e => {
+        this.listener.registerCallBack("touchmove", (e:any) => true, (e:any) => {
             const clickedIndex:number = Math.floor(e.touchPos[0] / this.renderWidth) + Math.floor(e.touchPos[1] / this.renderHeight);
             if(e.moveCount === 1 && this.animationGroups.length > 1)
             {
@@ -6438,7 +6463,7 @@ class AnimationGroupsSelector {
                 this.dragAnimationGroupPos[1] += e.deltaY;
             }
         });
-        this.listener.registerCallBack("touchend", e => true, e => {
+        this.listener.registerCallBack("touchend", (e:any) => true, (e:any) => {
             const clickedIndex:number = Math.floor(e.touchPos[0] / this.renderWidth) + Math.floor(e.touchPos[1] / this.renderHeight);
             
             if(clickedIndex >= 0 && clickedIndex  <=  this.animationGroups.length)
@@ -6456,41 +6481,47 @@ class AnimationGroupsSelector {
         });
 
         this.listenerAnimationsSelector = new SingleTouchListener(document.getElementById(animationsCanvasId), false, true);
-        this.listenerAnimationsSelector.registerCallBack("touchstart", e => true, e => {
-            if(this.animationGroup())
+        this.listenerAnimationsSelector.registerCallBack("touchstart", (e:any) => true, (e:any) => {
+            const group:AnimationGroup | null = this.animationGroup();
+            if(group)
             {
-                this.animationGroup().handleTouchEvents("touchstart", e);
+                group.handleTouchEvents("touchstart", e);
             }
         });
-        this.listenerAnimationsSelector.registerCallBack("touchmove", e => true, e => {
-            if(this.animationGroup())
+        this.listenerAnimationsSelector.registerCallBack("touchmove", (e:any) => true, (e:any) => {
+            const group:AnimationGroup | null = this.animationGroup();
+            if(group)
             {
-                this.animationGroup().handleTouchEvents("touchmove", e);
+                group.handleTouchEvents("touchmove", e);
             }
         });
-        this.listenerAnimationsSelector.registerCallBack("touchend", e => true, e => {
-            if(this.animationGroup())
+        this.listenerAnimationsSelector.registerCallBack("touchend", (e:any) => true, (e:any) => {
+            const group:AnimationGroup | null = this.animationGroup();
+            if(group)
             {
-                this.animationGroup().handleTouchEvents("touchend", e);
+                group.handleTouchEvents("touchend", e);
             }
         });
         this.listenerSpritesSelector = new SingleTouchListener(document.getElementById(spritesCanvasId), false, true);
-        this.listenerSpritesSelector.registerCallBack("touchstart", e => true, e => {
-            if(this.animationGroup() && this.animationGroup().spriteSelector)
+        this.listenerSpritesSelector.registerCallBack("touchstart", (e:any) => true, (e:any) => {
+            const group:AnimationGroup | null = this.animationGroup();
+            if(group && group.spriteSelector)
             {
-                this.animationGroup().spriteSelector.handleTouchEvents("touchstart", e);
+                group.spriteSelector.handleTouchEvents("touchstart", e);
             }
         });
-        this.listenerSpritesSelector.registerCallBack("touchmove", e => true, e => {
-            if(this.animationGroup() && this.animationGroup().spriteSelector)
+        this.listenerSpritesSelector.registerCallBack("touchmove", (e:any) => true, (e:any) => {
+            const group:AnimationGroup | null = this.animationGroup();
+            if(group && group.spriteSelector)
             {
-                this.animationGroup().spriteSelector.handleTouchEvents("touchmove", e);
+                group.spriteSelector.handleTouchEvents("touchmove", e);
             }
         });
-        this.listenerSpritesSelector.registerCallBack("touchend", e => true, e => {
-            if(this.animationGroup() && this.animationGroup().spriteSelector)
+        this.listenerSpritesSelector.registerCallBack("touchend", (e:any) => true, (e:any) => {
+            const group:AnimationGroup | null = this.animationGroup();
+            if(group && group.spriteSelector)
             {
-                this.animationGroup().spriteSelector.handleTouchEvents("touchend", e);
+                group.spriteSelector.handleTouchEvents("touchend", e);
             }
         });
     }  
@@ -6556,7 +6587,7 @@ class AnimationGroupsSelector {
         this.autoResizeCanvas();
         return this.animationGroups[this.animationGroups.length-1].first;
     }
-    animationGroup():AnimationGroup
+    animationGroup():AnimationGroup | null
     {
         if(this.selectedAnimationGroup >= 0 && this.selectedAnimationGroup < this.animationGroups.length)
         {
@@ -6566,40 +6597,58 @@ class AnimationGroupsSelector {
     }
     pushAnimationToSelected(animation:SpriteAnimation):void
     {
-        this.animationGroup().pushAnimation(animation);
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            group.pushAnimation(animation);
     }
     inSelectedAnimationBounds(animationIndex:number):boolean
     {
-        return (animationIndex >= 0 && animationIndex < this.animationGroup().animations.length)
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            return (animationIndex >= 0 && animationIndex < group.animations.length)
+        return false;
     }
     cloneAnimationFromSelected(animationIndex:number):void
     {
-        this.animationGroup().cloneAnimation(animationIndex);
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            group.cloneAnimation(animationIndex);
     }
     cloneSelectedAnimationGroup():void
     {
         this.animationGroups.push(new Pair(new AnimationGroup(this.listenerAnimationsSelector, this.listenerSpritesSelector, this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0,0)));
         const animationGroup:AnimationGroup = this.animationGroups[this.animationGroups.length - 1].first;
-        this.animationGroup().animations.forEach(animation => {
+        
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            group.animations.forEach(animation => {
             animationGroup.pushAnimation(animation.cloneAnimation());
         });
         this.autoResizeCanvas();
     }
     deleteAnimationFromSelected(animationIndex:number):void
     {
-        this.animationGroup().deleteAnimation(animationIndex);
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            group.deleteAnimation(animationIndex);
     }
     pushSpriteToSelected():void
     {
-        this.animationGroup().pushSprite();
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            group.pushSprite();
     }
     pushSelectedSpriteToCanvas():void
     {
-        this.animationGroup().spriteSelector.pushSelectedToCanvas();
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            group.spriteSelector.pushSelectedToCanvas();
     }
     deleteSelectedSprite():void
     {
-        this.animationGroup().spriteSelector.deleteSelectedSprite();
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            group.spriteSelector.deleteSelectedSprite();
     }
     deleteSelectedAnimationGroup():void
     {
@@ -6610,9 +6659,12 @@ class AnimationGroupsSelector {
         }
         this.autoResizeCanvas();
     }
-    selectedAnimation():SpriteAnimation
+    selectedAnimation():SpriteAnimation | null
     {
-        return this.animationGroup().animations[this.animationGroup().selectedAnimation];
+        const group:AnimationGroup | null = this.animationGroup();
+        if(group)
+            return group.animations[group.selectedAnimation];
+        return null;
     }
     drawIndex(ctx:CanvasRenderingContext2D,animationGroupIndex:number, encodedLocation:number):void
     {
@@ -6644,10 +6696,11 @@ class AnimationGroupsSelector {
         }
     }
     draw():void
-    {
-        if(this.animationGroup())
+    {   
+        let group:AnimationGroup | null;
+        if(group = this.animationGroup())
         {
-            this.animationGroup().draw();
+            group.draw();
         }
         const position:DOMRect = this.canvas.getBoundingClientRect();
         if(position.top < window.innerHeight && position.bottom >= 0) 
@@ -6698,7 +6751,7 @@ async function fetchImage(url:string):Promise<HTMLImageElement>
     img.src =  URL.createObjectURL(await (await fetch(url)).blob());
     return img;
 }
-function logToServer(data):void
+function logToServer(data:any):void
 {
     fetch("/data", {
         method: "POST", 
@@ -6711,9 +6764,12 @@ function logToServer(data):void
 }
 function saveBlob(blob:Blob, fileName:string){
     const a:HTMLAnchorElement = document.createElement("a");
-    a.href = window.URL.createObjectURL(blob);
-    a.download = fileName;
-    a.click();
+    if(blob)
+    {
+        a.href = window.URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+    }
 }
 function getWidth() {
     return Math.max(
@@ -6738,15 +6794,18 @@ function getHeight() {
 async function main()
 {
     const canvas:HTMLCanvasElement = <HTMLCanvasElement> document.getElementById("screen");
-    const ctx:CanvasRenderingContext2D = canvas.getContext("2d");
+    let maybectx:CanvasRenderingContext2D | null = canvas.getContext("2d");
+    if(!maybectx)
+        return;
+    const ctx:CanvasRenderingContext2D = maybectx;
     let field:LayeredDrawingScreen;
     /*const multiTouchHandler:MultiTouchListener =  new MultiTouchListener(canvas);
-    multiTouchHandler.registerCallBack("pinchIn", e => true, e => {
+    multiTouchHandler.registerCallBack("pinchIn", (e:any) => true, (e:any) => {
         field.zoom.zoom += 0.1;
         const text:string = (Math.round(field.zoom.zoom*100) / 100).toString()
         toolSelector.transformTool.textBoxZoom.setText(text);
     });
-    multiTouchHandler.registerCallBack("pinchOut", e => true, e => {
+    multiTouchHandler.registerCallBack("pinchOut", (e:any) => true, (e:any) => {
         if(field.zoom.zoom > 0.1)
             field.zoom.zoom -= 0.1;
         const text:string = (Math.round(field.zoom.zoom*100) / 100).toString()
@@ -6766,58 +6825,90 @@ async function main()
     toolSelector.animationsGroupsSelector = animationGroupSelector;
     const add_animationGroup_button = document.getElementById("add_animationGroup");
     const add_animationGroup_buttonListener:SingleTouchListener = new SingleTouchListener(add_animationGroup_button, false, true);
-    add_animationGroup_buttonListener.registerCallBack("touchstart", e => true, e => {
+    add_animationGroup_buttonListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
         animationGroupSelector.createAnimationGroup();
     });
     const delete_animationGroup_button = document.getElementById("delete_animationGroup");
     const delete_animationGroup_buttonListener:SingleTouchListener = new SingleTouchListener(delete_animationGroup_button, false, true);
-    delete_animationGroup_buttonListener.registerCallBack("touchstart", e => true, e => {
+    delete_animationGroup_buttonListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
         animationGroupSelector.deleteSelectedAnimationGroup();
     });
     const clone_animationGroup_button = document.getElementById("clone_animationGroup");
     const clone_animationGroup_buttonListener:SingleTouchListener = new SingleTouchListener(clone_animationGroup_button, false, true);
-    clone_animationGroup_buttonListener.registerCallBack("touchstart", e => true, e => {
+    clone_animationGroup_buttonListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
         animationGroupSelector.cloneSelectedAnimationGroup();
     });
 
-    pallette.canvas.addEventListener("mouseup", e => { field.layer().state.color = pallette.calcColor(); 
+    pallette.canvas.addEventListener("mouseup", (e:any) => { field.layer().state.color = pallette.calcColor(); 
         field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.calcColor().htmlRBGA()); 
     });
-    pallette.listeners.registerCallBack("touchend", e => true,  e => { field.layer().state.color = pallette.calcColor(); })
+    pallette.listeners.registerCallBack("touchend", (e:any) => true,  (e:any) => { field.layer().state.color = pallette.calcColor(); })
     
     const add_animationButton = document.getElementById("add_animation");
     const add_animationTouchListener:SingleTouchListener = new SingleTouchListener(add_animationButton, false, true);
-    add_animationTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().pushAnimation(new SpriteAnimation(0, 0, dim[0], dim[1]));
+    add_animationTouchListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
+        let group:AnimationGroup | null;
+        if(group = animationGroupSelector.animationGroup())
+        {
+            const defGroup:AnimationGroup = group;
+            defGroup.pushAnimation(new SpriteAnimation(0, 0, dim[0], dim[1]));
+        }
     });
     const clone_animationButton = document.getElementById("clone_animation");
     const clone_animationTouchListener:SingleTouchListener = new SingleTouchListener(clone_animationButton, false, true);
-    clone_animationTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().pushAnimation(animationGroupSelector.animationGroup().cloneAnimation(animationGroupSelector.animationGroup().selectedAnimation));
+    clone_animationTouchListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
+        let group:AnimationGroup | null;
+        if(group = animationGroupSelector.animationGroup())
+        {
+            const defGroup:AnimationGroup = group;
+            const animation:SpriteAnimation | null = defGroup.cloneAnimation(defGroup.selectedAnimation);
+            if(animation)
+                defGroup.pushAnimation(animation);
+        }
     });
     const delete_animationButton = document.getElementById("delete_animation");
     const delete_animationTouchListener:SingleTouchListener = new SingleTouchListener(delete_animationButton, false, true);
-    delete_animationTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().deleteAnimation(animationGroupSelector.animationGroup().selectedAnimation);
+    delete_animationTouchListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
+        let group:AnimationGroup | null;
+        if(group = animationGroupSelector.animationGroup())
+        {
+            const defGroup:AnimationGroup = group;
+            defGroup.deleteAnimation(defGroup.selectedAnimation);
+        }
     });
 
     const add_spriteButton = document.getElementById("add_sprite");
     const add_spriteButtonTouchListener:SingleTouchListener = new SingleTouchListener(add_spriteButton, false, true);
-    add_spriteButtonTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().pushSprite();
+    add_spriteButtonTouchListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
+        let group:AnimationGroup | null;
+        if(group = animationGroupSelector.animationGroup())
+        {
+            const defGroup:AnimationGroup = group;
+            defGroup.pushSprite();
+        }
     });
 
     const save_spriteButton = document.getElementById("save_sprite");
     const save_spriteButtonTouchListener:SingleTouchListener = new SingleTouchListener(save_spriteButton, false, true);
-    save_spriteButtonTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().spriteSelector.pushSelectedToCanvas();
+    save_spriteButtonTouchListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {      
+        let group:AnimationGroup | null;
+        if(group = animationGroupSelector.animationGroup())
+        {
+            const defGroup:AnimationGroup = group;
+            defGroup.spriteSelector.pushSelectedToCanvas();
+        }
     });
     const delete_spriteButton = document.getElementById("delete_sprite");
     const delete_spriteButtonTouchListener:SingleTouchListener = new SingleTouchListener(delete_spriteButton, false, true);
-    delete_spriteButtonTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().spriteSelector.deleteSelectedSprite();
+    delete_spriteButtonTouchListener.registerCallBack("touchstart", (e:any) => true, (e:any) => {
+        let group:AnimationGroup | null;
+        if(group = animationGroupSelector.animationGroup())
+        {
+            const defGroup:AnimationGroup = group;
+            defGroup.spriteSelector.deleteSelectedSprite();
+        }
     });
-    keyboardHandler.registerCallBack("keydown", e=> true, e => {
+    keyboardHandler.registerCallBack("keydown", (e:any) => true, (e:any) => {
         if(!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)){
             if(e.code.substring(0,"Digit".length) === "Digit")
             {
@@ -6831,7 +6922,7 @@ async function main()
             }
         }
     });
-    keyboardHandler.registerCallBack("keyup", e => !e.defaultPrevented, e => {
+    keyboardHandler.registerCallBack("keyup", (e:any) => !e.defaultPrevented, (e:any) => {
         if(e.code === "ShiftLeft" || e.code === "ShiftRight")
         {
             field.layer().state.color.copy(pallette.calcColor());
@@ -6841,31 +6932,37 @@ async function main()
         files:FileList;
     };
     const fileSelector = document.getElementById('file-selector');
-    fileSelector.addEventListener('change', (event) => {
-      const fileList:FileList = (<FilesHaver> <Object> event.target).files;
-      const reader = new FileReader();
-      reader.readAsDataURL(fileList[0]);
-      reader.onload = (() =>
-        {
-            const img = new Image();
-            img.onload = () => {
-                toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`)
-                field.loadImageToLayer(img);
-                field.setDimOnCurrent([img.width, img.height]);
-            };
-            img.src = <string> reader.result;
-        });
-    });
+    if(fileSelector)
+    {
+        fileSelector.addEventListener('change', (event) => {
+            const fileList:FileList = (<FilesHaver> <Object> event.target).files;
+            const reader = new FileReader();
+            reader.readAsDataURL(fileList[0]);
+            reader.onload = (() =>
+              {
+                  const img = new Image();
+                  img.onload = () => {
+                      toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`)
+                      field.loadImageToLayer(img);
+                      field.setDimOnCurrent([img.width, img.height]);
+                  };
+                  img.src = <string> reader.result;
+              });
+          });
+    }
     const projectFileSelector = document.getElementById('project-file-selector');
-    projectFileSelector.addEventListener('change', (event) => {
-      const fileList:FileList = (<FilesHaver> <Object> event.target).files;
-      const reader = new FileReader();
-      fileList[0].arrayBuffer().then((buffer) =>
-        {
-            const binary:Uint32Array = new Uint32Array(buffer);
-            animationGroupSelector.buildFromBinary(binary);
-        });
-    });
+    if(projectFileSelector)
+    {
+        projectFileSelector.addEventListener('change', (event) => {
+            const fileList:FileList = (<FilesHaver> <Object> event.target).files;
+            const reader = new FileReader();
+            fileList[0].arrayBuffer().then((buffer) =>
+              {
+                  const binary:Uint32Array = new Uint32Array(buffer);
+                  animationGroupSelector.buildFromBinary(binary);
+              });
+          });
+    }
     canvas.onmousemove = (event:MouseEvent) => {
         toolSelector.drawingScreenListener.touchPos[0] = event.offsetX;
         toolSelector.drawingScreenListener.touchPos[1] = event.offsetY;

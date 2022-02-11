@@ -1,5 +1,6 @@
+"use strict";
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 function changeFavicon(src) {
     let link = document.createElement('link'), oldLink = document.getElementById('dynamic-favicon');
@@ -107,6 +108,7 @@ class RollingStack {
                 this.end = this.reserve - 1;
             return this.data[this.end];
         }
+        return null;
     }
     push(val) {
         if (this.size >= this.reserve) {
@@ -352,13 +354,13 @@ class SimpleGridLayoutManager {
     }
     createHandlers(keyboardHandler, touchHandler) {
         if (keyboardHandler) {
-            keyboardHandler.registerCallBack("keydown", e => this.active(), e => { e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keydown", e)); });
-            keyboardHandler.registerCallBack("keyup", e => this.active(), e => { e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keyup", e)); });
+            keyboardHandler.registerCallBack("keydown", (e) => this.active(), (e) => { e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keydown", e)); });
+            keyboardHandler.registerCallBack("keyup", (e) => this.active(), (e) => { e.keyboardHandler = keyboardHandler; this.elements.forEach(el => el.handleKeyBoardEvents("keyup", e)); });
         }
         if (touchHandler) {
-            touchHandler.registerCallBack("touchstart", e => this.active(), e => this.handleTouchEvents("touchstart", e));
-            touchHandler.registerCallBack("touchmove", e => this.active(), e => this.handleTouchEvents("touchmove", e));
-            touchHandler.registerCallBack("touchend", e => this.active(), e => this.handleTouchEvents("touchend", e));
+            touchHandler.registerCallBack("touchstart", (e) => this.active(), (e) => this.handleTouchEvents("touchstart", e));
+            touchHandler.registerCallBack("touchmove", (e) => this.active(), (e) => this.handleTouchEvents("touchmove", e));
+            touchHandler.registerCallBack("touchend", (e) => this.active(), (e) => this.handleTouchEvents("touchend", e));
         }
     }
     isLayoutManager() {
@@ -520,7 +522,9 @@ class SimpleGridLayoutManager {
         this.refreshCanvas();
     }
     elementPosition(element) {
-        const elPos = this.elementsPositions.find(el => el.element === element);
+        const elPos = this.elementsPositions.find((el) => el.element === element);
+        if (elPos === undefined)
+            return [-1, -1];
         return [elPos.x, elPos.y];
     }
     draw(ctx, xPos = this.x, yPos = this.y, offsetX = 0, offsetY = 0) {
@@ -532,6 +536,8 @@ class SimpleGridLayoutManager {
 class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
     constructor(matrixDim, pixelDim, x = 0, y = 0) {
         super(matrixDim, pixelDim, x, y);
+        this.scrolledCanvas = document.createElement("canvas");
+        this.offset = [0, 0];
     }
     handleScrollEvent(event) {
     }
@@ -540,7 +546,7 @@ class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
     }
 }
 class GuiListItem extends SimpleGridLayoutManager {
-    constructor(text, state, pixelDim, fontSize = 16, callBack = () => null, genericCallBack = () => null, slideMoved, flags = GuiTextBox.left | GuiTextBox.bottom, genericTouchType = "touchend") {
+    constructor(text, state, pixelDim, fontSize = 16, callBack = () => { }, genericCallBack = null, slideMoved = null, flags = GuiTextBox.default, genericTouchType = "touchend") {
         super([20, 1], pixelDim);
         this.callBackType = genericTouchType;
         this.callBack = genericCallBack;
@@ -560,7 +566,8 @@ class GuiListItem extends SimpleGridLayoutManager {
         super.handleTouchEvents(type, e);
         if (this.active() && type === this.callBackType) {
             e.item = this;
-            this.callBack(e);
+            if (this.callBack)
+                this.callBack(e);
         }
     }
     state() {
@@ -571,6 +578,7 @@ class GuiListItem extends SimpleGridLayoutManager {
 class SlideEvent {
     constructor(value, element) {
         this.value = value;
+        this.element = element;
     }
 }
 class GuiCheckList {
@@ -615,7 +623,7 @@ class GuiCheckList {
             return null;
     }
     isChecked(index) {
-        return this.list[index] ? this.list[index].checkBox.checked : null;
+        return this.list[index] ? this.list[index].checkBox.checked : false;
     }
     delete(index) {
         if (this.list[index]) {
@@ -678,7 +686,7 @@ class GuiCheckList {
                     this.dragItemLocation[0] = -1;
                     this.dragItemLocation[1] = -1;
                 }
-                if (this.selectedItem())
+                if (this.selectedItem() && this.selectedItem().callBack)
                     this.selectedItem().callBack(e);
                 break;
             case ("touchmove"):
@@ -766,7 +774,8 @@ class GuiSlider {
             this.state = 1;
         else if (this.state < 0)
             this.state = 0;
-        this.callBack({ value: this.state, element: this });
+        if (this.callBack)
+            this.callBack({ value: this.state, element: this });
         this.refresh();
     }
     isLayoutManager() {
@@ -822,7 +831,7 @@ class GuiButton {
                 this.drawInternal();
             }, (error) => {
                 this.font = new FontFace(`${this.fontName}`, 'url(/fonts/Minecraft.ttf)');
-                this.font.load().then(loaded_face => {
+                this.font.load().then((loaded_face) => {
                     document.fonts.add(loaded_face);
                     this.drawInternal();
                 }, (error) => {
@@ -841,7 +850,8 @@ class GuiButton {
                         this.drawInternal();
                         break;
                     case ("keyup"):
-                        this.callback();
+                        if (this.callback)
+                            this.callback();
                         this.pressed = false;
                         this.drawInternal();
                         this.deactivate();
@@ -858,7 +868,8 @@ class GuiButton {
                     this.drawInternal();
                     break;
                 case ("touchend"):
-                    this.callback();
+                    if (this.callback)
+                        this.callback();
                     this.pressed = false;
                     this.drawInternal();
                     break;
@@ -935,7 +946,8 @@ class GuiCheckBox {
                         break;
                     case ("keyup"):
                         e.checkBox = this;
-                        this.callback(e);
+                        if (this.callback)
+                            this.callback(e);
                         this.pressed = false;
                         this.drawInternal();
                         this.deactivate();
@@ -958,7 +970,8 @@ class GuiCheckBox {
                     this.checked = !this.checked;
                     this.pressed = false;
                     e.checkBox = this;
-                    this.callback(e);
+                    if (this.callback)
+                        this.callback(e);
                     this.drawInternal();
                     break;
             }
@@ -1070,7 +1083,7 @@ class GuiTextBox {
                 this.drawInternalAndClear();
             }, (error) => {
                 this.font = new FontFace(fontName, 'url(/fonts/Minecraft.ttf)');
-                this.font.load().then(loaded_face => {
+                this.font.load().then((loaded_face) => {
                     document.fonts.add(loaded_face);
                     this.refresh();
                 }, (error) => {
@@ -1310,7 +1323,7 @@ class GuiTextBox {
         let index = 0;
         for (let i = 0; i < this.rows.length; i++) {
             const row = this.rows[i];
-            if (row.y === this.cursor[1])
+            if (row.y === Math.floor(this.cursor / this.fontSize))
                 index = i;
         }
         return index;
@@ -1603,7 +1616,7 @@ class ExtendedTool extends ViewLayoutTool {
         this.optionPanels = [this.localLayout];
         let maxY = this.localLayout.height();
         let maxX = this.localLayout.width();
-        optionPanes.forEach(pane => {
+        optionPanes.forEach((pane) => {
             parentPanel.addElement(pane);
             this.optionPanels.push(pane);
             maxY += pane.height();
@@ -2225,6 +2238,7 @@ class ToolSelector {
     constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 50, imgHeight = 50) {
         this.lastDrawTime = Date.now();
         this.polygon = [];
+        this.animationsGroupsSelector = null;
         const field = new LayeredDrawingScreen(keyboardHandler, pallette);
         field.toolSelector = this;
         field.addBlankLayer();
@@ -2238,7 +2252,7 @@ class ToolSelector {
         this.toolPixelDim = [imgWidth, imgHeight * 10];
         this.canvas = document.getElementById("tool_selector_screen");
         this.keyboardHandler = keyboardHandler;
-        this.keyboardHandler.registerCallBack("keydown", e => true, event => {
+        this.keyboardHandler.registerCallBack("keydown", (e) => true, event => {
             switch (event.code) {
                 case ('KeyC'):
                     if (this.keyboardHandler.keysHeld["KeyC"] === 1) {
@@ -2259,10 +2273,9 @@ class ToolSelector {
                     event.preventDefault();
             }
         });
-        this.keyboardHandler.registerCallBack("keydown", e => this.tool().getOptionPanel(), e => { this.tool().getOptionPanel().handleKeyBoardEvents("keydown", e); this.repaint = true; });
-        this.keyboardHandler.registerCallBack("keyup", e => this.tool().getOptionPanel(), e => { this.tool().getOptionPanel().handleKeyBoardEvents("keyup", e); this.repaint = true; });
-        this.keyboardHandler.registerCallBack("keydown", e => { if (e.code === "ArrowUp" || e.code === "ArrowDown" || e.code === "ArrowLeft" || e.code === "ArrowRight")
-            return true; }, e => {
+        this.keyboardHandler.registerCallBack("keydown", (e) => this.tool().getOptionPanel(), (e) => { this.tool().getOptionPanel().handleKeyBoardEvents("keydown", e); this.repaint = true; });
+        this.keyboardHandler.registerCallBack("keyup", (e) => this.tool().getOptionPanel(), (e) => { this.tool().getOptionPanel().handleKeyBoardEvents("keyup", e); this.repaint = true; });
+        this.keyboardHandler.registerCallBack("keydown", (e) => (e.code === "ArrowUp" || e.code === "ArrowDown" || e.code === "ArrowLeft" || e.code === "ArrowRight"), (e) => {
             const imgPerColumn = (this.canvas.height / this.toolBar.toolRenderDim[1]);
             if ((this.keyboardHandler.keysHeld["AltLeft"] || this.keyboardHandler.keysHeld["AltRight"]) && (document.activeElement.id === "body" || field.layer().canvas === document.activeElement || this.canvas === document.activeElement)) {
                 e.preventDefault();
@@ -2298,25 +2311,25 @@ class ToolSelector {
             this.repaint = true;
         });
         this.touchListener = new SingleTouchListener(this.canvas, true, true);
-        this.touchListener.registerCallBack("touchstart", e => this.tool().getOptionPanel(), e => {
+        this.touchListener.registerCallBack("touchstart", (e) => this.tool().getOptionPanel(), (e) => {
             e.translateEvent(e, -this.tool().getOptionPanel().x, -this.tool().getOptionPanel().y);
             this.tool().getOptionPanel().handleTouchEvents("touchstart", e);
             this.repaint = true;
             e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
         });
-        this.touchListener.registerCallBack("touchmove", e => this.tool().getOptionPanel(), e => {
+        this.touchListener.registerCallBack("touchmove", (e) => this.tool().getOptionPanel(), (e) => {
             e.translateEvent(e, -this.tool().getOptionPanel().x, -this.tool().getOptionPanel().y);
             this.tool().getOptionPanel().handleTouchEvents("touchmove", e);
             this.repaint = true;
             e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
         });
-        this.touchListener.registerCallBack("touchend", e => this.tool().getOptionPanel(), e => {
+        this.touchListener.registerCallBack("touchend", (e) => this.tool().getOptionPanel(), (e) => {
             e.translateEvent(e, -this.tool().getOptionPanel().x, -this.tool().getOptionPanel().y);
             this.tool().getOptionPanel().handleTouchEvents("touchend", e);
             this.repaint = true;
             e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
         });
-        this.touchListener.registerCallBack("touchstart", e => true, e => {
+        this.touchListener.registerCallBack("touchstart", (e) => true, (e) => {
             document.activeElement.blur();
             const previousTool = this.selected();
             const imgPerColumn = (this.canvas.height / this.toolBar.toolRenderDim[1]);
@@ -2345,7 +2358,7 @@ class ToolSelector {
             //field.layer() listeners
             const colorBackup = new RGB(0, 0, 0, 0);
             this.drawingScreenListener = drawingScreenListener;
-            this.drawingScreenListener.registerCallBack("touchstart", e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, e => {
+            this.drawingScreenListener.registerCallBack("touchstart", (e) => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, (e) => {
                 const touchPos = [this.field.zoom.invZoomX(e.touchPos[0]), this.field.zoom.invZoomY(e.touchPos[1])];
                 const gx = Math.floor((touchPos[0] - field.layer().offset.first) / field.layer().bounds.first * field.layer().dimensions.first);
                 const gy = Math.floor((touchPos[1] - field.layer().offset.second) / field.layer().bounds.second * field.layer().dimensions.second);
@@ -2439,7 +2452,7 @@ class ToolSelector {
                             break;
                     }
             });
-            this.drawingScreenListener.registerCallBack("touchmove", e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, e => {
+            this.drawingScreenListener.registerCallBack("touchmove", (e) => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, (e) => {
                 const deltaX = this.field.zoom.invJustZoomX(e.deltaX);
                 const deltaY = this.field.zoom.invJustZoomY(e.deltaY);
                 const touchPos = [this.field.zoom.invZoomX(e.touchPos[0]), this.field.zoom.invZoomY(e.touchPos[1])];
@@ -2531,7 +2544,7 @@ class ToolSelector {
                     }
                 field.layer().repaint = repaint;
             });
-            this.drawingScreenListener.registerCallBack("touchend", e => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, e => {
+            this.drawingScreenListener.registerCallBack("touchend", (e) => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, (e) => {
                 const deltaX = this.field.zoom.invJustZoomX(e.deltaX);
                 const deltaY = this.field.zoom.invJustZoomY(e.deltaY);
                 const touchPos = [this.field.zoom.invZoomX(e.touchPos[0]), this.field.zoom.invZoomY(e.touchPos[1])];
@@ -2796,6 +2809,7 @@ class ToolSelector {
 ;
 class DrawingScreenState {
     constructor(lineWidth) {
+        this.color = new RGB(0, 0, 0);
         this.allowDropOutsideSelection = false;
         this.bufferBitMask = [];
         this.sprayProbability = 1;
@@ -2816,6 +2830,8 @@ class DrawingScreenState {
 class DrawingScreen {
     constructor(canvas, keyboardHandler, palette, offset, dimensions, toolSelector, state, clipBoard) {
         const bounds = [dim[0], dim[1]];
+        this.dragDataMaxPoint = -1;
+        this.dragDataMinPoint = -1;
         this.clipBoard = clipBoard;
         this.palette = palette;
         this.noColor = new RGB(255, 255, 255, 0);
@@ -3211,6 +3227,8 @@ class DrawingScreen {
         }
     }
     rotateSelectedPixelGroup(theta, centerPoint) {
+        if (this.dragData === null)
+            return;
         const min = [this.dragDataMinPoint % this.dimensions.first, Math.floor(this.dragDataMinPoint / this.dimensions.first)];
         const max = [this.dragDataMaxPoint % this.dimensions.first, Math.floor(this.dragDataMaxPoint / this.dimensions.first)];
         const dx = Math.floor(centerPoint[0]);
@@ -3443,10 +3461,10 @@ class DrawingScreen {
     }
     setPixel(index, color) {
         index <<= 2;
-        this.spriteScreenBuf[index++] = color.red();
-        this.spriteScreenBuf[index++] = color.green();
-        this.spriteScreenBuf[index++] = color.blue();
-        this.spriteScreenBuf[index++] = color.alpha();
+        this.spriteScreenBuf.pixels[index++] = color.red();
+        this.spriteScreenBuf.pixels[index++] = color.green();
+        this.spriteScreenBuf.pixels[index++] = color.blue();
+        this.spriteScreenBuf.pixels[index++] = color.alpha();
     }
     saveDragDataToScreen() {
         if (this.dragData) {
@@ -3774,12 +3792,13 @@ class ZoomState {
 ;
 class LayeredDrawingScreen {
     constructor(keyboardHandler, pallette) {
+        this.toolSelector = null;
+        this.redraw = false;
         this.maskWorkerExecutionCount = 0;
         this.scheduledMaskOperation = [];
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
-        this.glCanvas = document.createElement("canvas");
         this.maskWorkers = [];
         const poolSize = window.navigator.hardwareConcurrency < 4 ? 4 : window.navigator.hardwareConcurrency;
         for (let i = 0; i < poolSize; i++) {
@@ -4043,7 +4062,7 @@ class LayeredDrawingScreen {
         sprite.copyToBuffer(layer.screenBuffer, bounds[0], bounds[1]);
     }
     addBlankLayer() {
-        let finalDim;
+        let finalDim = null;
         if (this.toolSelector.settingsTool) {
             finalDim = this.toolSelector.settingsTool.dim;
         }
@@ -4066,9 +4085,11 @@ class LayeredDrawingScreen {
         const a = document.createElement("a");
         this.toSprite();
         this.offscreenCanvas.toBlob(blob => {
-            a.href = window.URL.createObjectURL(blob);
-            a.download = fileName;
-            a.click();
+            if (blob) {
+                a.href = window.URL.createObjectURL(blob);
+                a.download = fileName;
+                a.click();
+            }
         });
     }
     toSprite() {
@@ -4170,16 +4191,16 @@ class KeyboardHandler {
     constructor() {
         this.keysHeld = {};
         this.listenerTypeMap = new KeyListenerTypes();
-        document.addEventListener("keyup", e => this.keyUp(e));
-        document.addEventListener("keydown", e => this.keyDown(e));
-        document.addEventListener("keypressed", e => this.keyPressed(e));
+        document.addEventListener("keyup", (e) => this.keyUp(e));
+        document.addEventListener("keydown", (e) => this.keyDown(e));
+        document.addEventListener("keypressed", (e) => this.keyPressed(e));
     }
     registerCallBack(listenerType, predicate, callBack) {
         this.listenerTypeMap[listenerType].push(new TouchHandler(predicate, callBack));
     }
     callHandler(type, event) {
         const handlers = this.listenerTypeMap[type];
-        handlers.forEach(handler => {
+        handlers.forEach((handler) => {
             if (handler.pred(event)) {
                 handler.callBack(event);
             }
@@ -4219,6 +4240,7 @@ class ListenerTypes {
     }
 }
 ;
+;
 function isTouchSupported() {
     return (('ontouchstart' in window) ||
         (navigator.maxTouchPoints > 0));
@@ -4241,6 +4263,8 @@ class SingleTouchListener {
     constructor(component, preventDefault, mouseEmulation) {
         this.lastTouchTime = Date.now();
         this.offset = [];
+        this.moveCount = 0;
+        this.touchMoveEvents = [];
         this.translateEvent = (e, dx, dy) => e.touchPos = [e.touchPos[0] + dx, e.touchPos[1] + dy];
         this.startTouchPos = [0, 0];
         this.component = component;
@@ -4256,15 +4280,17 @@ class SingleTouchListener {
             touchmove: [],
             touchend: []
         };
-        if (isTouchSupported()) {
-            component.addEventListener('touchstart', event => { this.touchStartHandler(event); }, false);
-            component.addEventListener('touchmove', event => this.touchMoveHandler(event), false);
-            component.addEventListener('touchend', event => this.touchEndHandler(event), false);
-        }
-        if (mouseEmulation && !isTouchSupported()) {
-            component.addEventListener('mousedown', event => { event.changedTouches = {}; event.changedTouches.item = x => event; this.touchStartHandler(event); });
-            component.addEventListener('mousemove', event => { event.changedTouches = {}; event.changedTouches.item = x => event; this.touchMoveHandler(event); });
-            component.addEventListener('mouseup', event => { event.changedTouches = {}; event.changedTouches.item = x => event; this.touchEndHandler(event); });
+        if (component) {
+            if (isTouchSupported()) {
+                component.addEventListener('touchstart', (event) => { this.touchStartHandler(event); }, false);
+                component.addEventListener('touchmove', (event) => this.touchMoveHandler(event), false);
+                component.addEventListener('touchend', (event) => this.touchEndHandler(event), false);
+            }
+            if (mouseEmulation && !isTouchSupported()) {
+                component.addEventListener('mousedown', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchStartHandler(event); });
+                component.addEventListener('mousemove', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchMoveHandler(event); });
+                component.addEventListener('mouseup', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchEndHandler(event); });
+            }
         }
     }
     registerCallBack(listenerType, predicate, callBack) {
@@ -4272,7 +4298,7 @@ class SingleTouchListener {
     }
     callHandler(type, event) {
         const handlers = this.listenerTypeMap[type];
-        handlers.forEach(handler => {
+        handlers.forEach((handler) => {
             if (!event.defaultPrevented && handler.pred(event)) {
                 handler.callBack(event);
             }
@@ -4433,7 +4459,7 @@ class MultiTouchListener {
     }
     callHandler(type, event) {
         const handlers = this.listenerTypeMap[type];
-        handlers.forEach(handler => {
+        handlers.forEach((handler) => {
             if (!event.defaultPrevented && handler.pred(event)) {
                 handler.callBack(event);
             }
@@ -4494,18 +4520,18 @@ class Pallette {
             this.colors.push(new RGB(224, 49, 213, 255));
             this.colors.push(new RGB(24, 220, 229, 255));
         }
-        this.listeners.registerCallBack("touchstart", e => true, e => {
+        this.listeners.registerCallBack("touchstart", (e) => true, (e) => {
             document.activeElement.blur();
             this.handleClick(e);
             this.repaint = true;
         });
-        this.listeners.registerCallBack("touchmove", e => true, e => {
+        this.listeners.registerCallBack("touchmove", (e) => true, (e) => {
             document.activeElement.blur();
             this.handleClick(e);
             this.repaint = true;
         });
-        this.keyboardHandler.registerCallBack("keydown", e => true, e => this.repaint = true);
-        this.keyboardHandler.registerCallBack("keyup", e => true, e => this.repaint = true);
+        this.keyboardHandler.registerCallBack("keydown", (e) => true, (e) => this.repaint = true);
+        this.keyboardHandler.registerCallBack("keyup", (e) => true, (e) => this.repaint = true);
     }
     calcColor(i = this.highLightedCell) {
         const color = new RGB(this.colors[i].red(), this.colors[i].green(), this.colors[i].blue(), this.colors[i].alpha());
@@ -4596,7 +4622,7 @@ function buildSpriteAnimationFromBuffer(buffer, index) {
         animation.pushSprite(result.first);
     }
     let spriteMemory = 0;
-    animation.sprites.forEach(sprite => spriteMemory += (sprite.pixels.length >> 2) + 3);
+    animation.sprites.forEach((sprite) => spriteMemory += (sprite.pixels.length >> 2) + 3);
     if (spriteMemory !== size - 2)
         throw new Error("Error invalid group size: " + size.toString() + " should be: " + size.toString());
     return new Pair(animation, size);
@@ -4637,8 +4663,12 @@ function buildGroupsFromBuffer(buffer, groupsSelector) {
 class Sprite {
     constructor(pixels, width, height, fillBackground = true) {
         this.fillBackground = fillBackground;
+        this.imageData = null;
+        this.pixels = null;
         this.image = document.createElement("canvas");
         this.ctx = this.image.getContext("2d");
+        this.width = width;
+        this.height = height;
         this.copy(pixels, width, height);
     }
     createImageData() {
@@ -4807,7 +4837,7 @@ class SpriteAnimation {
     }
     binaryFileSize() {
         let size = 2;
-        this.sprites.forEach(sprite => size += sprite.binaryFileSize());
+        this.sprites.forEach((sprite) => size += sprite.binaryFileSize());
         return size;
     }
     toGifBlob(callBack, fps = 30) {
@@ -4827,13 +4857,13 @@ class SpriteAnimation {
     saveToUint32Buffer(buf, index) {
         buf[index++] = this.binaryFileSize();
         buf[index++] = 2;
-        this.sprites.forEach(sprite => index = sprite.saveToUint32Buffer(buf, index));
+        this.sprites.forEach((sprite) => index = sprite.saveToUint32Buffer(buf, index));
         return index;
     }
     cloneAnimation() {
         const cloned = new SpriteAnimation(0, 0, this.width, this.height);
         const original = this;
-        original.sprites.forEach(sprite => {
+        original.sprites.forEach((sprite) => {
             const clonedSprite = new Sprite([], sprite.width, sprite.height);
             clonedSprite.copySprite(sprite);
             clonedSprite.refreshImage();
@@ -4897,7 +4927,7 @@ class SpriteSelector {
                 break;
             case ("touchend"):
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                if (clickedSprite >= 0 && this.dragSprite !== null) {
+                if (this.sprites() && clickedSprite >= 0 && this.dragSprite !== null) {
                     this.sprites().splice(clickedSprite, 0, this.dragSprite);
                     this.spritesCount = this.sprites().length;
                     this.dragSprite = null;
@@ -4954,7 +4984,7 @@ class SpriteSelector {
         }
     }
     deleteSelectedSprite() {
-        if (this.sprites().length > 1)
+        if (this.sprites() && this.sprites().length > 1)
             this.sprites().splice(this.selectedSprite--, 1);
     }
     pushSelectedToCanvas() {
@@ -5191,8 +5221,9 @@ class AnimationGroup {
             this.spriteSelector.update();
             this.spriteSelector.draw();
         }
-        if (position.top < window.innerHeight && position.bottom >= 0) {
-            const ctx = this.animationCanvas.getContext("2d");
+        let ctx1;
+        if ((ctx1 = this.animationCanvas.getContext("2d")) && position.top < window.innerHeight && position.bottom >= 0) {
+            const ctx = ctx1;
             ctx.clearRect(0, 0, this.animationCanvas.width, this.animationCanvas.height);
             let dragSpriteAdjustment = 0;
             const touchX = Math.floor(this.listener.touchPos[0] / this.animationCanvas.width * this.animationsPerRow);
@@ -5225,6 +5256,7 @@ class AnimationGroup {
 class AnimationGroupsSelector {
     constructor(field, keyboardHandler, animationGroupSelectorId, animationsCanvasId, spritesCanvasId, spriteWidth, spriteHeight, renderWidth, renderHeight, spritesPerRow = 5) {
         this.animationGroups = [];
+        this.selectedAnimationGroup = 0;
         this.field = field;
         this.dragAnimationGroup = null;
         this.dragAnimationGroupPos = [0, 0];
@@ -5241,10 +5273,10 @@ class AnimationGroupsSelector {
         this.spriteHeight = spriteHeight;
         this.keyboardHandler = keyboardHandler;
         this.listener = new SingleTouchListener(this.canvas, true, true);
-        this.listener.registerCallBack("touchstart", e => true, e => {
+        this.listener.registerCallBack("touchstart", (e) => true, (e) => {
             document.activeElement.blur();
         });
-        this.listener.registerCallBack("touchmove", e => true, e => {
+        this.listener.registerCallBack("touchmove", (e) => true, (e) => {
             const clickedIndex = Math.floor(e.touchPos[0] / this.renderWidth) + Math.floor(e.touchPos[1] / this.renderHeight);
             if (e.moveCount === 1 && this.animationGroups.length > 1) {
                 this.dragAnimationGroup = this.animationGroups.splice(clickedIndex, 1)[0];
@@ -5257,7 +5289,7 @@ class AnimationGroupsSelector {
                 this.dragAnimationGroupPos[1] += e.deltaY;
             }
         });
-        this.listener.registerCallBack("touchend", e => true, e => {
+        this.listener.registerCallBack("touchend", (e) => true, (e) => {
             const clickedIndex = Math.floor(e.touchPos[0] / this.renderWidth) + Math.floor(e.touchPos[1] / this.renderHeight);
             if (clickedIndex >= 0 && clickedIndex <= this.animationGroups.length) {
                 if (this.dragAnimationGroup) {
@@ -5271,35 +5303,41 @@ class AnimationGroupsSelector {
             }
         });
         this.listenerAnimationsSelector = new SingleTouchListener(document.getElementById(animationsCanvasId), false, true);
-        this.listenerAnimationsSelector.registerCallBack("touchstart", e => true, e => {
-            if (this.animationGroup()) {
-                this.animationGroup().handleTouchEvents("touchstart", e);
+        this.listenerAnimationsSelector.registerCallBack("touchstart", (e) => true, (e) => {
+            const group = this.animationGroup();
+            if (group) {
+                group.handleTouchEvents("touchstart", e);
             }
         });
-        this.listenerAnimationsSelector.registerCallBack("touchmove", e => true, e => {
-            if (this.animationGroup()) {
-                this.animationGroup().handleTouchEvents("touchmove", e);
+        this.listenerAnimationsSelector.registerCallBack("touchmove", (e) => true, (e) => {
+            const group = this.animationGroup();
+            if (group) {
+                group.handleTouchEvents("touchmove", e);
             }
         });
-        this.listenerAnimationsSelector.registerCallBack("touchend", e => true, e => {
-            if (this.animationGroup()) {
-                this.animationGroup().handleTouchEvents("touchend", e);
+        this.listenerAnimationsSelector.registerCallBack("touchend", (e) => true, (e) => {
+            const group = this.animationGroup();
+            if (group) {
+                group.handleTouchEvents("touchend", e);
             }
         });
         this.listenerSpritesSelector = new SingleTouchListener(document.getElementById(spritesCanvasId), false, true);
-        this.listenerSpritesSelector.registerCallBack("touchstart", e => true, e => {
-            if (this.animationGroup() && this.animationGroup().spriteSelector) {
-                this.animationGroup().spriteSelector.handleTouchEvents("touchstart", e);
+        this.listenerSpritesSelector.registerCallBack("touchstart", (e) => true, (e) => {
+            const group = this.animationGroup();
+            if (group && group.spriteSelector) {
+                group.spriteSelector.handleTouchEvents("touchstart", e);
             }
         });
-        this.listenerSpritesSelector.registerCallBack("touchmove", e => true, e => {
-            if (this.animationGroup() && this.animationGroup().spriteSelector) {
-                this.animationGroup().spriteSelector.handleTouchEvents("touchmove", e);
+        this.listenerSpritesSelector.registerCallBack("touchmove", (e) => true, (e) => {
+            const group = this.animationGroup();
+            if (group && group.spriteSelector) {
+                group.spriteSelector.handleTouchEvents("touchmove", e);
             }
         });
-        this.listenerSpritesSelector.registerCallBack("touchend", e => true, e => {
-            if (this.animationGroup() && this.animationGroup().spriteSelector) {
-                this.animationGroup().spriteSelector.handleTouchEvents("touchend", e);
+        this.listenerSpritesSelector.registerCallBack("touchend", (e) => true, (e) => {
+            const group = this.animationGroup();
+            if (group && group.spriteSelector) {
+                group.spriteSelector.handleTouchEvents("touchend", e);
             }
         });
     }
@@ -5363,33 +5401,50 @@ class AnimationGroupsSelector {
         return null;
     }
     pushAnimationToSelected(animation) {
-        this.animationGroup().pushAnimation(animation);
+        const group = this.animationGroup();
+        if (group)
+            group.pushAnimation(animation);
     }
     inSelectedAnimationBounds(animationIndex) {
-        return (animationIndex >= 0 && animationIndex < this.animationGroup().animations.length);
+        const group = this.animationGroup();
+        if (group)
+            return (animationIndex >= 0 && animationIndex < group.animations.length);
+        return false;
     }
     cloneAnimationFromSelected(animationIndex) {
-        this.animationGroup().cloneAnimation(animationIndex);
+        const group = this.animationGroup();
+        if (group)
+            group.cloneAnimation(animationIndex);
     }
     cloneSelectedAnimationGroup() {
         this.animationGroups.push(new Pair(new AnimationGroup(this.listenerAnimationsSelector, this.listenerSpritesSelector, this.field, this.keyboardHandler, this.animationsCanvasId, this.spritesCanvasId, 5, this.spriteWidth, this.spriteHeight), new Pair(0, 0)));
         const animationGroup = this.animationGroups[this.animationGroups.length - 1].first;
-        this.animationGroup().animations.forEach(animation => {
-            animationGroup.pushAnimation(animation.cloneAnimation());
-        });
+        const group = this.animationGroup();
+        if (group)
+            group.animations.forEach(animation => {
+                animationGroup.pushAnimation(animation.cloneAnimation());
+            });
         this.autoResizeCanvas();
     }
     deleteAnimationFromSelected(animationIndex) {
-        this.animationGroup().deleteAnimation(animationIndex);
+        const group = this.animationGroup();
+        if (group)
+            group.deleteAnimation(animationIndex);
     }
     pushSpriteToSelected() {
-        this.animationGroup().pushSprite();
+        const group = this.animationGroup();
+        if (group)
+            group.pushSprite();
     }
     pushSelectedSpriteToCanvas() {
-        this.animationGroup().spriteSelector.pushSelectedToCanvas();
+        const group = this.animationGroup();
+        if (group)
+            group.spriteSelector.pushSelectedToCanvas();
     }
     deleteSelectedSprite() {
-        this.animationGroup().spriteSelector.deleteSelectedSprite();
+        const group = this.animationGroup();
+        if (group)
+            group.spriteSelector.deleteSelectedSprite();
     }
     deleteSelectedAnimationGroup() {
         this.animationGroups.splice(this.selectedAnimationGroup, 1);
@@ -5399,7 +5454,10 @@ class AnimationGroupsSelector {
         this.autoResizeCanvas();
     }
     selectedAnimation() {
-        return this.animationGroup().animations[this.animationGroup().selectedAnimation];
+        const group = this.animationGroup();
+        if (group)
+            return group.animations[group.selectedAnimation];
+        return null;
     }
     drawIndex(ctx, animationGroupIndex, encodedLocation) {
         const group = this.animationGroups[animationGroupIndex].first;
@@ -5426,8 +5484,9 @@ class AnimationGroupsSelector {
         }
     }
     draw() {
-        if (this.animationGroup()) {
-            this.animationGroup().draw();
+        let group;
+        if (group = this.animationGroup()) {
+            group.draw();
         }
         const position = this.canvas.getBoundingClientRect();
         if (position.top < window.innerHeight && position.bottom >= 0) {
@@ -5481,9 +5540,11 @@ function logToServer(data) {
 }
 function saveBlob(blob, fileName) {
     const a = document.createElement("a");
-    a.href = window.URL.createObjectURL(blob);
-    a.download = fileName;
-    a.click();
+    if (blob) {
+        a.href = window.URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+    }
 }
 function getWidth() {
     return Math.max(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
@@ -5493,15 +5554,18 @@ function getHeight() {
 }
 async function main() {
     const canvas = document.getElementById("screen");
-    const ctx = canvas.getContext("2d");
+    let maybectx = canvas.getContext("2d");
+    if (!maybectx)
+        return;
+    const ctx = maybectx;
     let field;
     /*const multiTouchHandler:MultiTouchListener =  new MultiTouchListener(canvas);
-    multiTouchHandler.registerCallBack("pinchIn", e => true, e => {
+    multiTouchHandler.registerCallBack("pinchIn", (e:any) => true, (e:any) => {
         field.zoom.zoom += 0.1;
         const text:string = (Math.round(field.zoom.zoom*100) / 100).toString()
         toolSelector.transformTool.textBoxZoom.setText(text);
     });
-    multiTouchHandler.registerCallBack("pinchOut", e => true, e => {
+    multiTouchHandler.registerCallBack("pinchOut", (e:any) => true, (e:any) => {
         if(field.zoom.zoom > 0.1)
             field.zoom.zoom -= 0.1;
         const text:string = (Math.round(field.zoom.zoom*100) / 100).toString()
@@ -5520,55 +5584,81 @@ async function main() {
     toolSelector.animationsGroupsSelector = animationGroupSelector;
     const add_animationGroup_button = document.getElementById("add_animationGroup");
     const add_animationGroup_buttonListener = new SingleTouchListener(add_animationGroup_button, false, true);
-    add_animationGroup_buttonListener.registerCallBack("touchstart", e => true, e => {
+    add_animationGroup_buttonListener.registerCallBack("touchstart", (e) => true, (e) => {
         animationGroupSelector.createAnimationGroup();
     });
     const delete_animationGroup_button = document.getElementById("delete_animationGroup");
     const delete_animationGroup_buttonListener = new SingleTouchListener(delete_animationGroup_button, false, true);
-    delete_animationGroup_buttonListener.registerCallBack("touchstart", e => true, e => {
+    delete_animationGroup_buttonListener.registerCallBack("touchstart", (e) => true, (e) => {
         animationGroupSelector.deleteSelectedAnimationGroup();
     });
     const clone_animationGroup_button = document.getElementById("clone_animationGroup");
     const clone_animationGroup_buttonListener = new SingleTouchListener(clone_animationGroup_button, false, true);
-    clone_animationGroup_buttonListener.registerCallBack("touchstart", e => true, e => {
+    clone_animationGroup_buttonListener.registerCallBack("touchstart", (e) => true, (e) => {
         animationGroupSelector.cloneSelectedAnimationGroup();
     });
-    pallette.canvas.addEventListener("mouseup", e => {
+    pallette.canvas.addEventListener("mouseup", (e) => {
         field.layer().state.color = pallette.calcColor();
         field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.calcColor().htmlRBGA());
     });
-    pallette.listeners.registerCallBack("touchend", e => true, e => { field.layer().state.color = pallette.calcColor(); });
+    pallette.listeners.registerCallBack("touchend", (e) => true, (e) => { field.layer().state.color = pallette.calcColor(); });
     const add_animationButton = document.getElementById("add_animation");
     const add_animationTouchListener = new SingleTouchListener(add_animationButton, false, true);
-    add_animationTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().pushAnimation(new SpriteAnimation(0, 0, dim[0], dim[1]));
+    add_animationTouchListener.registerCallBack("touchstart", (e) => true, (e) => {
+        let group;
+        if (group = animationGroupSelector.animationGroup()) {
+            const defGroup = group;
+            defGroup.pushAnimation(new SpriteAnimation(0, 0, dim[0], dim[1]));
+        }
     });
     const clone_animationButton = document.getElementById("clone_animation");
     const clone_animationTouchListener = new SingleTouchListener(clone_animationButton, false, true);
-    clone_animationTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().pushAnimation(animationGroupSelector.animationGroup().cloneAnimation(animationGroupSelector.animationGroup().selectedAnimation));
+    clone_animationTouchListener.registerCallBack("touchstart", (e) => true, (e) => {
+        let group;
+        if (group = animationGroupSelector.animationGroup()) {
+            const defGroup = group;
+            const animation = defGroup.cloneAnimation(defGroup.selectedAnimation);
+            if (animation)
+                defGroup.pushAnimation(animation);
+        }
     });
     const delete_animationButton = document.getElementById("delete_animation");
     const delete_animationTouchListener = new SingleTouchListener(delete_animationButton, false, true);
-    delete_animationTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().deleteAnimation(animationGroupSelector.animationGroup().selectedAnimation);
+    delete_animationTouchListener.registerCallBack("touchstart", (e) => true, (e) => {
+        let group;
+        if (group = animationGroupSelector.animationGroup()) {
+            const defGroup = group;
+            defGroup.deleteAnimation(defGroup.selectedAnimation);
+        }
     });
     const add_spriteButton = document.getElementById("add_sprite");
     const add_spriteButtonTouchListener = new SingleTouchListener(add_spriteButton, false, true);
-    add_spriteButtonTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().pushSprite();
+    add_spriteButtonTouchListener.registerCallBack("touchstart", (e) => true, (e) => {
+        let group;
+        if (group = animationGroupSelector.animationGroup()) {
+            const defGroup = group;
+            defGroup.pushSprite();
+        }
     });
     const save_spriteButton = document.getElementById("save_sprite");
     const save_spriteButtonTouchListener = new SingleTouchListener(save_spriteButton, false, true);
-    save_spriteButtonTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().spriteSelector.pushSelectedToCanvas();
+    save_spriteButtonTouchListener.registerCallBack("touchstart", (e) => true, (e) => {
+        let group;
+        if (group = animationGroupSelector.animationGroup()) {
+            const defGroup = group;
+            defGroup.spriteSelector.pushSelectedToCanvas();
+        }
     });
     const delete_spriteButton = document.getElementById("delete_sprite");
     const delete_spriteButtonTouchListener = new SingleTouchListener(delete_spriteButton, false, true);
-    delete_spriteButtonTouchListener.registerCallBack("touchstart", e => true, e => {
-        animationGroupSelector.animationGroup().spriteSelector.deleteSelectedSprite();
+    delete_spriteButtonTouchListener.registerCallBack("touchstart", (e) => true, (e) => {
+        let group;
+        if (group = animationGroupSelector.animationGroup()) {
+            const defGroup = group;
+            defGroup.spriteSelector.deleteSelectedSprite();
+        }
     });
-    keyboardHandler.registerCallBack("keydown", e => true, e => {
+    keyboardHandler.registerCallBack("keydown", (e) => true, (e) => {
         if (!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)) {
             if (e.code.substring(0, "Digit".length) === "Digit") {
                 const numTyped = e.code.substring("Digit".length, e.code.length);
@@ -5580,36 +5670,40 @@ async function main() {
             }
         }
     });
-    keyboardHandler.registerCallBack("keyup", e => !e.defaultPrevented, e => {
+    keyboardHandler.registerCallBack("keyup", (e) => !e.defaultPrevented, (e) => {
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
             field.layer().state.color.copy(pallette.calcColor());
         }
     });
     ;
     const fileSelector = document.getElementById('file-selector');
-    fileSelector.addEventListener('change', (event) => {
-        const fileList = event.target.files;
-        const reader = new FileReader();
-        reader.readAsDataURL(fileList[0]);
-        reader.onload = (() => {
-            const img = new Image();
-            img.onload = () => {
-                toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`);
-                field.loadImageToLayer(img);
-                field.setDimOnCurrent([img.width, img.height]);
-            };
-            img.src = reader.result;
+    if (fileSelector) {
+        fileSelector.addEventListener('change', (event) => {
+            const fileList = event.target.files;
+            const reader = new FileReader();
+            reader.readAsDataURL(fileList[0]);
+            reader.onload = (() => {
+                const img = new Image();
+                img.onload = () => {
+                    toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`);
+                    field.loadImageToLayer(img);
+                    field.setDimOnCurrent([img.width, img.height]);
+                };
+                img.src = reader.result;
+            });
         });
-    });
+    }
     const projectFileSelector = document.getElementById('project-file-selector');
-    projectFileSelector.addEventListener('change', (event) => {
-        const fileList = event.target.files;
-        const reader = new FileReader();
-        fileList[0].arrayBuffer().then((buffer) => {
-            const binary = new Uint32Array(buffer);
-            animationGroupSelector.buildFromBinary(binary);
+    if (projectFileSelector) {
+        projectFileSelector.addEventListener('change', (event) => {
+            const fileList = event.target.files;
+            const reader = new FileReader();
+            fileList[0].arrayBuffer().then((buffer) => {
+                const binary = new Uint32Array(buffer);
+                animationGroupSelector.buildFromBinary(binary);
+            });
         });
-    });
+    }
     canvas.onmousemove = (event) => {
         toolSelector.drawingScreenListener.touchPos[0] = event.offsetX;
         toolSelector.drawingScreenListener.touchPos[1] = event.offsetY;
