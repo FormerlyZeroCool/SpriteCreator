@@ -5142,14 +5142,17 @@ function isTouchSupported():boolean {
 }
 class MouseDownTracker {
     mouseDown:boolean;
+    count:number | null;
     constructor()
     {
         const component = document;
         this.mouseDown = false;
+        this.count = null;
         if(isTouchSupported())
         {
-            component.addEventListener('touchstart', event => this.mouseDown = true, false);
-            component.addEventListener('touchend', event => this.mouseDown = false, false);
+            this.count = 0;
+            component.addEventListener('touchstart', event => { this.mouseDown = true; this.count!++; }, false);
+            component.addEventListener('touchend', event => { this.mouseDown = false; this.count!--; }, false);
         }
         if(!isTouchSupported()){
             component.addEventListener('mousedown', event => this.mouseDown = true );
@@ -5157,6 +5160,8 @@ class MouseDownTracker {
     
         }
     }
+    getTouchCount(): number
+    { return this.count!; }
 }
 class SingleTouchListener
 {
@@ -5220,6 +5225,7 @@ class SingleTouchListener
     callHandler(type:string, event:any):void
     {
         const handlers:TouchHandler[] = (<any> this.listenerTypeMap)[type];
+        if(SingleTouchListener.mouseDown.getTouchCount() < 2)
         handlers.forEach((handler:TouchHandler) => {
             if(!event.defaultPrevented && handler.pred(event))
             {
@@ -5402,7 +5408,7 @@ class MultiTouchListener {
             component.addEventListener('touchend', event => {this.registeredMultiTouchEvent = false; event.preventDefault()}, false);
         }
     }    
-    registerCallBack(listenerType:string, predicate:(event:any) => boolean, callBack:() => void):void
+    registerCallBack(listenerType:string, predicate:(event:any) => boolean, callBack:(event:any) => void):void
     {
         (<any> this.listenerTypeMap)[listenerType].push(new TouchHandler(predicate, callBack));
     }
@@ -5420,7 +5426,7 @@ class MultiTouchListener {
     {
         const touch1 = event.changedTouches.item(0);
         const touch2 = event.changedTouches.item(1);
-        if(event.changedTouches.length > 1)
+        if(SingleTouchListener.mouseDown.getTouchCount() > 1)
         {
             this.registeredMultiTouchEvent = true;
         }
@@ -6781,16 +6787,6 @@ function getWidth() {
     );
   }
   
-function getHeight() {
-    return Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      document.body.offsetHeight,
-      document.documentElement.offsetHeight,
-      document.documentElement.clientHeight
-    );
-  }
-  
 async function main()
 {
     const canvas:HTMLCanvasElement = <HTMLCanvasElement> document.getElementById("screen");
@@ -6799,18 +6795,74 @@ async function main()
         return;
     const ctx:CanvasRenderingContext2D = maybectx;
     let field:LayeredDrawingScreen;
-    /*const multiTouchHandler:MultiTouchListener =  new MultiTouchListener(canvas);
+    const multiTouchHandler:MultiTouchListener =  new MultiTouchListener(canvas);
     multiTouchHandler.registerCallBack("pinchIn", (e:any) => true, (e:any) => {
-        field.zoom.zoom += 0.1;
-        const text:string = (Math.round(field.zoom.zoom*100) / 100).toString()
-        toolSelector.transformTool.textBoxZoom.setText(text);
+        {
+            let delta:number = 0;
+            if(field.zoom.zoomX < 1.05)
+            {
+                delta = 0.01;
+            }
+            else if(field.zoom.zoomX < 3)
+            {
+                delta = 0.05;
+            }
+            else if(field.zoom.zoomX > 8 && field.zoom.zoomX < 25)
+                delta = 0.2;
+            else if(field.zoom.zoomX >= 25 && e.deltaY < 0)
+                delta = 0;
+    
+                field.zoom.zoomY += delta * (field.zoom.zoomY / field.zoom.zoomX);
+                field.zoom.zoomX += delta;
+            
+            const text:string = (Math.round(field.zoom.zoomX*100) / 100).toString()
+            toolSelector.transformTool.textBoxZoom.setText(text);
+            const touchPos:number[] = [field.zoom.invZoomX(toolSelector.drawingScreenListener.touchPos[0]), 
+                field.zoom.invZoomY(toolSelector.drawingScreenListener.touchPos[1])];
+            const centerX:number = (field.width() / 2);
+            const centerY:number = (field.height() / 2);
+            const deltaX:number = delta*(touchPos[0] - centerX) ;
+            const deltaY:number = delta*(touchPos[1]  - centerY);            
+            
+            //field.zoom.offsetX += deltaX;
+            //field.zoom.offsetY += deltaY;
+            
+        }
     });
     multiTouchHandler.registerCallBack("pinchOut", (e:any) => true, (e:any) => {
-        if(field.zoom.zoom > 0.1)
-            field.zoom.zoom -= 0.1;
-        const text:string = (Math.round(field.zoom.zoom*100) / 100).toString()
-        toolSelector.transformTool.textBoxZoom.setText(text);
-    });*/
+        {
+            let delta:number = 0;
+            if(field.zoom.zoomX < 1.05)
+            {
+                delta = 0.01;
+            }
+            else if(field.zoom.zoomX < 3)
+            {
+                delta = 0.05;
+            }
+            else if(field.zoom.zoomX > 8 && field.zoom.zoomX < 25)
+                delta = 0.2;
+            else if(field.zoom.zoomX >= 25 && e.deltaY < 0)
+                delta = 0;
+    
+            {
+                field.zoom.zoomY -= delta * (field.zoom.zoomY / field.zoom.zoomX);
+                field.zoom.zoomX -= delta;
+            }
+            const text:string = (Math.round(field.zoom.zoomX*100) / 100).toString()
+            toolSelector.transformTool.textBoxZoom.setText(text);
+            const touchPos:number[] = [field.zoom.invZoomX(toolSelector.drawingScreenListener.touchPos[0]), 
+                field.zoom.invZoomY(toolSelector.drawingScreenListener.touchPos[1])];
+            const centerX:number = (field.width() / 2);
+            const centerY:number = (field.height() / 2);
+            const deltaX:number = delta*(touchPos[0] - centerX) ;
+            const deltaY:number = delta*(touchPos[1]  - centerY);            
+            
+                //field.zoom.offsetX -= deltaX;
+                //field.zoom.offsetY -= deltaY;
+            
+        }
+    });
     const keyboardHandler:KeyboardHandler = new KeyboardHandler();
     const pallette:Pallette = new Pallette(document.getElementById("pallette_screen"), keyboardHandler);
     const canvasListener:SingleTouchListener = new SingleTouchListener(canvas, true, true);
