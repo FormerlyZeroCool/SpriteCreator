@@ -4659,26 +4659,9 @@ class Sprite {
     fillRect(color, x, y, width, height, view = new Uint32Array(this.pixels.buffer)) {
         for (let yi = y; yi < y + height; yi++) {
             const yiIndex = (yi * this.width);
-            const limit = x + width + yiIndex;
-            for (let xi = x + yiIndex; xi < limit;) {
-                switch (limit - xi) {
-                    default: view[xi++] = color.color;
-                    case 15: view[xi++] = color.color;
-                    case 14: view[xi++] = color.color;
-                    case 13: view[xi++] = color.color;
-                    case 12: view[xi++] = color.color;
-                    case 11: view[xi++] = color.color;
-                    case 10: view[xi++] = color.color;
-                    case 9: view[xi++] = color.color;
-                    case 8: view[xi++] = color.color;
-                    case 7: view[xi++] = color.color;
-                    case 6: view[xi++] = color.color;
-                    case 5: view[xi++] = color.color;
-                    case 4: view[xi++] = color.color;
-                    case 3: view[xi++] = color.color;
-                    case 2: view[xi++] = color.color;
-                    case 1: view[xi++] = color.color;
-                }
+            const rowLimit = x + width + yiIndex;
+            for (let xi = x + yiIndex; xi < rowLimit; xi++) {
+                view[xi] = color.color;
             }
         }
     }
