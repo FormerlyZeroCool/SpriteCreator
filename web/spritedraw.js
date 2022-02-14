@@ -3393,9 +3393,9 @@ class DrawingScreen {
         let zoom = new Pair(1, 1);
         if (newDim.length === 2) {
             if (newDim[0] <= 512 && newDim[1] <= 512) {
-                this.bounds.first = newDim[0] * Math.floor(1024 / newDim[0]);
+                this.bounds.first = newDim[0] * Math.floor(1024 * 1.41 / newDim[0]);
                 zoom.first = 1 / Math.floor(1024 / newDim[0]);
-                this.bounds.second = newDim[1] * Math.floor(1024 / newDim[1]);
+                this.bounds.second = newDim[1] * Math.floor(1024 * 1.41 / newDim[1]);
                 zoom.second = 1 / Math.floor(1024 / newDim[1]);
             }
             else if (newDim[0] <= 1024 && newDim[1] <= 1024) {
@@ -3607,14 +3607,46 @@ class DrawingScreen {
                 }
             }
         }
+        else if (this.dimensions.first * 4 === this.canvas.width && this.dimensions.second * 4 === this.canvas.height) {
+            let index = 0;
+            let bufferIndex = 0;
+            for (let y = 0; y < spriteBuffer.height; y += 4) {
+                for (let x = 0; x < spriteBuffer.width; x += 4) {
+                    const color = this.screenBuffer[index].color;
+                    bufferIndex = (x + y * spriteBuffer.width);
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex] = color;
+                    bufferIndex += (spriteBuffer.width - 3);
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex] = color;
+                    bufferIndex += (spriteBuffer.width - 3);
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex] = color;
+                    bufferIndex += (spriteBuffer.width - 3);
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex++] = color;
+                    view[bufferIndex] = color;
+                    bufferIndex += (spriteBuffer.width - 3);
+                    index++;
+                }
+            }
+        }
         else //use fill rect method to fill rectangle the size of pixels(more branch mispredicts, but more general)
          {
             const cellHeight = Math.floor(this.bounds.second / this.dimensions.second);
             const cellWidth = Math.floor(this.bounds.first / this.dimensions.first);
-            for (let y = 0; y < this.dimensions.second; y++) {
-                let j = y * this.dimensions.first;
-                for (let x = 0; x < this.dimensions.first; x++, j++) {
-                    spriteBuffer.fillRect(this.screenBuffer[j], x * cellWidth, y * cellHeight, cellWidth, cellHeight, view);
+            let k = 0;
+            for (let y = 0; y < this.dimensions.second * cellHeight; y += cellHeight, k++) {
+                let j = k * this.dimensions.first;
+                for (let x = 0; x < this.dimensions.first * cellWidth; x += cellWidth, j++) {
+                    spriteBuffer.fillRect(this.screenBuffer[j], x, y, cellWidth, cellHeight, view);
                 }
             }
         }
@@ -3654,16 +3686,13 @@ class DrawingScreen {
                 const width = this.clipBoard.sprite.width;
                 const initialIndex = dest_x + dest_y * this.dimensions.first;
                 const view = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
-                for (let i = 0; i < this.clipBoard.sprite.pixels.length >> 2; i++) {
+                for (let i = 0; i < view.length; i++) {
                     const copyAreaX = i % width;
                     const copyAreaY = Math.floor(i / width);
                     const destIndex = initialIndex + copyAreaX + copyAreaY * this.dimensions.first;
                     const x = destIndex % this.dimensions.first;
                     const y = Math.floor(destIndex / this.dimensions.first);
-                    source.setRed(this.clipBoard.sprite.pixels[i << 2]);
-                    source.setGreen(this.clipBoard.sprite.pixels[(i << 2) + 1]);
-                    source.setBlue(this.clipBoard.sprite.pixels[(i << 2) + 2]);
-                    source.setAlpha(this.clipBoard.sprite.pixels[(i << 2) + 3]);
+                    source.color = view[i];
                     if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY)) {
                         toCopy.color = this.screenBuffer[destIndex].color;
                         if (this.state.blendAlphaOnPaste)
