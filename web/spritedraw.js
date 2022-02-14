@@ -134,10 +134,10 @@ function blendAlphaCopy(color0, color) {
     const a = (1 - alphanc);
     const a0 = (alphanc + alphant * a);
     const a1 = 1 / a0;
-    color0.color = (((alphanc * color.red() + alphant * color0.red() * a) * a1) << 24) |
-        (((alphanc * color.green() + alphant * color0.green() * a) * a1) << 16) |
-        (((alphanc * color.blue() + alphant * color0.blue() * a) * a1) << 8) |
-        (a0 * 255);
+    color0.color = (((alphanc * color.red() + alphant * color0.red() * a) * a1)) |
+        (((alphanc * color.green() + alphant * color0.green() * a) * a1) << 8) |
+        (((alphanc * color.blue() + alphant * color0.blue() * a) * a1) << 16) |
+        ((a0 * 255) << 24);
     /*this.setRed  ((alphanc*color.red() +   alphant*this.red() * a ) *a1);
     this.setBlue ((alphanc*color.blue() +  alphant*this.blue() * a) *a1);
     this.setGreen((alphanc*color.green() + alphant*this.green() * a)*a1);
@@ -3660,10 +3660,10 @@ class DrawingScreen {
                     const destIndex = initialIndex + copyAreaX + copyAreaY * this.dimensions.first;
                     const x = destIndex % this.dimensions.first;
                     const y = Math.floor(destIndex / this.dimensions.first);
-                    source.setRed(this.clipBoard.sprite.pixels[i * 4]);
-                    source.setGreen(this.clipBoard.sprite.pixels[(i * 4) + 1]);
-                    source.setBlue(this.clipBoard.sprite.pixels[(i * 4) + 2]);
-                    source.setAlpha(this.clipBoard.sprite.pixels[(i * 4) + 3]);
+                    source.setRed(this.clipBoard.sprite.pixels[i << 2]);
+                    source.setGreen(this.clipBoard.sprite.pixels[(i << 2) + 1]);
+                    source.setBlue(this.clipBoard.sprite.pixels[(i << 2) + 2]);
+                    source.setAlpha(this.clipBoard.sprite.pixels[(i << 2) + 3]);
                     if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY)) {
                         toCopy.color = this.screenBuffer[destIndex].color;
                         if (this.state.blendAlphaOnPaste)
