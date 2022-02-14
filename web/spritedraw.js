@@ -3653,16 +3653,14 @@ class DrawingScreen {
                 const dest_y = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height / 2) - this.offset.second) / this.bounds.second * this.dimensions.second);
                 const width = this.clipBoard.sprite.width;
                 const initialIndex = dest_x + dest_y * this.dimensions.first;
+                const view = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
                 for (let i = 0; i < this.clipBoard.sprite.pixels.length >> 2; i++) {
                     const copyAreaX = i % width;
                     const copyAreaY = Math.floor(i / width);
                     const destIndex = initialIndex + copyAreaX + copyAreaY * this.dimensions.first;
                     const x = destIndex % this.dimensions.first;
                     const y = Math.floor(destIndex / this.dimensions.first);
-                    source.setRed(this.clipBoard.sprite.pixels[i << 2]);
-                    source.setGreen(this.clipBoard.sprite.pixels[(i << 2) + 1]);
-                    source.setBlue(this.clipBoard.sprite.pixels[(i << 2) + 2]);
-                    source.setAlpha(this.clipBoard.sprite.pixels[(i << 2) + 3]);
+                    source.color = view[i];
                     if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY)) {
                         toCopy.color = this.screenBuffer[destIndex].color;
                         if (this.state.blendAlphaOnPaste)
