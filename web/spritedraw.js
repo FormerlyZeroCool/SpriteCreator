@@ -3681,6 +3681,7 @@ class DrawingScreen {
                 ;
             }
             if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "paste") {
+                console.log(this.state.blendAlphaOnPaste);
                 const dest_x = Math.floor(((this.getTouchPosX() - this.clipBoard.sprite.width / 2) - this.offset.first) / this.bounds.first * this.dimensions.first);
                 const dest_y = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height / 2) - this.offset.second) / this.bounds.second * this.dimensions.second);
                 const width = this.clipBoard.sprite.width;
@@ -4695,17 +4696,13 @@ class Sprite {
             }
         }
     }
-    fillRectAlphaBlend(source, color, x, y, width, height) {
+    fillRectAlphaBlend(source, color, x, y, width, height, view = new Uint32Array(this.pixels.buffer)) {
         for (let yi = y; yi < y + height; yi++) {
             for (let xi = x; xi < x + width; xi++) {
-                let index = (xi << 2) + (yi * this.width << 2);
-                source.color = (this.pixels[index] << 24) | (this.pixels[index + 1] << 16) |
-                    (this.pixels[index + 2] << 8) | this.pixels[index + 3];
+                let index = (xi) + (yi * this.width);
+                source.color = view[index];
                 source.blendAlphaCopy(color);
-                this.pixels[index] = source.red();
-                this.pixels[++index] = source.green();
-                this.pixels[++index] = source.blue();
-                this.pixels[++index] = source.alpha();
+                view[index] = source.color;
             }
         }
     }
@@ -5774,7 +5771,7 @@ async function main() {
             }
         }
     });
-    const fps = 35;
+    const fps = 30;
     const goalSleep = 1000 / fps;
     let counter = 0;
     canvas.width = getWidth() - 350;
@@ -5801,7 +5798,7 @@ async function main() {
         }
         const adjustment = Date.now() - start <= 30 ? Date.now() - start : 30;
         await sleep(goalSleep - adjustment);
-        if (1000 / (Date.now() - start) < fps - 5) {
+        if (1000 / (Date.now() - start) < fps) {
             console.log("avgfps:", Math.floor(1000 / (Date.now() - start)));
             if (1000 / (Date.now() - start) < 1)
                 console.log("frame time:", 1000 / (Date.now() - start));
