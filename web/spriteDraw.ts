@@ -5579,13 +5579,10 @@ function buildSpriteFromBuffer(buffer:Uint32Array, index:number):Pair<Sprite, nu
     if(width * height !== size - 3)
         throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() +","+ height.toString() + "), but size is: " + size.toString());
     const limit:number = width * height;
+    const view:Uint32Array = new Uint32Array(sprite.pixels.buffer);
     for(let i = 0; i < limit; i++)
     {
-        let pbIndex:number = i << 2;
-        sprite.pixels[pbIndex++] = buffer[index] >> 24 & ((1 << 8) - 1);
-        sprite.pixels[pbIndex++] = buffer[index] >> 16 & ((1 << 8) - 1);
-        sprite.pixels[pbIndex++] = buffer[index] >> 8 & ((1 << 8) - 1);
-        sprite.pixels[pbIndex++] = buffer[index] & ((1 << 8) - 1);
+        view[i] = buffer[index];
         index++;
     }
     sprite.refreshImage();
@@ -5737,7 +5734,7 @@ class Sprite {
             }
         }
     }
-    copyToBuffer(buf:Array<RGB>, width:number, height:number)
+    copyToBuffer(buf:Array<RGB>, width:number, height:number, view:Uint32Array = new Uint32Array(this.pixels.buffer))
     {
         if(width * height !== buf.length)
         {
@@ -5749,13 +5746,7 @@ class Sprite {
             for(let x = 0; x < this.width && x < width; x++)
             {
                 const i:number = (x + y * width);
-                const si:number = (x + y * this.width) << 2;
-                {
-                    buf[i].setRed(this.pixels[(si)]);
-                    buf[i].setGreen(this.pixels[(si)+1]);
-                    buf[i].setBlue(this.pixels[(si)+2]);
-                    buf[i].setAlpha(this.pixels[(si)+3]);
-                }
+                buf[i].color = view[i];
             }
         }
     }
@@ -5763,7 +5754,7 @@ class Sprite {
     {
         return 3 + this.width * this.height;
     }
-    saveToUint32Buffer(buf:Uint32Array, index:number):number
+    saveToUint32Buffer(buf:Uint32Array, index:number, view:Uint32Array = new Uint32Array(this.pixels.buffer)):number
     {
         buf[index++] = this.binaryFileSize();
         buf[index++] = 3;
@@ -5771,11 +5762,7 @@ class Sprite {
         buf[index++] |= this.width; 
         for(let i = 0; i < this.pixels.length; i += 4)
         {
-            buf[index] ^= buf[index];
-            buf[index] |= this.pixels[i] << 24;
-            buf[index] |= this.pixels[i + 1] << 16;
-            buf[index] |= this.pixels[i + 2] << 8;
-            buf[index++] |= this.pixels[i + 3];
+            buf[index] = view[i];
         }
         return index;
     }

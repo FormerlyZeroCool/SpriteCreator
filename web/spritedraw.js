@@ -4581,12 +4581,9 @@ function buildSpriteFromBuffer(buffer, index) {
     if (width * height !== size - 3)
         throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() + "," + height.toString() + "), but size is: " + size.toString());
     const limit = width * height;
+    const view = new Uint32Array(sprite.pixels.buffer);
     for (let i = 0; i < limit; i++) {
-        let pbIndex = i << 2;
-        sprite.pixels[pbIndex++] = buffer[index] >> 24 & ((1 << 8) - 1);
-        sprite.pixels[pbIndex++] = buffer[index] >> 16 & ((1 << 8) - 1);
-        sprite.pixels[pbIndex++] = buffer[index] >> 8 & ((1 << 8) - 1);
-        sprite.pixels[pbIndex++] = buffer[index] & ((1 << 8) - 1);
+        view[i] = buffer[index];
         index++;
     }
     sprite.refreshImage();
@@ -4706,7 +4703,7 @@ class Sprite {
             }
         }
     }
-    copyToBuffer(buf, width, height) {
+    copyToBuffer(buf, width, height, view = new Uint32Array(this.pixels.buffer)) {
         if (width * height !== buf.length) {
             console.log("error invalid dimensions supplied");
             return;
@@ -4714,30 +4711,20 @@ class Sprite {
         for (let y = 0; y < this.height && y < height; y++) {
             for (let x = 0; x < this.width && x < width; x++) {
                 const i = (x + y * width);
-                const si = (x + y * this.width) << 2;
-                {
-                    buf[i].setRed(this.pixels[(si)]);
-                    buf[i].setGreen(this.pixels[(si) + 1]);
-                    buf[i].setBlue(this.pixels[(si) + 2]);
-                    buf[i].setAlpha(this.pixels[(si) + 3]);
-                }
+                buf[i].color = view[i];
             }
         }
     }
     binaryFileSize() {
         return 3 + this.width * this.height;
     }
-    saveToUint32Buffer(buf, index) {
+    saveToUint32Buffer(buf, index, view = new Uint32Array(this.pixels.buffer)) {
         buf[index++] = this.binaryFileSize();
         buf[index++] = 3;
         buf[index] |= this.height << 16;
         buf[index++] |= this.width;
         for (let i = 0; i < this.pixels.length; i += 4) {
-            buf[index] ^= buf[index];
-            buf[index] |= this.pixels[i] << 24;
-            buf[index] |= this.pixels[i + 1] << 16;
-            buf[index] |= this.pixels[i + 2] << 8;
-            buf[index++] |= this.pixels[i + 3];
+            buf[index] = view[i];
         }
         return index;
     }
