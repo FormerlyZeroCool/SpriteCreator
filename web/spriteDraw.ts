@@ -183,7 +183,7 @@ class RGB {
     constructor(r:number = 0, g:number = 0, b:number, a:number = 0)
     {
         this.color = 0;
-        this.color = r << 24 | g << 16 | b << 8 | a;
+        this.color = a << 24 | b << 16 | g << 8 | r;
     }
     blendAlphaCopy(color:RGB):void
     {
@@ -209,42 +209,42 @@ class RGB {
     {
         return [this.red(), this.green(), this.blue(), this.alpha()]
     }
-    red():number
+    alpha():number
     {
         return (this.color >> 24) & ((1<<8)-1);
     }
-    green():number
+    blue():number
     {
         return (this.color >> 16) & ((1 << 8) - 1);
     }
-    blue():number
+    green():number
     {
         return (this.color >> 8) & ((1 << 8) - 1);
     }
-    alpha():number
+    red():number
     {
         return (this.color) & ((1 << 8) - 1);
     }
     alphaNormal():number
     {
-        return Math.round(((this.color & ((1 << 8) - 1)) / 255)*100)/100;
+        return Math.round((((this.color >> 24) & ((1<<8)-1)) / 255)*100)/100;
     }
-    setRed(red:number)
+    setAlpha(red:number)
     {
         this.color &= (1<<24)-1;
         this.color |= red << 24;
     }
-    setGreen(green:number)
+    setBlue(green:number)
     {
         this.color &= ((1 << 16) - 1) | (((1<<8)-1) << 24);
         this.color |= green << 16;
     }
-    setBlue(blue:number)
+    setGreen(blue:number)
     {
         this.color &= ((1<<8)-1) | (((1<<16)-1) << 16);
         this.color |= blue << 8;
     }
-    setAlpha(alpha:number)
+    setRed(alpha:number)
     {
         this.color &=  (((1<<24)-1) << 8);
         this.color |= alpha;
@@ -4317,39 +4317,34 @@ class DrawingScreen {
     }
     renderToBuffer(spriteBuffer:Sprite):void
     {
+        const view:Uint32Array = new Uint32Array(spriteBuffer.pixels.buffer);
         if(this.dimensions.first === this.canvas.width && this.dimensions.second === this.canvas.height)
         {//if drawing screen dimensions, and canvas dimensions are the same just update per pixel
             let index = 0
-            for(; index < this.screenBuffer.length - 4;)
-                {
-                    spriteBuffer.pixels[(index*4)] = this.screenBuffer[index].red();  
-                    spriteBuffer.pixels[(index*4) + 1] = this.screenBuffer[index].green();   
-                    spriteBuffer.pixels[(index*4) + 2] = this.screenBuffer[index].blue();   
-                    spriteBuffer.pixels[(index*4) + 3] = this.screenBuffer[index].alpha();   
-                    ++index;
-                    spriteBuffer.pixels[(index*4)] = this.screenBuffer[index].red();  
-                    spriteBuffer.pixels[(index*4) + 1] = this.screenBuffer[index].green();   
-                    spriteBuffer.pixels[(index*4) + 2] = this.screenBuffer[index].blue();   
-                    spriteBuffer.pixels[(index*4) + 3] = this.screenBuffer[index].alpha(); 
-                    ++index;
-                    spriteBuffer.pixels[(index*4)] = this.screenBuffer[index].red();  
-                    spriteBuffer.pixels[(index*4) + 1] = this.screenBuffer[index].green();   
-                    spriteBuffer.pixels[(index*4) + 2] = this.screenBuffer[index].blue();   
-                    spriteBuffer.pixels[(index*4) + 3] = this.screenBuffer[index].alpha(); 
-                    ++index;
-                    spriteBuffer.pixels[(index*4)] = this.screenBuffer[index].red();  
-                    spriteBuffer.pixels[(index*4) + 1] = this.screenBuffer[index].green();   
-                    spriteBuffer.pixels[(index*4) + 2] = this.screenBuffer[index].blue();   
-                    spriteBuffer.pixels[(index*4) + 3] = this.screenBuffer[index].alpha(); 
-                    ++index;
+            const limit:number = view.length - 8;
+            for(; index < limit;)
+            {
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
+                view[index] = this.screenBuffer[index].color;  
+                ++index;
             }
             for(; index < this.screenBuffer.length; )
-                {
-                    spriteBuffer.pixels[(index*4)] = this.screenBuffer[index].red();  
-                    spriteBuffer.pixels[(index*4) + 1] = this.screenBuffer[index].green();   
-                    spriteBuffer.pixels[(index*4) + 2] = this.screenBuffer[index].blue();   
-                    spriteBuffer.pixels[(index*4) + 3] = this.screenBuffer[index].alpha();
-                    index++; 
+            {
+                view[index] = this.screenBuffer[index].color;
+                index++; 
             }
         }
         else if(this.dimensions.first * 2 === this.canvas.width && this.dimensions.second * 2 === this.canvas.height)
@@ -4360,46 +4355,31 @@ class DrawingScreen {
             {
                 for(let x = 0; x < spriteBuffer.width; x += 2)
                 {
-                    const red:number = this.screenBuffer[index].red();
-                    const green:number = this.screenBuffer[index].green();
-                    const blue:number = this.screenBuffer[index].blue()
-                    const alpha:number = this.screenBuffer[index].alpha()
-                    bufferIndex = (x + y * spriteBuffer.width) * 4;
-                    spriteBuffer.pixels[bufferIndex++] = red;  
-                    spriteBuffer.pixels[bufferIndex++] = green;   
-                    spriteBuffer.pixels[bufferIndex++] = blue;   
-                    spriteBuffer.pixels[bufferIndex++] = alpha;
-                    spriteBuffer.pixels[bufferIndex++] = red;  
-                    spriteBuffer.pixels[bufferIndex++] = green;   
-                    spriteBuffer.pixels[bufferIndex++] = blue;   
-                    spriteBuffer.pixels[bufferIndex++] = alpha;
-                    bufferIndex += (spriteBuffer.width - 1) * 4;
-                    spriteBuffer.pixels[bufferIndex++] = red;  
-                    spriteBuffer.pixels[bufferIndex++] = green;   
-                    spriteBuffer.pixels[bufferIndex++] = blue;   
-                    spriteBuffer.pixels[bufferIndex++] = alpha;
-                    bufferIndex-=8;
-                    spriteBuffer.pixels[bufferIndex++] = red;  
-                    spriteBuffer.pixels[bufferIndex++] = green;   
-                    spriteBuffer.pixels[bufferIndex++] = blue;   
-                    spriteBuffer.pixels[bufferIndex++] = alpha;
+                    const color:number = this.screenBuffer[index].color
+                    bufferIndex = (x + y * spriteBuffer.width);
+                    view[bufferIndex++] = color;  
+                    view[bufferIndex] = color;  
+                    bufferIndex += (spriteBuffer.width - 1);
+                    view[bufferIndex++] = color;  
+                    view[bufferIndex] = color;  
                     index++; 
                 }
             }
         }
-            else//use fill rect method to fill rectangle the size of pixels(more branch mispredicts, but more general)
+        else//use fill rect method to fill rectangle the size of pixels(more branch mispredicts, but more general)
+        {
+            const cellHeight:number = Math.floor(this.bounds.second / this.dimensions.second);
+            const cellWidth:number = Math.floor(this.bounds.first / this.dimensions.first);
+            
+            for(let y = 0; y < this.dimensions.second; y++)
             {
-                const cellHeight:number = Math.floor(this.bounds.second / this.dimensions.second);
-                const cellWidth:number = Math.floor(this.bounds.first / this.dimensions.first);
-                
-                for(let y = 0; y < this.dimensions.second; y++)
+                let j:number = y*this.dimensions.first;
+                for(let x = 0; x < this.dimensions.first; x++,j++)
                 {
-                    for(let x = 0; x < this.dimensions.first; x++)
-                    {
-                        spriteBuffer.fillRect(this.screenBuffer[x + y*this.dimensions.first], x * cellWidth, y * cellHeight, cellWidth, cellHeight);   
-                    }
+                    spriteBuffer.fillRect(this.screenBuffer[j], x * cellWidth, y * cellHeight, cellWidth, cellHeight, view);   
                 }
             }
+        }
     }
     draw():void
     {
@@ -5700,21 +5680,33 @@ class Sprite {
     {
         ctx.putImageData(this.imageData, 0, 0);
     }
-    fillRect(color:RGB, x:number, y:number, width:number, height:number)
+    fillRect(color:RGB, x:number, y:number, width:number, height:number, view:Uint32Array = new Uint32Array(this.pixels.buffer))
     {
-        const red:number = color.red();
-        const green:number = color.green();
-        const blue:number = color.blue();
-        const alpha:number = color.alpha();
         for(let yi = y; yi < y+height; yi++)
         {
-            for(let xi = x; xi < x+width; xi++)
+            const yiIndex:number = (yi*this.width);
+            const limit:number = x + width + yiIndex;
+            for(let xi = x + yiIndex; xi < limit; )
             {
-                let index:number = (xi<<2) + (yi*this.width<<2);
-                this.pixels[index] = red;
-                this.pixels[++index] = green;
-                this.pixels[++index] = blue;
-                this.pixels[++index] = alpha;
+                switch (limit - xi)
+                {
+                    default: view[xi++] = color.color;
+                    case 15: view[xi++] = color.color;
+                    case 14: view[xi++] = color.color;
+                    case 13: view[xi++] = color.color;
+                    case 12: view[xi++] = color.color;
+                    case 11: view[xi++] = color.color;
+                    case 10: view[xi++] = color.color;
+                    case 9: view[xi++] = color.color;
+                    case 8: view[xi++] = color.color;
+                    case 7: view[xi++] = color.color;
+                    case 6: view[xi++] = color.color;
+                    case 5: view[xi++] = color.color;
+                    case 4: view[xi++] = color.color;
+                    case 3: view[xi++] = color.color;
+                    case 2: view[xi++] = color.color;
+                    case 1: view[xi++] = color.color;
+                }
             }
         }
     }
