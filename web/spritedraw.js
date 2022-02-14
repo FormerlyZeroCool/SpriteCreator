@@ -423,8 +423,8 @@ class SimpleGridLayoutManager {
         if (pixelX < this.pixelDim[0] && pixelY < this.pixelDim[1])
             for (let i = 0; free && i < this.elementsPositions.length; i++) {
                 const elPos = this.elementsPositions[i];
-                if (elPos.x <= pixelX && elPos.x + elPos.width >= pixelX &&
-                    elPos.y <= pixelY && elPos.y + elPos.height >= pixelY)
+                if (elPos.x <= pixelX && elPos.x + elPos.width > pixelX &&
+                    elPos.y <= pixelY && elPos.y + elPos.height > pixelY)
                     free = false;
             }
         else
@@ -1912,13 +1912,12 @@ class ColorPickerTool extends ExtendedTool {
 ;
 class DrawingScreenSettingsTool extends ExtendedTool {
     constructor(dim = [524, 524], field, toolName, pathToImage, optionPanes) {
-        super(toolName, pathToImage, optionPanes, [200, 200], [2, 5]);
+        super(toolName, pathToImage, optionPanes, [200, 250], [2, 6]);
         this.dim = dim;
         this.field = field;
         this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
         this.checkBoxResizeImage.checked = false;
         this.checkBoxResizeImage.refresh();
-        //this.localLayout = new SimpleGridLayoutManager([2,4],[200,150]);
         this.tbX = new GuiTextBox(true, 70, null, 16, 35, GuiTextBox.default, (event) => {
             if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
                 return false;
@@ -1936,6 +1935,9 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.tbY.promptText = "Enter height:";
         this.tbY.setText(String(this.dim[1]));
         this.btUpdate = new GuiButton(() => this.recalcDim(), "Update", 75, 35, 16);
+        this.sliderMiniMapTransparency = new GuiSlider(field.miniMapAlpha, [100, 50], (event) => {
+            field.miniMapAlpha = event.value;
+        });
         this.tbX.submissionButton = this.btUpdate;
         this.tbY.submissionButton = this.btUpdate;
         this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.bottom));
@@ -1947,6 +1949,8 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(this.btUpdate);
         this.localLayout.addElement(new GuiLabel("Resize:", 80, 16));
         this.localLayout.addElement(this.checkBoxResizeImage);
+        this.localLayout.addElement(new GuiLabel("map\nralpha:", 100, 16));
+        this.localLayout.addElement(this.sliderMiniMapTransparency);
     }
     setDim(dim) {
         this.tbX.setText(dim[0].toString());
@@ -3772,6 +3776,7 @@ class ZoomState {
     constructor() {
         this.zoomX = 1;
         this.zoomY = 1;
+        this.miniMapRect = [0, 0, 100, 100];
         this.zoomedX = 0;
         this.zoomedY = 0;
         this.offsetX = 0;
@@ -3794,6 +3799,7 @@ class ZoomState {
 ;
 class LayeredDrawingScreen {
     constructor(keyboardHandler, pallette) {
+        this.miniMapAlpha = 1;
         this.toolSelector = null;
         this.redraw = false;
         this.maskWorkerExecutionCount = 0;
@@ -3859,58 +3865,6 @@ class LayeredDrawingScreen {
             this.scheduledMaskOperation = [];
         }
     }
-    //possible replace these functions with one that first calculates the functions for all the lines in the polygon
-    //check each point if it can solve the equation for the function, and the x is within the bounds of the line segment then the point intersects the line segment
-    //iterating through each row of the bit mask buffer count the number of intersections per row, if the current count of intersections is odd
-    //then you are inside the shape
-    /* scheduleUpdateMaskPolygon(polygon:number[][])
-     {
-         if(polygon.length < 3)
-             return;
-         interface LinearFunction {
-             m:number;
-             b:number;
-             bounds:number[];
-         }
-         const functions:LinearFunction[] = [];
-         let start:number[] = polygon[polygon.length - 1]
-         for(let i = 0; i < polygon.length; i++)
-         {
-             const end:number[] = polygon[i];
-             const slope:number = (end[1] - start[1]) / (end[0] - start[0]);
-             //const dx:number = end[1] - start[1];
-             const intercept:number = end[1] - slope * end[0];
-             functions.push({m:slope, b:intercept, bounds:[Math.min(start[0], end[0]), Math.max(start[0], end[0])]});
-         }
-         for(let i = 0; i < this.state.bufferBitMask.length; i++)
-             this.state.bufferBitMask[i] = true;
-         
-         for(let y = 0; y < this.layer().dimensions.second; ++y)
-         {
-             let intersectionCount:number = 0;
-             for(let x = 0; x < this.layer().dimensions.first; ++x)
-             {
-                 let pointIntersection:boolean = false;
-                 for(let i = 0;!pointIntersection && i < functions.length; i++)
-                 {
-                     const fn:LinearFunction = functions[i];
-                     if(x > fn.bounds[0] && x < fn.bounds[1])
-                     {
-                         if(Math.floor(y) === Math.floor(x * fn.m + fn.b))
-                         {
-                             pointIntersection = true;
-                             intersectionCount++;
-                         }
-                     }
-                 }
-                 if((intersectionCount & 1))
-                 {
-                     this.state.bufferBitMask[x + y * this.layer().dimensions.first] = false;
-                 }
-             }
-         }
-         
-     }*/
     scheduleUpdateMaskPolygon(shape) {
         if (shape.length > 2) {
             const lenPerWorker = Math.floor(this.state.bufferBitMask.length / this.maskWorkers.length);
@@ -3981,7 +3935,7 @@ class LayeredDrawingScreen {
         }
     }
     repaint() {
-        let repaint = false;
+        let repaint = this.redraw;
         for (let i = 0; !repaint && i < this.layers.length; i++) {
             repaint = this.layers[i].repaint;
         }
@@ -4113,9 +4067,33 @@ class LayeredDrawingScreen {
         sprite.refreshImage();
         return sprite;
     }
+    renderMiniMap(canvas, ctx, x, y, width, height) {
+        if (this.miniMapAlpha !== 0) {
+            const zoomedWidth = this.width() * this.zoom.zoomX;
+            const zoomedHeight = this.height() * this.zoom.zoomY;
+            if (this.offscreenCanvas.width !== width || this.offscreenCanvas.height !== height) {
+                this.offscreenCanvas.width = width;
+                this.offscreenCanvas.height = height;
+            }
+            const renderingCtx = this.offscreenCanvas.getContext("2d");
+            const fullCanvas = [0, 0, width, height];
+            renderingCtx.clearRect(0, 0, width, height);
+            renderingCtx.fillStyle = `rgba(125, 125, 125, ${this.miniMapAlpha})`;
+            renderingCtx.globalAlpha = this.miniMapAlpha;
+            renderingCtx.fillRect(0, 0, width, height);
+            renderingCtx.drawImage(this.canvasTransparency, 0, 0, width, height, -15, -15, width + 15, height + 15);
+            renderingCtx.lineWidth = 1;
+            const view = [(-this.zoom.zoomedX / zoomedWidth) * width, (-this.zoom.zoomedY / zoomedHeight) * height, canvas.width / zoomedWidth * width, canvas.height / zoomedHeight * height];
+            renderingCtx.drawImage(this.canvas, fullCanvas[0], fullCanvas[1], fullCanvas[2], fullCanvas[3]);
+            renderingCtx.strokeStyle = "#FFFFFF";
+            renderingCtx.strokeRect(view[0], view[1], view[2], view[3]); //render preview of current view port
+            ctx.drawImage(this.offscreenCanvas, x, y);
+        }
+    }
     draw(canvas, ctx, x, y, width, height) {
         ctx.drawImage(this.canvasTransparency, 0, 0);
         if (this.repaint()) {
+            this.redraw = false;
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             for (let i = 0; i < this.layers.length; i++) {
                 if (this.layersState[i]) {
@@ -4157,26 +4135,15 @@ class LayeredDrawingScreen {
             ctx.fillRect(0, 0, width, this.zoom.zoomedY);
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
             ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
-            /*if(this.glctx)
-            {
-                // Clear the canvas
-                this.glctx.clearColor(0, 0, 0, 0);
-                this.glctx.clear(this.glctx.COLOR_BUFFER_BIT);
-                this.glctx.useProgram(this.glProgram);
-                const texcoordAttributeLocation = this.glctx.getAttribLocation(this.glProgram, "a_texcoord");
-                const texture = createTexture(this.glctx, this.canvas);
-                this.loadTexture(texcoordAttributeLocation);
-                // Bind the attribute/buffer set we want.
-                this.glctx.bindVertexArray(this.vao);
-                var primitiveType = this.glctx.TRIANGLES;
-                var offset = 0;
-                var count = 6;
-                this.glctx.drawArrays(primitiveType, offset, count);
-                ctx.drawImage(this.glCanvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
-            }
-            else*/
             ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
-            //ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
+            const internalXScale = this.layer().bounds.first / this.layer().dimensions.first;
+            const internalYScale = this.layer().bounds.second / this.layer().dimensions.second;
+            if (zoomedHeight > canvas.height) {
+                this.zoom.miniMapRect[0] = canvas.width - this.zoom.miniMapRect[2];
+                this.zoom.miniMapRect[1] = canvas.height - this.zoom.miniMapRect[3];
+                this.renderMiniMap(canvas, ctx, this.zoom.miniMapRect[0], this.zoom.miniMapRect[1], this.zoom.miniMapRect[2], this.zoom.miniMapRect[3]);
+            }
+            ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
         }
     }
 }
