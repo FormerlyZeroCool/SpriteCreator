@@ -4945,6 +4945,7 @@ class LayeredDrawingScreen {
             const renderingCtx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d")!;
             const fullCanvas:number[] = [0, 0, width, height];
             renderingCtx.clearRect(0, 0, width, height);
+            renderingCtx.lineWidth = 3;
             renderingCtx.fillStyle = `rgba(125, 125, 125, ${this.miniMapAlpha})`;
             renderingCtx.globalAlpha = this.miniMapAlpha;
             renderingCtx.fillRect(0, 0, width, height);
@@ -4953,6 +4954,7 @@ class LayeredDrawingScreen {
             const view:number[] = [(-this.zoom.zoomedX / zoomedWidth) * width, (-this.zoom.zoomedY / zoomedHeight) * height, canvas.width / zoomedWidth * width, canvas.height / zoomedHeight * height];
             
             renderingCtx.drawImage(this.canvas, fullCanvas[0], fullCanvas[1], fullCanvas[2], fullCanvas[3]);
+            renderingCtx.strokeRect(1, 1, width-2, height-2);
             
             renderingCtx.strokeStyle = "#FFFFFF";
             renderingCtx.strokeRect(view[0], view[1], view[2], view[3]);//render preview of current view port
@@ -5016,6 +5018,7 @@ class LayeredDrawingScreen {
             
             const internalXScale: number =  this.layer().bounds.first / this.layer().dimensions.first;
             const internalYScale: number =  this.layer().bounds.second / this.layer().dimensions.second;
+            ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             if(zoomedHeight > canvas.height || zoomedWidth > canvas.width)
             {
                 this.zoom.miniMapRect[0] = canvas.width - this.zoom.miniMapRect[2];
@@ -5024,7 +5027,6 @@ class LayeredDrawingScreen {
             }
 
             
-            ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
         }
     }
 };

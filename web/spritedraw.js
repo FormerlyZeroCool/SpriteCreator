@@ -4078,6 +4078,7 @@ class LayeredDrawingScreen {
             const renderingCtx = this.offscreenCanvas.getContext("2d");
             const fullCanvas = [0, 0, width, height];
             renderingCtx.clearRect(0, 0, width, height);
+            renderingCtx.lineWidth = 3;
             renderingCtx.fillStyle = `rgba(125, 125, 125, ${this.miniMapAlpha})`;
             renderingCtx.globalAlpha = this.miniMapAlpha;
             renderingCtx.fillRect(0, 0, width, height);
@@ -4085,6 +4086,7 @@ class LayeredDrawingScreen {
             renderingCtx.lineWidth = 1;
             const view = [(-this.zoom.zoomedX / zoomedWidth) * width, (-this.zoom.zoomedY / zoomedHeight) * height, canvas.width / zoomedWidth * width, canvas.height / zoomedHeight * height];
             renderingCtx.drawImage(this.canvas, fullCanvas[0], fullCanvas[1], fullCanvas[2], fullCanvas[3]);
+            renderingCtx.strokeRect(1, 1, width - 2, height - 2);
             renderingCtx.strokeStyle = "#FFFFFF";
             renderingCtx.strokeRect(view[0], view[1], view[2], view[3]); //render preview of current view port
             ctx.drawImage(this.offscreenCanvas, x, y);
@@ -4138,12 +4140,12 @@ class LayeredDrawingScreen {
             ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             const internalXScale = this.layer().bounds.first / this.layer().dimensions.first;
             const internalYScale = this.layer().bounds.second / this.layer().dimensions.second;
+            ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             if (zoomedHeight > canvas.height || zoomedWidth > canvas.width) {
                 this.zoom.miniMapRect[0] = canvas.width - this.zoom.miniMapRect[2];
                 this.zoom.miniMapRect[1] = canvas.height - this.zoom.miniMapRect[3];
                 this.renderMiniMap(canvas, ctx, this.zoom.miniMapRect[0], this.zoom.miniMapRect[1], this.zoom.miniMapRect[2], this.zoom.miniMapRect[3]);
             }
-            ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
         }
     }
 }
