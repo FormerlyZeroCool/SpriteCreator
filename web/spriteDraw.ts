@@ -4569,7 +4569,7 @@ class ZoomState {
     constructor() {
         this.zoomX = 1;
         this.zoomY = 1;
-        this.miniMapRect = [0, 0, 100, 100];
+        this.miniMapRect = [0, 0, 150, 150];
         this.zoomedX = 0;
         this.zoomedY = 0;
         this.offsetX = 0;
