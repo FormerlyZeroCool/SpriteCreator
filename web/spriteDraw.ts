@@ -2408,7 +2408,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(this.btUpdate);
         this.localLayout.addElement(new GuiLabel("Resize:", 80, 16));
         this.localLayout.addElement(this.checkBoxResizeImage);
-        this.localLayout.addElement(new GuiLabel("map\nralpha:", 100, 16));
+        this.localLayout.addElement(new GuiLabel("map\nalpha:", 100, 16));
         this.localLayout.addElement(this.sliderMiniMapTransparency);
 
     }
@@ -5016,7 +5016,7 @@ class LayeredDrawingScreen {
             
             const internalXScale: number =  this.layer().bounds.first / this.layer().dimensions.first;
             const internalYScale: number =  this.layer().bounds.second / this.layer().dimensions.second;
-            if(zoomedHeight > canvas.height)
+            if(zoomedHeight > canvas.height || zoomedWidth > canvas.width)
             {
                 this.zoom.miniMapRect[0] = canvas.width - this.zoom.miniMapRect[2];
                 this.zoom.miniMapRect[1] = canvas.height - this.zoom.miniMapRect[3];
