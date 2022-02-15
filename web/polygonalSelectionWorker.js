@@ -1,4 +1,3 @@
-"use strict";
 function segmentOrientation(p, q, r) {
     const val = (q[1] - p[1]) * (r[0] - q[0]) -
         (q[0] - p[0]) * (r[1] - q[1]);
@@ -36,6 +35,9 @@ function insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint) {
     return (intersectionCount & 1) === 1;
 }
 ;
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 self.onmessage = function handleMessage(message) {
     const data = message.data;
     const result = new Uint8Array(data.end - data.start);
@@ -51,6 +53,7 @@ self.onmessage = function handleMessage(message) {
             result[i - data.start] = +(insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint));
         }
         const answer = { start: data.start, end: data.end, result: result };
+        sleep(Math.random() * 30);
         self.postMessage(answer, null, [answer.result.buffer]);
     }
 };

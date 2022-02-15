@@ -1923,6 +1923,39 @@ class GuiToolBar implements GuiElement {
         return false;
     }
 };
+interface RenderablePalette {
+    getColorAt(x:number, y:number):RGB;
+    refresh():void;
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void;
+};
+class RGB24BitPalette implements RenderablePalette {
+    canvas:HTMLCanvasElement;
+    ctx:CanvasRenderingContext2D;
+    colorData:Uint32Array;
+    constructor()
+    {
+        this.canvas = document.createElement("canvas");
+        this.ctx = this.canvas.getContext("2d")!;
+        this.colorData = <Uint32Array> <any> null;
+        this.refresh();
+    }
+    refresh():void 
+    {
+
+        this.colorData = new Uint32Array(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer);
+    }
+    getColorAt(x:number, y:number):RGB 
+    {
+
+    }
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void
+    {
+
+    }
+};
+class GuiPaletteSelector implements GuiElement {
+
+}
 class ToolBarItem {
     toolImage:ImageContainer;
     constructor(toolName:string, toolImagePath:string)
@@ -2421,7 +2454,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(this.tbX);
         this.localLayout.addElement(this.tbY);
         //this.localLayout.addElement(new GuiSpacer([85, 10]));
-        this.localLayout.addElement(new GuiLabel("Resize:", 80, 16, GuiTextBox.default, this.btUpdate.height()));
+        this.localLayout.addElement(new GuiLabel("Resize\nsprite:", 80, 16, GuiTextBox.bottom, this.btUpdate.height()));
         this.localLayout.addElement(this.checkBoxResizeImage);
         //this.localLayout.addElement(new GuiSpacer([100, 40]));
         this.localLayout.addElement(new GuiLabel("map\nalpha:", 100, 16));
@@ -4996,6 +5029,7 @@ class LayeredDrawingScreen {
     }
     draw(canvas:HTMLCanvasElement, ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void 
     {
+        ctx.clearRect(0, 0, width, height);
         ctx.drawImage(this.canvasTransparency, 0, 0);
         if(this.repaint())
         {
@@ -7084,40 +7118,38 @@ async function main()
             }
         }
     });
-    const fps = 35;
-    const goalSleep = 1000/fps;
-    let counter = 0;
 
     canvas.width = getWidth() - 350;
     canvas.height = 500;
     field.setDimOnCurrent([128, 128]);
+    const fps = 35;
+    const goalSleep = 1000/fps;
+    let counter = 0;
     while(true)
     {
         const start:number = Date.now();
         toolSelector.draw();
         field.update();
-        //if(canvas.width !== getWidth() / 2 - (getWidth() / 8) * +(!isTouchSupported()))
+        if(canvas.width != getWidth() - 350)
         {
             canvas.width = getWidth() - 350;
             canvas.height = screen.height * 0.6;
-            if(pallette.canvas.width !== canvas.width)
-                pallette.canvas.width = canvas.width;
         }
-        {
-            field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
-        }
+        if(pallette.canvas.width !== canvas.width)
+            pallette.canvas.width = canvas.width;
+    
+        field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
         if(animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
         if(counter++ % 3 === 0)
-        {
             pallette.draw();
-        }
-        const adjustment:number = Date.now() - start <= 30 ? Date.now() - start : 30;
+        
+        const adjustment:number = Date.now() - start < 30 ? Date.now() - start : 30;
         await sleep(goalSleep - adjustment);
         if(1000/(Date.now() - start) < fps - 5){
             console.log("avgfps:",Math.floor(1000/(Date.now() - start)))
             if(1000/(Date.now() - start) < 1)
-                console.log("frame time:",1000/(Date.now() - start));
+                console.log("frame time:",(Date.now() - start) / 1000);
         }
     }
 }

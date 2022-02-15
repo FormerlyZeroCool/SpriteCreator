@@ -47,6 +47,9 @@ interface MessageData {
     width:number;
     polygon:number[][];
 };
+function sleep(ms:number):Promise<void> {
+    return new Promise<void>((resolve:any) => setTimeout(resolve, ms));
+}
 self.onmessage = function handleMessage(message) {
     const data:MessageData = message.data;
     const result:Uint8Array = new Uint8Array(data.end - data.start);
@@ -64,6 +67,7 @@ self.onmessage = function handleMessage(message) {
             result[i - data.start] = +(insidePolygon(point, shape, startPoint, endPoint, segmentEndPoint));
         }
         const answer = {start:data.start, end:data.end, result:result};
+        sleep(Math.random() * 30);
         self.postMessage(answer, null, [answer.result.buffer]);
     }
 };
