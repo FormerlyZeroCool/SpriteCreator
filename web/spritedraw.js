@@ -1912,12 +1912,26 @@ class ColorPickerTool extends ExtendedTool {
 ;
 class DrawingScreenSettingsTool extends ExtendedTool {
     constructor(dim = [524, 524], field, toolName, pathToImage, optionPanes) {
-        super(toolName, pathToImage, optionPanes, [200, 250], [2, 6]);
+        super(toolName, pathToImage, optionPanes, [200, 275], [4, 50]);
         this.dim = dim;
         this.field = field;
         this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
         this.checkBoxResizeImage.checked = false;
         this.checkBoxResizeImage.refresh();
+        this.btUpdate = new GuiButton(() => {
+            this.recalcDim();
+            if (this.textboxPaletteSize.asNumber.get()) {
+                field.pallette.changeSize(this.textboxPaletteSize.asNumber.get());
+            }
+        }, "Update", 75, 40, 16);
+        this.textboxPaletteSize = new GuiTextBox(true, 80, this.btUpdate, 16, this.btUpdate.height(), GuiTextBox.default, (event) => {
+            if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
+                return false;
+            }
+            return true;
+        });
+        this.textboxPaletteSize.promptText = "Enter a new size for the palette.";
+        this.textboxPaletteSize.setText(field.pallette.colors.length.toString());
         this.tbX = new GuiTextBox(true, 70, null, 16, 35, GuiTextBox.default, (event) => {
             if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
                 return false;
@@ -1934,23 +1948,25 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         }); //, null, 16, 100);
         this.tbY.promptText = "Enter height:";
         this.tbY.setText(String(this.dim[1]));
-        this.btUpdate = new GuiButton(() => this.recalcDim(), "Update", 75, 35, 16);
         this.sliderMiniMapTransparency = new GuiSlider(field.miniMapAlpha, [100, 50], (event) => {
             field.miniMapAlpha = event.value;
         });
         this.tbX.submissionButton = this.btUpdate;
         this.tbY.submissionButton = this.btUpdate;
-        this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.bottom));
+        this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.top, 20));
         this.localLayout.addElement(new GuiLabel("Width:", 90, 16));
         this.localLayout.addElement(new GuiLabel("Height:", 90, 16));
         this.localLayout.addElement(this.tbX);
         this.localLayout.addElement(this.tbY);
-        this.localLayout.addElement(new GuiSpacer([85, 10]));
-        this.localLayout.addElement(this.btUpdate);
-        this.localLayout.addElement(new GuiLabel("Resize:", 80, 16));
+        //this.localLayout.addElement(new GuiSpacer([85, 10]));
+        this.localLayout.addElement(new GuiLabel("Resize:", 80, 16, GuiTextBox.default, this.btUpdate.height()));
         this.localLayout.addElement(this.checkBoxResizeImage);
+        //this.localLayout.addElement(new GuiSpacer([100, 40]));
         this.localLayout.addElement(new GuiLabel("map\nalpha:", 100, 16));
         this.localLayout.addElement(this.sliderMiniMapTransparency);
+        this.localLayout.addElement(new GuiLabel("palette\nsize:", 100, 16, GuiTextBox.bottom, 40));
+        this.localLayout.addElement(this.textboxPaletteSize);
+        this.localLayout.addElement(this.btUpdate);
     }
     setDim(dim) {
         this.tbX.setText(dim[0].toString());
@@ -4519,6 +4535,20 @@ class Pallette {
         this.keyboardHandler.registerCallBack("keydown", (e) => true, (e) => this.repaint = true);
         this.keyboardHandler.registerCallBack("keyup", (e) => true, (e) => this.repaint = true);
     }
+    changeSize(newSize) {
+        if (newSize !== 0) {
+            if (newSize > this.colors.length) {
+                const diff = newSize - this.colors.length;
+                for (let i = 0; i < diff; i++) {
+                    this.colors.push(new RGB(0, 0, 0, 0));
+                }
+            }
+            else {
+                const deleteCount = this.colors.length - newSize;
+                this.colors.splice(newSize, deleteCount);
+            }
+        }
+    }
     calcColor(i = this.highLightedCell) {
         const color = new RGB(this.colors[i].red(), this.colors[i].green(), this.colors[i].blue(), this.colors[i].alpha());
         const scale = 1.6;
@@ -4554,17 +4584,20 @@ class Pallette {
                 this.ctx.font = '16px Calibri';
                 const visibleColor = (this.calcColor(i));
                 ctx.strokeStyle = "#000000";
-                this.ctx.strokeText((i + 1) % 10, i * width + width * 0.5 - 3, height / 2 + 4);
-                visibleColor.setBlue(Math.floor(visibleColor.blue() / 2));
-                visibleColor.setRed(Math.floor(visibleColor.red() / 2));
-                visibleColor.setGreen(Math.floor(visibleColor.green() / 2));
-                visibleColor.setAlpha(255);
-                this.ctx.fillStyle = visibleColor.htmlRBGA();
-                this.ctx.fillText((i + 1) % 10, i * width + width * 0.5 - 3, height / 2 + 4);
+                if (i < 10) {
+                    this.ctx.strokeText((i + 1) % 10, i * width + width * 0.5 - 3, height / 2 + 4);
+                    visibleColor.setBlue(Math.floor(visibleColor.blue() / 2));
+                    visibleColor.setRed(Math.floor(visibleColor.red() / 2));
+                    visibleColor.setGreen(Math.floor(visibleColor.green() / 2));
+                    visibleColor.setAlpha(255);
+                    this.ctx.fillStyle = visibleColor.htmlRBGA();
+                    this.ctx.fillText((i + 1) % 10, i * width + width * 0.5 - 3, height / 2 + 4);
+                }
                 if (i === this.highLightedCell) {
                     this.ctx.strokeStyle = "#000000";
-                    for (let j = 0; j < height; j += 5)
-                        ctx.strokeRect(i * width + j, j, width - j * 2, height - j * 2);
+                    for (let j = 0; j < height && j < width; j += 5)
+                        if (width - j * 2 > 0)
+                            ctx.strokeRect(i * width + j, j, width - j * 2, height - j * 2);
                 }
             }
     }
@@ -5758,7 +5791,7 @@ async function main() {
             }
         }
     });
-    const fps = 30;
+    const fps = 35;
     const goalSleep = 1000 / fps;
     let counter = 0;
     canvas.width = getWidth() - 350;
@@ -5785,7 +5818,7 @@ async function main() {
         }
         const adjustment = Date.now() - start <= 30 ? Date.now() - start : 30;
         await sleep(goalSleep - adjustment);
-        if (1000 / (Date.now() - start) < fps) {
+        if (1000 / (Date.now() - start) < fps - 5) {
             console.log("avgfps:", Math.floor(1000 / (Date.now() - start)));
             if (1000 / (Date.now() - start) < 1)
                 console.log("frame time:", 1000 / (Date.now() - start));
