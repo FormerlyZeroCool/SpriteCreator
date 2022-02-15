@@ -809,7 +809,7 @@ class GuiSpacer {
 }
 ;
 class GuiButton {
-    constructor(callBack, text, width = 200, height = 50, fontSize = 12, pressedColor = new RGB(150, 150, 200, 1), unPressedColor = new RGB(255, 255, 255), fontName = "button_font") {
+    constructor(callBack, text, width = 200, height = 50, fontSize = 12, pressedColor = new RGB(150, 150, 200, 255), unPressedColor = new RGB(255, 255, 255, 195), fontName = "button_font") {
         this.text = text;
         this.fontSize = fontSize;
         this.dimensions = [width, height];
@@ -895,10 +895,11 @@ class GuiButton {
     }
     setCtxState(ctx) {
         ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 2;
         if (this.pressed)
-            ctx.fillStyle = this.pressedColor.htmlRBG();
+            ctx.fillStyle = this.pressedColor.htmlRBGA();
         else
-            ctx.fillStyle = this.unPressedColor.htmlRBG();
+            ctx.fillStyle = this.unPressedColor.htmlRBGA();
         ctx.font = this.fontSize + `px ${this.fontName}`;
     }
     refresh() {
@@ -912,6 +913,9 @@ class GuiButton {
         ctx.fillStyle = "#000000";
         const textWidth = ctx.measureText(this.text).width;
         const textHeight = this.fontSize;
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 4;
+        ctx.strokeText(this.text, this.width() / 2 - textWidth / 2, this.height() / 2 + textHeight / 2, this.width());
         ctx.fillText(this.text, this.width() / 2 - textWidth / 2, this.height() / 2 + textHeight / 2, this.width());
         ctx.fillStyle = fs;
     }

@@ -1043,7 +1043,7 @@ class GuiButton implements GuiElement {
     font:FontFace;
     fontName:string
     callback:(() => void) | null;
-    constructor(callBack:() => void | null, text:string, width:number = 200, height:number = 50, fontSize:number = 12, pressedColor:RGB = new RGB(150, 150, 200, 1), unPressedColor:RGB = new RGB(255, 255, 255), fontName:string = "button_font")
+    constructor(callBack:() => void | null, text:string, width:number = 200, height:number = 50, fontSize:number = 12, pressedColor:RGB = new RGB(150, 150, 200, 255), unPressedColor:RGB = new RGB(255, 255, 255, 195), fontName:string = "button_font")
     {
         this.text = text;
         this.fontSize = fontSize;
@@ -1139,10 +1139,11 @@ class GuiButton implements GuiElement {
     setCtxState(ctx:CanvasRenderingContext2D):void
     {
         ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 2;
         if(this.pressed)
-            ctx.fillStyle = this.pressedColor.htmlRBG();
+            ctx.fillStyle = this.pressedColor.htmlRBGA();
         else
-            ctx.fillStyle = this.unPressedColor.htmlRBG();
+            ctx.fillStyle = this.unPressedColor.htmlRBGA();
         ctx.font = this.fontSize + `px ${this.fontName}`;
     }
     refresh(): void {
@@ -1157,6 +1158,9 @@ class GuiButton implements GuiElement {
         ctx.fillStyle = "#000000";
         const textWidth:number = ctx.measureText(this.text).width;
         const textHeight:number = this.fontSize;
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 4;
+        ctx.strokeText(this.text, this.width() / 2 - textWidth / 2, this.height() / 2 + textHeight / 2, this.width());
         ctx.fillText(this.text, this.width() / 2 - textWidth / 2, this.height() / 2 + textHeight / 2, this.width());
         ctx.fillStyle = fs;
     } 
