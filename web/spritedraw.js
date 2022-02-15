@@ -1046,8 +1046,9 @@ class Optional {
 ;
 ;
 class GuiTextBox {
-    constructor(keyListener, width, submit = null, fontSize = 16, height = 2 * fontSize, flags = GuiTextBox.default, validationCallback = null, selectedColor = new RGB(80, 80, 220), unSelectedColor = new RGB(100, 100, 100), fontName = "textBox_default", customFontFace = null) {
+    constructor(keyListener, width, submit = null, fontSize = 16, height = 2 * fontSize, flags = GuiTextBox.default, validationCallback = null, selectedColor = new RGB(80, 80, 220), unSelectedColor = new RGB(100, 100, 100), outline = true, fontName = "textBox_default", customFontFace = null) {
         this.handleKeyEvents = keyListener;
+        this.outlineTextBox = outline;
         this.validationCallback = validationCallback;
         GuiTextBox.textBoxRunningNumber++;
         this.textBoxId = GuiTextBox.textBoxRunningNumber;
@@ -1411,9 +1412,11 @@ class GuiTextBox {
         this.ctx.strokeStyle = "#FFFFFF";
         this.drawRows(this.adjustScrollToCursor());
         this.drawCursor();
-        this.ctx.strokeStyle = this.color().htmlRBG();
-        this.ctx.lineWidth = 4;
-        this.ctx.strokeRect(0, 0, this.width(), this.height());
+        if (this.outlineTextBox) {
+            this.ctx.strokeStyle = this.color().htmlRBG();
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeRect(0, 0, this.width(), this.height());
+        }
     }
     draw(ctx, x, y, offsetX = 0, offsetY = 0) {
         ctx.drawImage(this.canvas, x + offsetX, y + offsetY);
@@ -1436,7 +1439,7 @@ GuiTextBox.textBoxRunningNumber = 0;
 ;
 class GuiLabel extends GuiTextBox {
     constructor(text, width, fontSize = 16, flags = GuiTextBox.bottom, height = 2 * fontSize, backgroundColor = new RGB(255, 255, 255, 0)) {
-        super(false, width, null, fontSize, height, flags, null, backgroundColor, backgroundColor);
+        super(false, width, null, fontSize, height, flags, null, backgroundColor, backgroundColor, false);
         this.setText(text);
     }
     //override the textbox's handlers
@@ -2262,13 +2265,13 @@ class FilesManagerTool extends ExtendedTool {
 class SelectionTool extends ExtendedTool {
     constructor(name, path, optionPanes, toolSelector) {
         super(name, path, optionPanes, [200, 210], [1, 20]);
-        this.checkboxComplexPolygon = new GuiCheckBox(() => { }, 40, 40, true);
+        this.checkboxComplexPolygon = new GuiCheckBox(() => { toolSelector.polygon = []; toolSelector.field.state.selectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, 40, 40, true);
         this.toolSelector = toolSelector;
         this.localLayout.addElement(new GuiLabel("Polygonal selector:", 200, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.checkboxComplexPolygon);
         this.localLayout.addElement(new GuiSpacer([200, 10]));
-        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = [], toolSelector.field.layer().selectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, "Reset Selection", 150, 40, 16));
-        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon.pop(), toolSelector.field.layer().selectionRect = [0, 0, 0, 0]; toolSelector.field.scheduleUpdateMaskPolygon(toolSelector.polygon); toolSelector.field.layer().repaint = true; }, "Undo last point", 150, 40, 16));
+        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = [], toolSelector.field.state.selectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, "Reset Selection", 150, 40, 16));
+        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon.pop(), toolSelector.field.state.selectionRect = [0, 0, 0, 0]; toolSelector.field.scheduleUpdateMaskPolygon(toolSelector.polygon); toolSelector.field.layer().repaint = true; }, "Undo last point", 150, 40, 16));
     }
 }
 ;
@@ -2295,8 +2298,8 @@ class ToolSelector {
             switch (event.code) {
                 case ('KeyC'):
                     if (this.keyboardHandler.keysHeld["KeyC"] === 1) {
-                        field.layer().selectionRect = [0, 0, 0, 0];
-                        field.layer().pasteRect = [0, 0, 0, 0];
+                        field.state.selectionRect = [0, 0, 0, 0];
+                        field.state.pasteRect = [0, 0, 0, 0];
                     }
                     break;
                 case ('KeyV'):
@@ -2410,10 +2413,10 @@ class ToolSelector {
                 }
                 document.activeElement.blur();
                 if (field.layer().toolSelector.selectedToolName() != "paste") {
-                    field.layer().pasteRect = [0, 0, 0, 0];
+                    field.state.pasteRect = [0, 0, 0, 0];
                 }
                 else {
-                    field.layer().pasteRect = [touchPos[0], touchPos[1], field.layer().clipBoard.sprite.width * (field.layer().bounds.first / field.layer().dimensions.first), field.layer().clipBoard.sprite.width * (field.layer().bounds.second / field.layer().dimensions.second)];
+                    field.state.pasteRect = [touchPos[0], touchPos[1], field.layer().clipBoard.sprite.width * (field.layer().bounds.first / field.layer().dimensions.first), field.layer().clipBoard.sprite.width * (field.layer().bounds.second / field.layer().dimensions.second)];
                 }
                 if (keyboardHandler.keysHeld["AltLeft"] || keyboardHandler.keysHeld["AltRight"]) {
                     field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
@@ -2475,14 +2478,14 @@ class ToolSelector {
                         case ("rect"):
                         case ("copy"):
                         case ("line"):
-                            field.layer().selectionRect = [touchPos[0], touchPos[1], 0, 0];
+                            field.state.selectionRect = [touchPos[0], touchPos[1], 0, 0];
                         case ("pen"):
                             {
                                 field.layer().setLineWidthPen();
                             }
                             break;
                         case ("paste"):
-                            field.layer().pasteRect = [touchPos[0] - field.layer().pasteRect[2] / 2, touchPos[1] - field.layer().pasteRect[3] / 2, field.layer().pasteRect[2], field.layer().pasteRect[3]];
+                            field.state.pasteRect = [touchPos[0] - field.state.pasteRect[2] / 2, touchPos[1] - field.state.pasteRect[3] / 2, field.state.pasteRect[2], field.state.pasteRect[3]];
                             break;
                         case ("colorPicker"):
                             field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
@@ -2562,18 +2565,18 @@ class ToolSelector {
                         case ("line"):
                         case ("oval"):
                         case ("rect"):
-                            field.layer().selectionRect[2] += (deltaX);
-                            field.layer().selectionRect[3] += (deltaY);
+                            field.state.selectionRect[2] += (deltaX);
+                            field.state.selectionRect[3] += (deltaY);
                             break;
                         case ("copy"):
-                            field.layer().selectionRect[2] += (deltaX);
-                            field.layer().selectionRect[3] += (deltaY);
-                            field.layer().pasteRect[2] = field.layer().selectionRect[2];
-                            field.layer().pasteRect[3] = field.layer().selectionRect[3];
+                            field.state.selectionRect[2] += (deltaX);
+                            field.state.selectionRect[3] += (deltaY);
+                            field.state.pasteRect[2] = field.state.selectionRect[2];
+                            field.state.pasteRect[3] = field.state.selectionRect[3];
                             break;
                         case ("paste"):
-                            field.layer().pasteRect[0] += (deltaX);
-                            field.layer().pasteRect[1] += (deltaY);
+                            field.state.pasteRect[0] += (deltaX);
+                            field.state.pasteRect[1] += (deltaY);
                             break;
                         case ("colorPicker"):
                             field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
@@ -2604,7 +2607,7 @@ class ToolSelector {
                             const end_x = Math.max(touchPos[0] - deltaX, touchPos[0]);
                             const min_y = Math.min(touchPos[1] - deltaY, touchPos[1]);
                             const max_y = Math.max(touchPos[1] - deltaY, touchPos[1]);
-                            field.layer().selectionRect = [0, 0, 0, 0];
+                            field.state.selectionRect = [0, 0, 0, 0];
                             field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
                             break;
                         case ("pen"):
@@ -2637,31 +2640,31 @@ class ToolSelector {
                                 field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                             }
                             field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                            field.layer().selectionRect = [0, 0, 0, 0];
+                            field.state.selectionRect = [0, 0, 0, 0];
                             break;
                         case ("selection"):
                             if (this.selectionTool.checkboxComplexPolygon.checked && this.polygon.length > 2) {
                                 field.scheduleUpdateMaskPolygon(this.polygon);
                             }
                             else {
-                                if (field.layer().selectionRect[2] > 0 && field.layer().selectionRect[3] > 0)
-                                    field.updateBitMaskRectangle(field.layer().selectionRect);
+                                if (field.state.selectionRect[2] > 0 && field.state.selectionRect[3] > 0)
+                                    field.updateBitMaskRectangle(field.state.selectionRect);
                                 else
                                     field.clearBitMask();
                             }
                             break;
                         case ("copy"):
-                            const clipBoardSprite = this.copyTool.checkboxCopySelection.checked ? field.layer().maskToSprite() : field.layer().selectionToSprite(field.layer().selectionRect);
+                            const clipBoardSprite = this.copyTool.checkboxCopySelection.checked ? field.layer().maskToSprite() : field.layer().selectionToSprite(field.state.selectionRect);
                             field.layer().clipBoard.sprite = clipBoardSprite;
                             field.layer().clipBoard.refreshImageFromBuffer();
-                            field.layer().selectionRect = [0, 0, 0, 0];
+                            field.state.selectionRect = [0, 0, 0, 0];
                             break;
                         case ("paste"):
                             field.layer().paste();
                             break;
                         case ("rect"):
-                            field.layer().drawRect([field.layer().selectionRect[0], field.layer().selectionRect[1]], [field.layer().selectionRect[0] + field.layer().selectionRect[2], field.layer().selectionRect[1] + field.layer().selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                            field.layer().selectionRect = [0, 0, 0, 0];
+                            field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0] + field.state.selectionRect[2], field.state.selectionRect[1] + field.state.selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                            field.state.selectionRect = [0, 0, 0, 0];
                             break;
                         case ("colorPicker"):
                             repaint = false;
@@ -2862,6 +2865,8 @@ class DrawingScreenState {
         this.slow = false;
         this.blendAlphaOnPaste = true;
         this.resizeSprite = false;
+        this.selectionRect = [0, 0, 0, 0];
+        this.pasteRect = [0, 0, 0, 0];
         this.lineWidth = lineWidth; //dimensions[0] / bounds[0] * 4;
     }
 }
@@ -2890,10 +2895,7 @@ class DrawingScreen {
         this.toolSelector = toolSelector;
         this.updatesStack = new RollingStack();
         this.undoneUpdatesStack = new RollingStack();
-        this.selectionRect = new Array();
         this.screenBuffer = new Array();
-        this.selectionRect = [0, 0, 0, 0];
-        this.pasteRect = [0, 0, 0, 0];
         for (let i = 0; i < dimensions[0] * dimensions[1]; i++) {
             this.screenBuffer.push(new RGB(this.noColor.red(), this.noColor.green(), this.noColor.blue(), this.noColor.alpha()));
         }
@@ -3716,7 +3718,6 @@ class DrawingScreen {
                 ;
             }
             if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "paste") {
-                console.log(this.state.blendAlphaOnPaste);
                 const dest_x = Math.floor(((this.getTouchPosX() - this.clipBoard.sprite.width / 2) - this.offset.first) / this.bounds.first * this.dimensions.first);
                 const dest_y = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height / 2) - this.offset.second) / this.bounds.second * this.dimensions.second);
                 const width = this.clipBoard.sprite.width;
@@ -3740,52 +3741,52 @@ class DrawingScreen {
             }
             spriteScreenBuf.putPixels(ctx);
             if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
-                let touchStart = [this.selectionRect[0], this.selectionRect[1]];
+                let touchStart = [this.state.selectionRect[0], this.state.selectionRect[1]];
                 ctx.lineWidth = 6;
                 ctx.beginPath();
                 ctx.strokeStyle = this.state.color.htmlRBGA();
                 ctx.moveTo(touchStart[0], touchStart[1]);
-                ctx.lineTo(this.selectionRect[2] + touchStart[0], this.selectionRect[3] + touchStart[1]);
+                ctx.lineTo(this.state.selectionRect[2] + touchStart[0], this.state.selectionRect[3] + touchStart[1]);
                 ctx.stroke();
             }
-            else if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.selectionRect[3] !== 0) {
+            else if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.state.selectionRect[3] !== 0) {
                 ctx.lineWidth = 6;
-                const xr = Math.abs(this.selectionRect[2] / 2);
-                const yr = Math.abs(this.selectionRect[3] / 2);
-                if (this.toolSelector.selectedToolName() === "copy" || this.toolSelector.selectedToolName() === "selection") {
+                const xr = Math.abs(this.state.selectionRect[2] / 2);
+                const yr = Math.abs(this.state.selectionRect[3] / 2);
+                if (this.toolSelector.selectedToolName() === "copy") {
                     ctx.strokeStyle = "#FFFFFF";
-                    ctx.strokeRect(this.selectionRect[0] + 2, this.selectionRect[1] + 2, this.selectionRect[2] - 4, this.selectionRect[3] - 4);
+                    ctx.strokeRect(this.state.selectionRect[0] + 2, this.state.selectionRect[1] + 2, this.state.selectionRect[2] - 4, this.state.selectionRect[3] - 4);
                     ctx.strokeStyle = "#FF0000";
-                    ctx.strokeRect(this.selectionRect[0], this.selectionRect[1], this.selectionRect[2], this.selectionRect[3]);
+                    ctx.strokeRect(this.state.selectionRect[0], this.state.selectionRect[1], this.state.selectionRect[2], this.state.selectionRect[3]);
                 }
                 else if (this.toolSelector.selectedToolName() !== "oval") {
                     ctx.strokeStyle = "#FFFFFF";
-                    ctx.strokeRect(this.selectionRect[0] + 2, this.selectionRect[1] + 2, this.selectionRect[2] - 4, this.selectionRect[3] - 4);
+                    ctx.strokeRect(this.state.selectionRect[0] + 2, this.state.selectionRect[1] + 2, this.state.selectionRect[2] - 4, this.state.selectionRect[3] - 4);
                     ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.strokeRect(this.selectionRect[0], this.selectionRect[1], this.selectionRect[2], this.selectionRect[3]);
+                    ctx.strokeRect(this.state.selectionRect[0], this.state.selectionRect[1], this.state.selectionRect[2], this.state.selectionRect[3]);
                 }
-                else if (this.selectionRect[2] / 2 > 0 && this.selectionRect[3] / 2 > 0) {
+                else if (this.state.selectionRect[2] / 2 > 0 && this.state.selectionRect[3] / 2 > 0) {
                     ctx.beginPath();
                     ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.selectionRect[0] + xr, this.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
+                    ctx.ellipse(this.state.selectionRect[0] + xr, this.state.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
                     ctx.stroke();
                 }
-                else if (this.selectionRect[2] < 0 && this.selectionRect[3] >= 0) {
+                else if (this.state.selectionRect[2] < 0 && this.state.selectionRect[3] >= 0) {
                     ctx.beginPath();
                     ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.selectionRect[0] - xr, this.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
+                    ctx.ellipse(this.state.selectionRect[0] - xr, this.state.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
                     ctx.stroke();
                 }
-                else if (this.selectionRect[2] < 0 && this.selectionRect[3] < 0) {
+                else if (this.state.selectionRect[2] < 0 && this.state.selectionRect[3] < 0) {
                     ctx.beginPath();
                     ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.selectionRect[0] - xr, this.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
+                    ctx.ellipse(this.state.selectionRect[0] - xr, this.state.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
                     ctx.stroke();
                 }
-                else if (this.selectionRect[2] != 0 && this.selectionRect[3] != 0) {
+                else if (this.state.selectionRect[2] != 0 && this.state.selectionRect[3] != 0) {
                     ctx.beginPath();
                     ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.selectionRect[0] + xr, this.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
+                    ctx.ellipse(this.state.selectionRect[0] + xr, this.state.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
                     ctx.stroke();
                 }
             }
@@ -3945,10 +3946,14 @@ class LayeredDrawingScreen {
     }
     updateBitMaskRectangle(rect) {
         if (rect.length === 4) {
+            //converts values in screenspace to canvas space
+            const convertX = (x) => Math.floor(x / this.width() * this.layer().dimensions.first);
+            const convertY = (y) => Math.floor(y / this.height() * this.layer().dimensions.second);
+            this.clearBitMask();
             for (let y = 0; y < this.layer().dimensions.second; ++y) {
                 for (let x = 0; x < this.layer().dimensions.first; ++x) {
                     const key = x + y * this.layer().dimensions.first;
-                    this.state.bufferBitMask[key] = x >= rect[0] && x <= rect[0] + rect[2] && y >= rect[1] && y <= rect[1] + rect[3];
+                    this.state.bufferBitMask[key] = x >= convertX(rect[0]) && x <= convertX(rect[0] + rect[2]) && y >= convertY(rect[1]) && y <= convertY(rect[1] + rect[3]);
                 }
             }
         }
@@ -4131,8 +4136,17 @@ class LayeredDrawingScreen {
             renderingCtx.drawImage(this.canvasTransparency, 0, 0, width, height, -15, -15, width + 15, height + 15);
             renderingCtx.lineWidth = 1;
             const view = [(-this.zoom.zoomedX / zoomedWidth) * width, (-this.zoom.zoomedY / zoomedHeight) * height, canvas.width / zoomedWidth * width, canvas.height / zoomedHeight * height];
-            renderingCtx.drawImage(this.canvas, fullCanvas[0], fullCanvas[1], fullCanvas[2], fullCanvas[3]);
+            let projectionRect = [0, 0, 0, 0];
+            if ((this.layer().dimensions.second / this.layer().dimensions.first) <= 1)
+                projectionRect = [fullCanvas[0], fullCanvas[1], fullCanvas[2], (this.layer().dimensions.second / this.layer().dimensions.first) * fullCanvas[3]];
+            else //if((this.layer().dimensions.first / this.layer().dimensions.second) < 1)
+                projectionRect = [fullCanvas[0], fullCanvas[1], (this.layer().dimensions.first / this.layer().dimensions.second) * fullCanvas[2], fullCanvas[3]];
+            projectionRect[0] += width / 2 - projectionRect[2] / 2;
+            projectionRect[1] += height / 2 - projectionRect[3] / 2;
+            renderingCtx.drawImage(this.canvas, projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
             renderingCtx.strokeRect(1, 1, width - 2, height - 2);
+            //renderingCtx.fillRect(0,0)
+            renderingCtx.strokeRect(projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
             renderingCtx.strokeStyle = "#FFFFFF";
             renderingCtx.strokeRect(view[0], view[1], view[2], view[3]); //render preview of current view port
             ctx.drawImage(this.offscreenCanvas, x, y);
@@ -4166,13 +4180,18 @@ class LayeredDrawingScreen {
                     start %= this.toolSelector.polygon.length;
                 }
                 const lastIndex = this.toolSelector.polygon.length - 1;
-                this.ctx.lineWidth = 1;
+                this.ctx.lineWidth = 5;
                 this.ctx.stroke();
                 this.ctx.fillStyle = "#0000FF";
                 this.ctx.moveTo(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight);
                 this.ctx.ellipse(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight, 5, 5, 0, 0, Math.PI * 2);
                 this.ctx.fill();
                 this.ctx.fillStyle = "#000000";
+            }
+            else if (this.state.selectionRect[3] !== 0 && this.state.selectionRect[4] !== 0) {
+                this.ctx.lineWidth = 5;
+                this.ctx.fillStyle = "#0000FF";
+                this.ctx.strokeRect(this.state.selectionRect[0], this.state.selectionRect[1], this.state.selectionRect[2], this.state.selectionRect[3]);
             }
         }
         {
