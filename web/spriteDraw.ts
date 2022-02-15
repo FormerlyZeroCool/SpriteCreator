@@ -1761,6 +1761,7 @@ class GuiTextBox implements GuiElement {
     drawRows(rows:TextRow[]):void
     {
         rows.forEach(row => {
+            this.ctx.lineWidth = 4;
             this.ctx.strokeText(row.text, row.x, row.y, row.width);
             this.ctx.fillText(row.text, row.x, row.y, row.width);
         });

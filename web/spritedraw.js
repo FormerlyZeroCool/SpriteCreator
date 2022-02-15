@@ -1384,6 +1384,7 @@ class GuiTextBox {
     }
     drawRows(rows) {
         rows.forEach(row => {
+            this.ctx.lineWidth = 4;
             this.ctx.strokeText(row.text, row.x, row.y, row.width);
             this.ctx.fillText(row.text, row.x, row.y, row.width);
         });
