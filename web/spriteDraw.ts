@@ -1923,7 +1923,6 @@ class GuiToolBar implements GuiElement {
         return false;
     }
 };
-
 class ToolBarItem {
     toolImage:ImageContainer;
     constructor(toolName:string, toolImagePath:string)
