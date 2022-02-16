@@ -2520,9 +2520,9 @@ class ClipBoard {
         this.repaint = true;
         this.canvas = document.createElement("canvas");
         this.focused = false;
-        this.ctx = this.canvas.getContext("2d")!;
         this.canvas.height = pixelCountX;
         this.canvas.width = pixelCountY;
+        this.ctx = this.canvas.getContext("2d")!;
         this.sprite = new Sprite([new RGB(0,0,0,0)], pixelCountX, pixelCountY);
         this.angle = 0;
     }    
@@ -2602,8 +2602,7 @@ class ClipBoard {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             const width:number = this.canvas.width / (this.sprite.width / this.canvas.width);
             const height:number = this.canvas.height / (this.sprite.height / this.canvas.height);
-            this.ctx.drawImage(this.sprite.image, this.canvas.width / 2 - width / 2, 
-                this.canvas.height / 2 - width / 2, width, height);
+            this.ctx.drawImage(this.sprite.image, 0, 0, this.canvas.width, this.canvas.height);
         }
         ctx.drawImage(this.canvas, x, y);
     }
@@ -5027,23 +5026,30 @@ class LayeredDrawingScreen {
             renderingCtx.globalAlpha = this.miniMapAlpha;
             renderingCtx.fillRect(0, 0, width, height);
             renderingCtx.drawImage(this.canvasTransparency, 0, 0, width, height, -15, -15, width + 15, height + 15);
-            renderingCtx.lineWidth = 1;
-            const view:number[] = [(-this.zoom.zoomedX / zoomedWidth) * width, (-this.zoom.zoomedY / zoomedHeight) * height, canvas.width / zoomedWidth * width, canvas.height / zoomedHeight * height];
-            let projectionRect:number[] = [0, 0, 0, 0];
+            renderingCtx.lineWidth = 1;let projectionRect:number[] = [0, 0, 0, 0];
             if((this.layer().dimensions.second / this.layer().dimensions.first) <= 1)
                 projectionRect = [fullCanvas[0], fullCanvas[1], fullCanvas[2],(this.layer().dimensions.second / this.layer().dimensions.first) * fullCanvas[3]];
             else //if((this.layer().dimensions.first / this.layer().dimensions.second) < 1)
                 projectionRect = [fullCanvas[0], fullCanvas[1], (this.layer().dimensions.first / this.layer().dimensions.second) * fullCanvas[2], fullCanvas[3]];
             projectionRect[0] += width / 2 - projectionRect[2] / 2;
             projectionRect[1] += height / 2 - projectionRect[3] / 2;
+            
+            const view:number[] = [(-this.zoom.zoomedX / zoomedWidth) * width + projectionRect[0], (-this.zoom.zoomedY / zoomedHeight) * height + projectionRect[1], canvas.width / zoomedWidth * projectionRect[2], canvas.height / zoomedHeight * projectionRect[3]];
+            
             renderingCtx.drawImage(this.canvas, projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
             renderingCtx.strokeRect(1, 1, width-2, height-2);
-            //renderingCtx.fillRect(0,0)
+
+            renderingCtx.fillStyle = "#808080";
             renderingCtx.strokeRect(projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
-            
+            //Create border when aspect ratio is not 1:1
+            renderingCtx.fillRect(0, 0, width, projectionRect[1]);
+            renderingCtx.fillRect(0, projectionRect[1] + projectionRect[3], width, height - projectionRect[1] + projectionRect[3]);
+            renderingCtx.fillRect(0, projectionRect[1], projectionRect[0], height);
+            renderingCtx.fillRect(projectionRect[0] + projectionRect[2], 0, width - projectionRect[0] + projectionRect[2], height);
+            //Render rectangle previewing current viewpoint
             renderingCtx.strokeStyle = "#FFFFFF";
             renderingCtx.strokeRect(view[0], view[1], view[2], view[3]);//render preview of current view port
-    
+
             ctx.drawImage(this.offscreenCanvas, x, y);
         }
         
@@ -5090,7 +5096,7 @@ class LayeredDrawingScreen {
                 this.ctx.fill();
                 this.ctx.fillStyle = "#000000";
             }
-            else if(this.state.selectionRect[3] !== 0 && this.state.selectionRect[4] !== 0)
+            else if(this.toolSelector.selectedToolName() !== "line" && this.state.selectionRect[3] !== 0 && this.state.selectionRect[4] !== 0)
             {
                 this.ctx.lineWidth = 5;
                 this.ctx.fillStyle = "#0000FF";
