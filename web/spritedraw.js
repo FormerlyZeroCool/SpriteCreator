@@ -2142,7 +2142,7 @@ class CopyPasteTool extends ExtendedTool {
             const clipBoardSprite = toolSelector.field.layer().maskToSprite();
             toolSelector.field.layer().clipBoard.loadSprite(clipBoardSprite);
             toolSelector.field.layer().repaint = true;
-        }, "Copy from selection", 180, 40, 16);
+        }, "Copy from selection", 190, 40, 16);
         this.blendAlpha.checked = true;
         this.blendAlpha.refresh();
         this.localLayout.addElement(new GuiLabel("Clipboard:", 200, 16));
@@ -2641,7 +2641,7 @@ class ToolSelector {
                     field.layer().toolSelector.updateColorPickerTextBox();
                     repaint = false;
                 }
-                else
+                else if (!keyboardHandler.keysHeld["Space"])
                     switch (this.selectedToolName()) {
                         case ("oval"):
                             const start_x = Math.min(touchPos[0] - deltaX, touchPos[0]);
