@@ -2135,7 +2135,11 @@ class CopyPasteTool extends ExtendedTool {
     constructor(name, path, optionPanes, clipBoard, updateBlendAlpha, toolSelector) {
         super(name, path, optionPanes, [200, clipBoard.height() + 200], [8, 20], [1, 30]);
         this.blendAlpha = new GuiCheckBox(updateBlendAlpha, 40, 40);
-        this.checkboxCopySelection = new GuiCheckBox(() => { toolSelector.field.layer().repaint = true; }, 40, 40);
+        this.buttonCopySelection = new GuiButton(() => {
+            const clipBoardSprite = toolSelector.field.layer().maskToSprite();
+            toolSelector.field.layer().clipBoard.loadSprite(clipBoardSprite);
+            toolSelector.field.layer().repaint = true;
+        }, "Copy from selection", 180, 40, 16);
         this.blendAlpha.checked = true;
         this.blendAlpha.refresh();
         this.localLayout.addElement(new GuiLabel("Clipboard:", 200, 16));
@@ -2143,8 +2147,7 @@ class CopyPasteTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("Preserve\ntransparency:", 200, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.blendAlpha);
         this.localLayout.addElement(new GuiSpacer([75, 40]));
-        this.localLayout.addElement(new GuiLabel("Copy from\selection:", 140, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
-        this.localLayout.addElement(this.checkboxCopySelection);
+        this.localLayout.addElement(this.buttonCopySelection);
     }
 }
 ;
@@ -2689,8 +2692,7 @@ class ToolSelector {
                             }
                             break;
                         case ("copy"):
-                            const clipBoardSprite = this.copyTool.checkboxCopySelection.checked ? field.layer().maskToSprite() : field.layer().selectionToSprite(field.state.selectionRect);
-                            field.layer().clipBoard.loadSprite(clipBoardSprite);
+                            field.layer().selectionToSprite(field.state.selectionRect);
                             field.state.selectionRect = [0, 0, 0, 0];
                             break;
                         case ("paste"):
