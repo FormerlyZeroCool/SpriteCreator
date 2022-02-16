@@ -5888,7 +5888,8 @@ class Sprite {
             for(let x = 0; x < this.width && x < width; x++)
             {
                 const i:number = (x + y * width);
-                buf[i].color = view[i];
+                const vi:number = x + y * this.width;
+                buf[i].color = view[vi];
             }
         }
     }
