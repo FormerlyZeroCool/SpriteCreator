@@ -3299,7 +3299,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 }
                 break;
                 case("copy"):
-                    field.layer().selectionToSprite(field.state.selectionRect);
+                    const clipBoardSprite:Sprite = field.layer().selectionToSprite(field.state.selectionRect);
+                    field.layer().clipBoard.loadSprite(clipBoardSprite); 
+                    field.layer().repaint = true;
                     field.state.selectionRect = [0,0,0,0];
                 break;
                 case("paste"):
@@ -3660,7 +3662,7 @@ class DrawingScreen {
         sprite.refreshImage();
         return sprite;
     }
-    selectionToSprite(selectionRect:Array<number>):Sprite
+    selectionToSprite(selectionRect:number[]):Sprite
     {
         if(selectionRect[2] < 0)
         {
@@ -5840,12 +5842,10 @@ class Sprite {
                 this.imageData = this.createImageData();
                 this.pixels = this.imageData.data;
             }
+            const view:Uint32Array = new Uint32Array(this.pixels.buffer)
             for(let i = 0; i < pixels.length; i++)
             {
-                this.pixels[(i<<2)] = pixels[i].red();
-                this.pixels[(i<<2)+1] = pixels[i].green();
-                this.pixels[(i<<2)+2] = pixels[i].blue();
-                this.pixels[(i<<2)+3] = pixels[i].alpha();
+                view[i] = pixels[i].color;
             }
             if(pixels.length)
                 this.refreshImage();
