@@ -2270,13 +2270,13 @@ class FilesManagerTool extends ExtendedTool {
 class SelectionTool extends ExtendedTool {
     constructor(name, path, optionPanes, toolSelector) {
         super(name, path, optionPanes, [200, 210], [1, 20]);
-        this.checkboxComplexPolygon = new GuiCheckBox(() => { toolSelector.polygon = []; toolSelector.field.state.selectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, 40, 40, true);
+        this.checkboxComplexPolygon = new GuiCheckBox(() => { toolSelector.polygon = []; toolSelector.field.state.selectionSelectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, 40, 40, true);
         this.toolSelector = toolSelector;
         this.localLayout.addElement(new GuiLabel("Polygonal selector:", 200, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.checkboxComplexPolygon);
         this.localLayout.addElement(new GuiSpacer([200, 10]));
-        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = [], toolSelector.field.state.selectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, "Reset Selection", 150, 40, 16));
-        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon.pop(), toolSelector.field.state.selectionRect = [0, 0, 0, 0]; toolSelector.field.scheduleUpdateMaskPolygon(toolSelector.polygon); toolSelector.field.layer().repaint = true; }, "Undo last point", 150, 40, 16));
+        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon = [], toolSelector.field.state.selectionSelectionRect = [0, 0, 0, 0]; toolSelector.field.clearBitMask(); toolSelector.field.layer().repaint = true; }, "Reset Selection", 150, 40, 16));
+        this.localLayout.addElement(new GuiButton(() => { toolSelector.polygon.pop(), toolSelector.field.state.selectionSelectionRect = [0, 0, 0, 0]; toolSelector.field.scheduleUpdateMaskPolygon(toolSelector.polygon); toolSelector.field.layer().repaint = true; }, "Undo last point", 150, 40, 16));
     }
 }
 ;
@@ -2479,6 +2479,8 @@ class ToolSelector {
                                 this.polygon.push([gx, gy]);
                                 break;
                             }
+                            field.state.selectionSelectionRect = [touchPos[0], touchPos[1], 0, 0];
+                            break;
                         case ("oval"):
                         case ("rect"):
                         case ("copy"):
@@ -2567,6 +2569,9 @@ class ToolSelector {
                                     this.polygon.push([gx, gy]);
                                 break;
                             }
+                            field.state.selectionSelectionRect[2] += (deltaX);
+                            field.state.selectionSelectionRect[3] += (deltaY);
+                            break;
                         case ("line"):
                         case ("oval"):
                         case ("rect"):
@@ -2652,8 +2657,8 @@ class ToolSelector {
                                 field.scheduleUpdateMaskPolygon(this.polygon);
                             }
                             else {
-                                if (field.state.selectionRect[2] > 0 && field.state.selectionRect[3] > 0)
-                                    field.updateBitMaskRectangle(field.state.selectionRect);
+                                if (field.state.selectionSelectionRect[2] > 0 && field.state.selectionSelectionRect[3] > 0)
+                                    field.updateBitMaskRectangle(field.state.selectionSelectionRect);
                                 else
                                     field.clearBitMask();
                             }
@@ -2872,6 +2877,7 @@ class DrawingScreenState {
         this.resizeSprite = false;
         this.selectionRect = [0, 0, 0, 0];
         this.pasteRect = [0, 0, 0, 0];
+        this.selectionSelectionRect = [0, 0, 0, 0];
         this.lineWidth = lineWidth; //dimensions[0] / bounds[0] * 4;
     }
 }
@@ -4199,10 +4205,10 @@ class LayeredDrawingScreen {
                 this.ctx.fill();
                 this.ctx.fillStyle = "#000000";
             }
-            else if (this.toolSelector.selectedToolName() !== "line" && this.state.selectionRect[3] !== 0 && this.state.selectionRect[4] !== 0) {
+            else if (this.state.selectionSelectionRect[3] !== 0 && this.state.selectionSelectionRect[4] !== 0) {
                 this.ctx.lineWidth = 5;
-                this.ctx.fillStyle = "#0000FF";
-                this.ctx.strokeRect(this.state.selectionRect[0], this.state.selectionRect[1], this.state.selectionRect[2], this.state.selectionRect[3]);
+                this.ctx.strokeStyle = "#FF0000";
+                this.ctx.strokeRect(this.state.selectionSelectionRect[0], this.state.selectionSelectionRect[1], this.state.selectionSelectionRect[2], this.state.selectionSelectionRect[3]);
             }
         }
         {
