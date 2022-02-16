@@ -1902,6 +1902,9 @@ class GuiToolBar implements GuiElement {
             }
             if(this.selected === i)
             {
+                this.ctx.strokeStyle = "#FFFFFF";
+                this.ctx.strokeRect(pixelX + 3, pixelY + 3, this.toolRenderDim[0] - 6, this.toolRenderDim[1] - 6);
+                this.ctx.strokeStyle = "#000000";
                 this.ctx.strokeRect(pixelX + 1, pixelY + 1, this.toolRenderDim[0] - 2, this.toolRenderDim[1] - 2);
             }
         }
