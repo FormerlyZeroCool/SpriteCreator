@@ -2509,6 +2509,8 @@ class DrawingScreenSettingsTool extends ExtendedTool {
     }
 };
 class ClipBoard {
+    offscreenCanvas:HTMLCanvasElement;
+    offscreenCtx:CanvasRenderingContext2D;
     canvas:HTMLCanvasElement;
     ctx:CanvasRenderingContext2D;
     sprite:Sprite;
@@ -2519,6 +2521,8 @@ class ClipBoard {
     {
         this.repaint = true;
         this.canvas = document.createElement("canvas");
+        this.offscreenCanvas = document.createElement("canvas");
+        this.offscreenCtx = this.offscreenCanvas.getContext("2d")!;
         this.focused = false;
         this.canvas.height = pixelCountX;
         this.canvas.width = pixelCountY;
@@ -2584,9 +2588,18 @@ class ClipBoard {
                 x, y, 1, 1);
         }
         this.sprite = newSprite;
+        const temp:number = this.offscreenCanvas.width;
+        this.offscreenCanvas.width = this.offscreenCanvas.height;
+        this.offscreenCanvas.height = temp;
         this.refreshImageFromBuffer();
     }
-    
+    loadSprite(sprite:Sprite): void {
+        this.sprite.copySprite(sprite);
+        this.offscreenCanvas.width = sprite.width;
+        this.offscreenCanvas.height = sprite.height;
+        this.offscreenCtx = this.offscreenCanvas.getContext("2d")!;
+        this.refreshImageFromBuffer();
+    }
     //copies array of rgb values to canvas offscreen, centered within the canvas
     refreshImageFromBuffer():void
     {
@@ -2600,9 +2613,24 @@ class ClipBoard {
         {
             this.repaint = false;
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            const width:number = this.canvas.width / (this.sprite.width / this.canvas.width);
-            const height:number = this.canvas.height / (this.sprite.height / this.canvas.height);
-            this.ctx.drawImage(this.sprite.image, 0, 0, this.canvas.width, this.canvas.height);
+            this.offscreenCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.offscreenCtx.drawImage(this.sprite.image, 0, 0);
+            if(this.offscreenCanvas.width / this.offscreenCanvas.height <= 1)
+            {
+                const width:number = this.canvas.width * this.offscreenCanvas.width / this.offscreenCanvas.height;
+                const height:number = this.offscreenCanvas.height;
+                const x:number = this.canvas.width / 2 - width / 2;
+                const y:number =  this.canvas.height / 2 - height / 2;
+                this.ctx.drawImage(this.offscreenCanvas, x, y, width, height);
+            }
+            else
+            {
+                const width:number = this.canvas.width;
+                const height:number =  this.canvas.height * this.offscreenCanvas.height / this.offscreenCanvas.width;
+                const x:number = this.canvas.width / 2 - width / 2;
+                const y:number =  this.canvas.height / 2 - height / 2;
+                this.ctx.drawImage(this.offscreenCanvas, x, y, width, height);
+            }
         }
         ctx.drawImage(this.canvas, x, y);
     }
@@ -3268,8 +3296,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 break;
                 case("copy"):
                     const clipBoardSprite:Sprite = this.copyTool.checkboxCopySelection.checked ? field.layer().maskToSprite() : field.layer().selectionToSprite(field.state.selectionRect);
-                    field.layer().clipBoard.sprite = clipBoardSprite;
-                    field.layer().clipBoard.refreshImageFromBuffer();
+                    field.layer().clipBoard.loadSprite(clipBoardSprite);
                     field.state.selectionRect = [0,0,0,0];
                 break;
                 case("paste"):
