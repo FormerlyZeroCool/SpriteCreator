@@ -3038,7 +3038,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.state.color.copy(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first]);
                 field.layer().toolSelector.updateColorPickerTextBox();
             }
-            else
+            else if(!keyboardHandler.keysHeld["Space"])
             switch (field.layer().toolSelector.selectedToolName())
             {
                 case("outline"):

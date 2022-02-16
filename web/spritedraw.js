@@ -2458,7 +2458,7 @@ class ToolSelector {
                     field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
                     field.layer().toolSelector.updateColorPickerTextBox();
                 }
-                else
+                else if (!keyboardHandler.keysHeld["Space"])
                     switch (field.layer().toolSelector.selectedToolName()) {
                         case ("outline"):
                             field.layer().autoOutline(new Pair(gx, gy), this.outLineTool.checkboxOnlyOneColor.checked);
