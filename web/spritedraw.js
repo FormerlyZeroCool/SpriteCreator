@@ -2114,7 +2114,7 @@ class ClipBoard {
             this.offscreenCtx.drawImage(this.sprite.image, 0, 0);
             if (this.offscreenCanvas.width / this.offscreenCanvas.height <= 1) {
                 const width = this.canvas.width * this.offscreenCanvas.width / this.offscreenCanvas.height;
-                const height = this.offscreenCanvas.height;
+                const height = this.canvas.height;
                 const x = this.canvas.width / 2 - width / 2;
                 const y = this.canvas.height / 2 - height / 2;
                 this.ctx.drawImage(this.offscreenCanvas, x, y, width, height);
