@@ -4196,7 +4196,10 @@ class LayeredDrawingScreen {
             renderingCtx.fillRect(projectionRect[0] + projectionRect[2], 0, width - projectionRect[0] + projectionRect[2], height);
             //Render rectangle previewing current viewpoint
             renderingCtx.strokeStyle = "#FFFFFF";
-            renderingCtx.strokeRect(view[0], view[1], view[2], view[3]); //render preview of current view port
+            renderingCtx.strokeRect(view[0], view[1], view[2], view[3]);
+            renderingCtx.strokeStyle = "#000000";
+            renderingCtx.strokeRect(view[0] + 1, view[1] + 1, view[2] - 2, view[3] - 2);
+            //render to external canvas
             ctx.drawImage(this.offscreenCanvas, x, y);
         }
     }
