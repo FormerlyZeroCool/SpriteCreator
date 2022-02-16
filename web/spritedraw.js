@@ -3413,25 +3413,34 @@ class DrawingScreen {
         if (this.updatesStack.length() && this.state.screenBufUnlocked) {
             this.state.screenBufUnlocked = false;
             const data = this.updatesStack.pop();
-            const backedUpFrame = [];
-            const divisor = 60 * 10;
-            const interval = Math.floor(data.length / divisor) === 0 ? 1 : Math.floor(data.length / divisor);
-            let intervalCounter = 0;
-            for (let i = 0; i < data.length; i++) {
-                intervalCounter++;
-                const el = data[i];
-                backedUpFrame.push(el);
-                const color = (this.screenBuffer[el.first]).color;
-                this.screenBuffer[el.first].copy(el.second);
-                el.second.color = color;
-                if (intervalCounter % interval === 0 && this.state.slow) {
-                    await sleep(1);
-                    this.repaint = true;
+            try {
+                const backedUpFrame = [];
+                const divisor = 60 * 10;
+                const interval = Math.floor(data.length / divisor) === 0 ? 1 : Math.floor(data.length / divisor);
+                let intervalCounter = 0;
+                for (let i = 0; i < data.length; i++) {
+                    intervalCounter++;
+                    const el = data[i];
+                    if (this.screenBuffer[el.first]) {
+                        backedUpFrame.push(el);
+                        const color = (this.screenBuffer[el.first]).color;
+                        this.screenBuffer[el.first].copy(el.second);
+                        el.second.color = color;
+                    }
+                    if (intervalCounter % interval === 0 && this.state.slow) {
+                        await sleep(1);
+                        this.repaint = true;
+                    }
                 }
+                this.undoneUpdatesStack.push(backedUpFrame);
+                this.repaint = true;
+                this.state.screenBufUnlocked = true;
             }
-            this.undoneUpdatesStack.push(backedUpFrame);
-            this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            catch (error) {
+                this.repaint = true;
+                this.state.screenBufUnlocked = true;
+                console.log(error);
+            }
         }
         else {
             console.log("Error, nothing to undo");
@@ -3439,27 +3448,36 @@ class DrawingScreen {
     }
     async redoLast() {
         if (this.undoneUpdatesStack.length() && this.state.screenBufUnlocked) {
-            this.state.screenBufUnlocked = false;
-            const data = this.undoneUpdatesStack.pop();
-            const backedUpFrame = [];
-            const divisor = 60 * 10;
-            const interval = Math.floor(data.length / divisor) === 0 ? 1 : Math.floor(data.length / divisor);
-            let intervalCounter = 0;
-            for (let i = 0; i < data.length; i++) {
-                intervalCounter++;
-                const el = data[i];
-                backedUpFrame.push(el);
-                const color = this.screenBuffer[el.first].color;
-                this.screenBuffer[el.first].copy(el.second);
-                el.second.color = color;
-                if (intervalCounter % interval === 0 && this.state.slow) {
-                    await sleep(1);
-                    this.repaint = true;
+            try {
+                this.state.screenBufUnlocked = false;
+                const data = this.undoneUpdatesStack.pop();
+                const backedUpFrame = [];
+                const divisor = 60 * 10;
+                const interval = Math.floor(data.length / divisor) === 0 ? 1 : Math.floor(data.length / divisor);
+                let intervalCounter = 0;
+                for (let i = 0; i < data.length; i++) {
+                    intervalCounter++;
+                    const el = data[i];
+                    if (this.screenBuffer[el.first]) {
+                        backedUpFrame.push(el);
+                        const color = this.screenBuffer[el.first].color;
+                        this.screenBuffer[el.first].copy(el.second);
+                        el.second.color = color;
+                    }
+                    if (intervalCounter % interval === 0 && this.state.slow) {
+                        await sleep(1);
+                        this.repaint = true;
+                    }
                 }
+                this.repaint = true;
+                this.updatesStack.push(backedUpFrame);
+                this.state.screenBufUnlocked = true;
             }
-            this.repaint = true;
-            this.updatesStack.push(backedUpFrame);
-            this.state.screenBufUnlocked = true;
+            catch (error) {
+                this.repaint = true;
+                this.state.screenBufUnlocked = true;
+                console.log(error);
+            }
         }
         else {
             console.log("Error, nothing to redo");
