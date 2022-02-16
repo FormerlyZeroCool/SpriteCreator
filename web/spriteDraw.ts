@@ -5062,7 +5062,8 @@ class LayeredDrawingScreen {
             renderingCtx.globalAlpha = this.miniMapAlpha;
             renderingCtx.fillRect(0, 0, width, height);
             renderingCtx.drawImage(this.canvasTransparency, 0, 0, width, height, -15, -15, width + 15, height + 15);
-            renderingCtx.lineWidth = 1;let projectionRect:number[] = [0, 0, 0, 0];
+            renderingCtx.lineWidth = 1;
+            let projectionRect:number[] = [0, 0, 0, 0];
             if((this.layer().dimensions.second / this.layer().dimensions.first) <= 1)
                 projectionRect = [fullCanvas[0], fullCanvas[1], fullCanvas[2],(this.layer().dimensions.second / this.layer().dimensions.first) * fullCanvas[3]];
             else //if((this.layer().dimensions.first / this.layer().dimensions.second) < 1)
@@ -5070,7 +5071,7 @@ class LayeredDrawingScreen {
             projectionRect[0] += width / 2 - projectionRect[2] / 2;
             projectionRect[1] += height / 2 - projectionRect[3] / 2;
             
-            const view:number[] = [(-this.zoom.zoomedX / zoomedWidth) * width + projectionRect[0], (-this.zoom.zoomedY / zoomedHeight) * height + projectionRect[1], canvas.width / zoomedWidth * projectionRect[2], canvas.height / zoomedHeight * projectionRect[3]];
+            const view:number[] = [(-this.zoom.zoomedX / zoomedWidth) * projectionRect[2] + projectionRect[0], (-this.zoom.zoomedY / zoomedHeight) * projectionRect[3] + projectionRect[1], canvas.width / zoomedWidth * projectionRect[2], canvas.height / zoomedHeight * projectionRect[3]];
             
             renderingCtx.drawImage(this.canvas, projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
             renderingCtx.strokeRect(1, 1, width-2, height-2);

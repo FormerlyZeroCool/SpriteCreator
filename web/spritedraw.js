@@ -4177,7 +4177,7 @@ class LayeredDrawingScreen {
                 projectionRect = [fullCanvas[0], fullCanvas[1], (this.layer().dimensions.first / this.layer().dimensions.second) * fullCanvas[2], fullCanvas[3]];
             projectionRect[0] += width / 2 - projectionRect[2] / 2;
             projectionRect[1] += height / 2 - projectionRect[3] / 2;
-            const view = [(-this.zoom.zoomedX / zoomedWidth) * width + projectionRect[0], (-this.zoom.zoomedY / zoomedHeight) * height + projectionRect[1], canvas.width / zoomedWidth * projectionRect[2], canvas.height / zoomedHeight * projectionRect[3]];
+            const view = [(-this.zoom.zoomedX / zoomedWidth) * projectionRect[2] + projectionRect[0], (-this.zoom.zoomedY / zoomedHeight) * projectionRect[3] + projectionRect[1], canvas.width / zoomedWidth * projectionRect[2], canvas.height / zoomedHeight * projectionRect[3]];
             renderingCtx.drawImage(this.canvas, projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
             renderingCtx.strokeRect(1, 1, width - 2, height - 2);
             renderingCtx.fillStyle = "#808080";
