@@ -1,6 +1,9 @@
 An animation creation tool that allows users to do pixel art, and make animations from that pixel art.
 You can try it out: <a href="http://andrew-rubinstein.com/SpriteCreator/web">Here!</a>
 <br>
+<h2>The Drawing Screen</h2>
+This is where you create your sprites using the tools described below.
+<br>
 <h2>Animation Groups</h2>
 These are meant to organize animations, so that for instance if you wish to create the animations for a game you may organize the groups so each group is all the animations for one character in the game.
 You can add new animation groups at any time by pressing the "Add Animation Group" button.<br>
