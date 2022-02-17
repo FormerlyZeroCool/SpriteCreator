@@ -4817,7 +4817,6 @@ function buildSpriteFromBuffer(buffer, index) {
     const type = buffer[index++];
     const height = buffer[index] >> 16;
     const width = buffer[index++] & ((1 << 17) - 1);
-    console.log(size, type, height, width);
     const sprite = new Sprite([], width, height);
     if (type !== 3)
         throw new Error("Corrupted project file sprite type should be: 3, but is: " + type.toString());
