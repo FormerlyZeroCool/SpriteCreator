@@ -4151,10 +4151,11 @@ class LayeredDrawingScreen {
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d");
+            this.resizeTransparencyCanvas(this.dim, bounds[0] / this.layer().dimensions.first);
         }
         //this.resizeTransparencyCanvas(this.dim);
     }
-    resizeTransparencyCanvas(bounds) {
+    resizeTransparencyCanvas(bounds, dim) {
         if ((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1])) {
             this.canvasTransparency.width = bounds[0];
             this.canvasTransparency.height = bounds[0];
@@ -4163,10 +4164,10 @@ class LayeredDrawingScreen {
             ctx.globalAlpha = 0.7;
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
             let i = 0;
-            const squareSize = 15;
+            const squareSize = dim;
             for (let y = 0; y < bounds[1] + 100; y += squareSize) {
                 let offset = +(i % 2 === 0);
-                for (let x = offset * squareSize; x < bounds[0] + 200; x += squareSize << 1) {
+                for (let x = offset * squareSize; x < bounds[0] + 200; x += squareSize * 2) {
                     ctx.clearRect(x, y, squareSize, squareSize);
                 }
                 i++;
@@ -4329,10 +4330,10 @@ class LayeredDrawingScreen {
     }
     draw(canvas, ctx, x, y, width, height) {
         ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(this.canvasTransparency, 0, 0);
         if (this.repaint()) {
             this.redraw = false;
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(this.canvasTransparency, 0, 0);
             for (let i = 0; i < this.layers.length; i++) {
                 if (this.layersState[i]) {
                     const layer = this.layers[i];
