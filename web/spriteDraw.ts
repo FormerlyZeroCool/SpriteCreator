@@ -3703,7 +3703,7 @@ class DrawingScreen {
     }
     suggestedLineWidth():number
     {
-        return this.dimensions.first / this.bounds.first * 4;
+        return Math.floor(this.dimensions.first / 128);
     }
     setLineWidthPen():void
     {
@@ -7163,6 +7163,9 @@ async function main()
     const toolSelector:ToolSelector = new ToolSelector(pallette, keyboardHandler, canvasListener, 64, 64);
     field = toolSelector.field;
     field.toolSelector = toolSelector;
+    field.setDimOnCurrent([128, 128]);
+    toolSelector.penTool.tbSize.setText(field.layer()!.suggestedLineWidth().toString());
+    toolSelector.penTool.lineWidth = field.layer().suggestedLineWidth();
     
     //const field:DrawingScreen = new DrawingScreen(<HTMLCanvasElement> , keyboardHandler, pallette,[0,0], dim);
     const animationGroupSelector:AnimationGroupsSelector = new AnimationGroupsSelector(field, keyboardHandler, "animation_group_selector", "animations", "sprites_canvas", dim[0], dim[1], 128, 128);
@@ -7368,7 +7371,6 @@ async function main()
 
     canvas.width = getWidth() - 350;
     canvas.height = 500;
-    field.setDimOnCurrent([128, 128]);
     const fps = 35;
     const goalSleep = 1000/fps;
     let counter = 0;
