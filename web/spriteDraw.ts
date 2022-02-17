@@ -1903,7 +1903,7 @@ class GuiToolBar implements GuiElement {
             const pixelX:number = gridX * this.toolRenderDim[0];
             const pixelY:number = gridY * this.toolRenderDim[1];
             const image:HTMLImageElement | null = this.tools[i].image();
-            if(image)
+            if(image && image.width && image.height)
             {
                 this.ctx.drawImage(image, pixelX, pixelY, this.toolRenderDim[0], this.toolRenderDim[1]);
             }
@@ -1993,6 +1993,12 @@ class ToolBarItem {
         {
             throw new Error("Invalid params for toolbar item both params should be same type");
         }
+        else if(!Array.isArray(toolName) && Array.isArray(toolImagePath))
+        {
+            for(let i = 0; i < toolName.length; i++)
+                this.toolImages.push(new ImageContainer(toolName, toolImagePath[i]));
+            this.selected = 0;
+        }
         else if(Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length !== toolImagePath.length)
             throw new Error("Invalid params for toolbar item both lists must be same length");
         else if(!Array.isArray(toolName) && !Array.isArray(toolImagePath))
@@ -2028,7 +2034,7 @@ class ToolBarItem {
     }
 };
 abstract class Tool extends ToolBarItem{
-    constructor(toolName:string, toolImagePath:string)
+    constructor(toolName:string, toolImagePath:string[])
     {
         super(toolName, toolImagePath);
     }
@@ -2041,7 +2047,7 @@ abstract class Tool extends ToolBarItem{
 };
 class ViewLayoutTool extends Tool {
     layoutManager:SimpleGridLayoutManager;
-    constructor(layoutManager:SimpleGridLayoutManager, name:string, path:string)
+    constructor(layoutManager:SimpleGridLayoutManager, name:string, path:string[])
     {
         super(name, path);
         this.layoutManager = layoutManager;
@@ -2065,7 +2071,7 @@ class ViewLayoutTool extends Tool {
     }
 };
 class GenericTool extends Tool {
-    constructor(name:string, imagePath:string)
+    constructor(name:string, imagePath:string[])
     {
         super(name, imagePath);
     }
@@ -2083,7 +2089,7 @@ class GenericTool extends Tool {
 class ExtendedTool extends ViewLayoutTool {
     localLayout:SimpleGridLayoutManager;
     optionPanels:SimpleGridLayoutManager[];
-    constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], dim:number[], matrixDim:number[] = [24, 24], parentMatrixDim:number[] = [24, 48])
+    constructor(name:string, path:string[], optionPanes:SimpleGridLayoutManager[], dim:number[], matrixDim:number[] = [24, 24], parentMatrixDim:number[] = [24, 48])
     {
         super(new SimpleGridLayoutManager([parentMatrixDim[0],parentMatrixDim[1]], [dim[0], dim[1]]), name, path);
         this.localLayout = new SimpleGridLayoutManager([matrixDim[0],matrixDim[1]], [dim[0], dim[1]]);
@@ -2128,7 +2134,7 @@ class ExtendedTool extends ViewLayoutTool {
 class SingleCheckBoxTool extends GenericTool {
     optionPanel:SimpleGridLayoutManager;
     checkBox:GuiCheckBox;
-    constructor(label:string, name:string, imagePath:string, callback:() => void = () => null)
+    constructor(label:string, name:string, imagePath:string[], callback:() => void = () => null)
     {
         super(name, imagePath);
         this.optionPanel = new SimpleGridLayoutManager([1,4], [200, 90]);
@@ -2158,7 +2164,7 @@ class DragTool extends ExtendedTool {
     checkboxAutoSelect:GuiCheckBox;
     checkboxAllowDropOutsideSelection:GuiCheckBox;
     toolSelector:ToolSelector;
-    constructor(name:string, imagePath:string, callBack:() => void, callBackBlendAlphaState:()=>void, optionPanes:SimpleGridLayoutManager[] = [], toolSelector:ToolSelector)
+    constructor(name:string, imagePath:string[], callBack:() => void, callBackBlendAlphaState:()=>void, optionPanes:SimpleGridLayoutManager[] = [], toolSelector:ToolSelector)
     {
         super(name, imagePath, optionPanes, [200, 190], [10, 50]);
         this.toolSelector = toolSelector;
@@ -2188,7 +2194,7 @@ class DragTool extends ExtendedTool {
 };
 class OutlineTool extends ExtendedTool {
     checkboxOnlyOneColor:GuiCheckBox;
-    constructor(name:string, imagePath:string, toolSelector:ToolSelector, optionPanes:SimpleGridLayoutManager[] = [])
+    constructor(name:string, imagePath:string[], toolSelector:ToolSelector, optionPanes:SimpleGridLayoutManager[] = [])
     {
         super(name, imagePath, optionPanes, [200, 110]);
         this.checkboxOnlyOneColor = new GuiCheckBox(() => {}, 40, 40, false);
@@ -2204,7 +2210,7 @@ class RotateTool extends ExtendedTool {
     checkboxAutoSelect:GuiCheckBox;
 
     toolSelector:ToolSelector;
-    constructor(name:string, imagePath:string, callBack:() => void, callBackAntiAlias:() => void, optionPanes:SimpleGridLayoutManager[] = [],toolSelector:ToolSelector)
+    constructor(name:string, imagePath:string[], callBack:() => void, callBackAntiAlias:() => void, optionPanes:SimpleGridLayoutManager[] = [],toolSelector:ToolSelector)
     {
         super(name, imagePath, optionPanes, [200, 230], [70, 40], [1, 23]);
         this.toolSelector = toolSelector;
@@ -2234,7 +2240,7 @@ class RotateTool extends ExtendedTool {
 };
 class UndoRedoTool extends ExtendedTool {
     stackFrameCountLabel:GuiLabel;
-    constructor(toolSelector:ToolSelector, name:string, imagePath:string, callback: () => void)
+    constructor(toolSelector:ToolSelector, name:string, imagePath:string[], callback: () => void)
     {
         super(name, imagePath, [], [200,100], [4,12]);
         this.localLayout.addElement(new GuiLabel("Slow mode(undo/redo):", 200));
@@ -2248,7 +2254,7 @@ class UndoRedoTool extends ExtendedTool {
 };
 class FillTool extends ExtendedTool {
     checkIgnoreAlpha:GuiCheckBox;
-    constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], updateIgnoreSameColorBoundaries:() => void)
+    constructor(name:string, path:string[], optionPanes:SimpleGridLayoutManager[], updateIgnoreSameColorBoundaries:() => void)
     {
         super(name, path, optionPanes, [200, 100], [30, 10]);
         this.checkIgnoreAlpha = new GuiCheckBox(updateIgnoreSameColorBoundaries);
@@ -2259,7 +2265,7 @@ class FillTool extends ExtendedTool {
 };
 class PenViewTool extends ViewLayoutTool {
     pen:PenTool;
-    constructor(pen:PenTool, name:string, path:string)
+    constructor(pen:PenTool, name:string, path:string[])
     {
         super(pen.getOptionPanel()!, name, path);
         this.pen = pen;
@@ -2271,7 +2277,7 @@ class PenTool extends ExtendedTool {
     btUpdate:GuiButton;
     static checkboxSprayPaint:GuiCheckBox = new GuiCheckBox(null, 40, 40);
     static checkDrawCircular:GuiCheckBox = new GuiCheckBox(null, 40, 40);
-    constructor(strokeWith:number, toolName:string = "pen", pathToImage:string = "images/penSprite.png", optionPanes:SimpleGridLayoutManager[], dimLocal:number[] = [200,110])
+    constructor(strokeWith:number, toolName:string = "pen", pathToImage:string[] = ["images/penSprite.png"], optionPanes:SimpleGridLayoutManager[], dimLocal:number[] = [200,110])
     {
         super(toolName, pathToImage, optionPanes, dimLocal, [2,30], [1, 50]);
         this.layoutManager.pixelDim = [200, 500];
@@ -2331,7 +2337,7 @@ class PenTool extends ExtendedTool {
 };
 class SprayCanTool extends PenTool {
     tbProbability:GuiTextBox;
-    constructor(strokeWidth:number, toolName:string, pathToImage:string, callBack:(tbProbability:GuiTextBox)=>void, optionPanes:SimpleGridLayoutManager[])
+    constructor(strokeWidth:number, toolName:string, pathToImage:string[], callBack:(tbProbability:GuiTextBox)=>void, optionPanes:SimpleGridLayoutManager[])
     {
         super(strokeWidth, toolName, pathToImage, optionPanes, [200, 155]);
         this.tbProbability = new GuiTextBox(true, 99, this.btUpdate, 16, 35, GuiTextBox.default, (event:TextBoxEvent) => {
@@ -2360,7 +2366,7 @@ class ColorPickerTool extends ExtendedTool {
     field:LayeredDrawingScreen;
     tbColor:GuiTextBox;
     btUpdate:GuiButton;
-    constructor(field:LayeredDrawingScreen, toolName:string = "colorPicker", pathToImage:string = "images/colorPickerSprite.png", optionPanes:SimpleGridLayoutManager[] = [])
+    constructor(field:LayeredDrawingScreen, toolName:string = "colorPicker", pathToImage:string[] = ["images/colorPickerSprite.png"], optionPanes:SimpleGridLayoutManager[] = [])
     {
         super(toolName, pathToImage, optionPanes, [200, 100], [1, 30]);
         this.field = field;
@@ -2440,7 +2446,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
     dim:number[];
     field:LayeredDrawingScreen;
     textboxPaletteSize:GuiTextBox;
-    constructor(dim:number[] = [524, 524], field:LayeredDrawingScreen, toolName:string, pathToImage:string, optionPanes:SimpleGridLayoutManager[])
+    constructor(dim:number[] = [524, 524], field:LayeredDrawingScreen, toolName:string, pathToImage:string[], optionPanes:SimpleGridLayoutManager[])
     {
         super(toolName, pathToImage, optionPanes, [200, 275], [4, 50]);
         this.dim = dim;
@@ -2669,7 +2675,7 @@ class ClipBoard {
 class CopyPasteTool extends ExtendedTool {
     blendAlpha:GuiCheckBox;
     buttonCopySelection:GuiButton;
-    constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], clipBoard:ClipBoard, updateBlendAlpha: () => void, toolSelector:ToolSelector) {
+    constructor(name:string, path:string[], optionPanes:SimpleGridLayoutManager[], clipBoard:ClipBoard, updateBlendAlpha: () => void, toolSelector:ToolSelector) {
         super(name, path, optionPanes, [200, clipBoard.height()+ 200], [8, 20], [1, 30]);
         this.blendAlpha = new GuiCheckBox(updateBlendAlpha, 40, 40);
         this.buttonCopySelection = new GuiButton(() => {
@@ -2696,7 +2702,7 @@ class LayerManagerTool extends Tool {
     buttonAddLayer:GuiButton;
     runningId:number;
     layersLimit:number;
-    constructor(name:string, path:string, field:LayeredDrawingScreen, limit:number = 12)
+    constructor(name:string, path:string[], field:LayeredDrawingScreen, limit:number = 12)
     {
         super(name, path);
         this.field = field;
@@ -2786,7 +2792,7 @@ class LayerManagerTool extends Tool {
 class ScreenTransformationTool extends ExtendedTool {
     textBoxZoom:GuiTextBox;
     buttonUpdateZoom:GuiButton;
-    constructor(toolName:string, toolImagePath:string, optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
+    constructor(toolName:string, toolImagePath:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
         super(toolName, toolImagePath, optionPanes, [200, 120], [2, 30]);
         this.localLayout.addElement(new GuiLabel("Zoom:", 75));
@@ -2817,7 +2823,7 @@ class FilesManagerTool extends ExtendedTool {
     tbYPartitions:GuiTextBox;
     saveSprites:GuiButton;
 
-    constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
+    constructor(name:string, path:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
         super(name, path, optionPanes,[200, 450], [2, 50]);
         this.savePng = new GuiButton(() => {field.saveToFile(this.pngName.text)}, "Save PNG", 85, 35, 16);
@@ -2906,7 +2912,7 @@ class FilesManagerTool extends ExtendedTool {
 class SelectionTool extends ExtendedTool {
     toolSelector:ToolSelector;
     checkboxComplexPolygon:GuiCheckBox;
-    constructor(name:string, path:string, optionPanes:SimpleGridLayoutManager[], toolSelector:ToolSelector){
+    constructor(name:string, path:string[], optionPanes:SimpleGridLayoutManager[], toolSelector:ToolSelector){
         super(name, path, optionPanes, [200, 210], [1, 20]);
         this.checkboxComplexPolygon = new GuiCheckBox(() => { toolSelector.polygon = []; toolSelector.field.state.selectionSelectionRect = [0,0,0,0];toolSelector.field.clearBitMask();toolSelector.field.layer().repaint = true;}, 
             40, 40, true);
@@ -3392,20 +3398,20 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             field.layer().repaint = repaint;
         });
         }
-        this.filesManagerTool = new FilesManagerTool("fileManager", "images/filesSprite.png", [], field);
-        this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
-        this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
-        this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.localLayout], field);
-        this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.filesManagerTool = new FilesManagerTool("fileManager", ["images/ThePixelSlime1Icons/filesSprite.png", "images/filesSprite.png"], [], field);
+        this.layersTool = new LayerManagerTool("layers", ["images/ThePixelSlime1Icons/layersSprite.png", "images/layersSprite.png"], field);
+        this.undoTool = new UndoRedoTool(this, "undo", ["images/ThePixelSlime1Icons/undoSprite.png", "images/undoSprite.png"], () => field.state.slow = !field.state.slow);
+        this.transformTool = new ScreenTransformationTool("move", ["images/favicon.ico"], [this.undoTool.localLayout], field);
+        this.colorPickerTool = new ColorPickerTool(field, "colorPicker", ["images/ThePixelSlime1Icons/colorPickerSprite.png", "images/colorPickerSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
         
-        this.selectionTool = new SelectionTool("selection", "images/selectionSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, 
+        this.selectionTool = new SelectionTool("selection", ["images/ThePixelSlime1Icons/selectionSprite.png","images/selectionSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout], this);
+        this.outLineTool = new OutlineTool("outline", ["images/ThePixelSlime1Icons/outlineSprite.png", "images/outlineSprite.png"], this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.rotateTool = new RotateTool("rotate", ["images/ThePixelSlime1Icons/rotateSprite.png", "images/rotateSprite.png"], () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, 
             () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
-        this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,
+        this.dragTool = new DragTool("drag", ["images/ThePixelSlime1Icons/dragSprite.png", "images/dragSprite.png"], () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,
         () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move","images/settingsSprite.png", [ this.transformTool.getOptionPanel()! ]);
-        this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
+        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move",["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [ this.transformTool.getOptionPanel()! ]);
+        this.copyTool = new CopyPasteTool("copy", ["images/ThePixelSlime1Icons/copySprite.png", "images/copySprite.png"], [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack:(tb:GuiTextBox) => void = (tbprob)=>{
@@ -3414,12 +3420,12 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen","images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen",["images/ThePixelSlime1Icons/penSprite.png", "images/penSprite.png"], sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
         this.penTool.activateOptionPanel();
-        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser","images/eraserSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser",["images/ThePixelSlime1Icons/eraserSprite.png", "images/eraserSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
 
         PenTool.checkDrawCircular.callback = () => field.state.drawCircular = PenTool.checkDrawCircular.checked;
-        this.fillTool = new FillTool("fill", "images/fillSprite.png", [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout],
+        this.fillTool = new FillTool("fill", ["images/ThePixelSlime1Icons/fillSprite.png", "images/fillSprite.png"], [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout],
             () => {
                 field.layer().state.ignoreAlphaInFill = this.fillTool.checkIgnoreAlpha.checked;
             });
@@ -3427,13 +3433,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.toolBar.tools.push(this.penTool);
         //this.toolBar.tools.push(this.sprayCanTool);
         this.toolBar.tools.push(this.fillTool);
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "line", "images/LineDrawSprite.png"));
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", "images/rectSprite.png"));
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", "images/ovalSprite.png"));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "line", ["images/ThePixelSlime1Icons/LineDrawSprite.png", "images/LineDrawSprite.png"]));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", ["images/ThePixelSlime1Icons/rectSprite.png", "images/rectSprite.png"]));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", ["images/ThePixelSlime1Icons/ovalSprite.png", "images/ovalSprite.png"]));
         this.toolBar.tools.push(this.copyTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel()!, "paste", "images/pasteSprite.png"));
+        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel()!, "paste", ["images/ThePixelSlime1Icons/pasteSprite.png", "images/pasteSprite.png"]));
         this.toolBar.tools.push(this.dragTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", "images/redoSprite.png"));
+        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", ["images/ThePixelSlime1Icons/redoSprite.png", "images/redoSprite.png"]));
         this.toolBar.tools.push(this.undoTool);
         this.toolBar.tools.push(this.colorPickerTool);
         this.toolBar.tools.push(this.eraserTool);
@@ -3949,7 +3955,8 @@ class DrawingScreen {
                     (pixelColor.compare(spc) || (this.state.ignoreAlphaInFill && pixelColor.alpha() === 0)) && !checkedMap[cur] && this.state.bufferBitMask[cur])
                 {
                     checkedMap[cur] = true;
-                    if(!pixelColor.compare(this.state.color)){
+                    if(!pixelColor.compare(this.state.color))
+                    {
                         this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
                         pixelColor.copy(this.state.color);
                     }

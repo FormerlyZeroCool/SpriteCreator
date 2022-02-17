@@ -1522,7 +1522,7 @@ class GuiToolBar {
             const pixelX = gridX * this.toolRenderDim[0];
             const pixelY = gridY * this.toolRenderDim[1];
             const image = this.tools[i].image();
-            if (image) {
+            if (image && image.width && image.height) {
                 this.ctx.drawImage(image, pixelX, pixelY, this.toolRenderDim[0], this.toolRenderDim[1]);
             }
             if (this.selected === i) {
@@ -1589,6 +1589,11 @@ class ToolBarItem {
         }
         else if (Array.isArray(toolName) && !Array.isArray(toolImagePath)) {
             throw new Error("Invalid params for toolbar item both params should be same type");
+        }
+        else if (!Array.isArray(toolName) && Array.isArray(toolImagePath)) {
+            for (let i = 0; i < toolName.length; i++)
+                this.toolImages.push(new ImageContainer(toolName, toolImagePath[i]));
+            this.selected = 0;
         }
         else if (Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length !== toolImagePath.length)
             throw new Error("Invalid params for toolbar item both lists must be same length");
@@ -1822,7 +1827,7 @@ class PenViewTool extends ViewLayoutTool {
 }
 ;
 class PenTool extends ExtendedTool {
-    constructor(strokeWith, toolName = "pen", pathToImage = "images/penSprite.png", optionPanes, dimLocal = [200, 110]) {
+    constructor(strokeWith, toolName = "pen", pathToImage = ["images/penSprite.png"], optionPanes, dimLocal = [200, 110]) {
         super(toolName, pathToImage, optionPanes, dimLocal, [2, 30], [1, 50]);
         this.layoutManager.pixelDim = [200, 500];
         this.lineWidth = strokeWith;
@@ -1900,7 +1905,7 @@ class SprayCanTool extends PenTool {
 }
 ;
 class ColorPickerTool extends ExtendedTool {
-    constructor(field, toolName = "colorPicker", pathToImage = "images/colorPickerSprite.png", optionPanes = []) {
+    constructor(field, toolName = "colorPicker", pathToImage = ["images/colorPickerSprite.png"], optionPanes = []) {
         super(toolName, pathToImage, optionPanes, [200, 100], [1, 30]);
         this.field = field;
         this.tbColor = new GuiTextBox(true, 200, null, 16, 32, GuiTextBox.default, (e) => {
@@ -2771,17 +2776,17 @@ class ToolSelector {
                 field.layer().repaint = repaint;
             });
         }
-        this.filesManagerTool = new FilesManagerTool("fileManager", "images/filesSprite.png", [], field);
-        this.layersTool = new LayerManagerTool("layers", "images/layersSprite.png", field);
-        this.undoTool = new UndoRedoTool(this, "undo", "images/undoSprite.png", () => field.state.slow = !field.state.slow);
-        this.transformTool = new ScreenTransformationTool("move", "images/favicon.ico", [this.undoTool.localLayout], field);
-        this.colorPickerTool = new ColorPickerTool(field, "colorPicker", "images/colorPickerSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.selectionTool = new SelectionTool("selection", "images/selectionSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.outLineTool = new OutlineTool("outline", "images/outlineSprite.png", this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.rotateTool = new RotateTool("rotate", "images/rotateSprite.png", () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
-        this.dragTool = new DragTool("drag", "images/dragSprite.png", () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", "images/settingsSprite.png", [this.transformTool.getOptionPanel()]);
-        this.copyTool = new CopyPasteTool("copy", "images/copySprite.png", [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
+        this.filesManagerTool = new FilesManagerTool("fileManager", ["images/ThePixelSlime1Icons/filesSprite.png", "images/filesSprite.png"], [], field);
+        this.layersTool = new LayerManagerTool("layers", ["images/ThePixelSlime1Icons/layersSprite.png", "images/layersSprite.png"], field);
+        this.undoTool = new UndoRedoTool(this, "undo", ["images/ThePixelSlime1Icons/undoSprite.png", "images/undoSprite.png"], () => field.state.slow = !field.state.slow);
+        this.transformTool = new ScreenTransformationTool("move", ["images/favicon.ico"], [this.undoTool.localLayout], field);
+        this.colorPickerTool = new ColorPickerTool(field, "colorPicker", ["images/ThePixelSlime1Icons/colorPickerSprite.png", "images/colorPickerSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.selectionTool = new SelectionTool("selection", ["images/ThePixelSlime1Icons/selectionSprite.png", "images/selectionSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout], this);
+        this.outLineTool = new OutlineTool("outline", ["images/ThePixelSlime1Icons/outlineSprite.png", "images/outlineSprite.png"], this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.rotateTool = new RotateTool("rotate", ["images/ThePixelSlime1Icons/rotateSprite.png", "images/rotateSprite.png"], () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
+        this.dragTool = new DragTool("drag", ["images/ThePixelSlime1Icons/dragSprite.png", "images/dragSprite.png"], () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
+        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", ["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [this.transformTool.getOptionPanel()]);
+        this.copyTool = new CopyPasteTool("copy", ["images/ThePixelSlime1Icons/copySprite.png", "images/copySprite.png"], [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack = (tbprob) => {
@@ -2790,24 +2795,24 @@ class ToolSelector {
             tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen", "images/penSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen", ["images/ThePixelSlime1Icons/penSprite.png", "images/penSprite.png"], sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
         this.penTool.activateOptionPanel();
-        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser", "images/eraserSprite.png", [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser", ["images/ThePixelSlime1Icons/eraserSprite.png", "images/eraserSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
         PenTool.checkDrawCircular.callback = () => field.state.drawCircular = PenTool.checkDrawCircular.checked;
-        this.fillTool = new FillTool("fill", "images/fillSprite.png", [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout], () => {
+        this.fillTool = new FillTool("fill", ["images/ThePixelSlime1Icons/fillSprite.png", "images/fillSprite.png"], [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout], () => {
             field.layer().state.ignoreAlphaInFill = this.fillTool.checkIgnoreAlpha.checked;
         });
         this.toolBar.tools = [];
         this.toolBar.tools.push(this.penTool);
         //this.toolBar.tools.push(this.sprayCanTool);
         this.toolBar.tools.push(this.fillTool);
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "line", "images/LineDrawSprite.png"));
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", "images/rectSprite.png"));
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", "images/ovalSprite.png"));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "line", ["images/ThePixelSlime1Icons/LineDrawSprite.png", "images/LineDrawSprite.png"]));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", ["images/ThePixelSlime1Icons/rectSprite.png", "images/rectSprite.png"]));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", ["images/ThePixelSlime1Icons/ovalSprite.png", "images/ovalSprite.png"]));
         this.toolBar.tools.push(this.copyTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel(), "paste", "images/pasteSprite.png"));
+        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel(), "paste", ["images/ThePixelSlime1Icons/pasteSprite.png", "images/pasteSprite.png"]));
         this.toolBar.tools.push(this.dragTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", "images/redoSprite.png"));
+        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", ["images/ThePixelSlime1Icons/redoSprite.png", "images/redoSprite.png"]));
         this.toolBar.tools.push(this.undoTool);
         this.toolBar.tools.push(this.colorPickerTool);
         this.toolBar.tools.push(this.eraserTool);
