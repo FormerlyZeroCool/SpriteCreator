@@ -2862,6 +2862,12 @@ class ToolSelector {
             this.ctx = this.canvas.getContext("2d");
         }
     }
+    width() {
+        return this.canvas.width;
+    }
+    height() {
+        return this.canvas.height;
+    }
     draw() {
         if (this.repaint || Date.now() - this.lastDrawTime > 600) {
             this.repaint = false;
@@ -3489,15 +3495,23 @@ class DrawingScreen {
     setDim(newDim) {
         let zoom = new Pair(1, 1);
         if (newDim.length === 2) {
-            if (newDim[0] <= 512 && newDim[1] <= 512) {
+            if (newDim[0] <= 205 && newDim[1] <= 205) {
                 this.bounds.first = newDim[0] * Math.floor(1024 * 1.41 / newDim[0]);
-                zoom.first = 1 / Math.floor(1024 / newDim[0]);
                 this.bounds.second = newDim[1] * Math.floor(1024 * 1.41 / newDim[1]);
+                zoom.first = 1 / Math.floor(1024 / newDim[0]);
                 zoom.second = 1 / Math.floor(1024 / newDim[1]);
+            }
+            else if (newDim[0] <= 400 && newDim[1] <= 400) {
+                this.bounds.first = newDim[0] * 4;
+                this.bounds.second = newDim[1] * 4;
+                zoom.first = 1 / 4;
+                zoom.second = 1 / 4;
             }
             else if (newDim[0] <= 1024 && newDim[1] <= 1024) {
                 this.bounds.first = newDim[0] * 2;
                 this.bounds.second = newDim[1] * 2;
+                zoom.first = 1 / 2;
+                zoom.second = 1 / 2;
             }
             else {
                 this.bounds.first = newDim[0];
@@ -3906,6 +3920,7 @@ class ZoomState {
 ;
 class LayeredDrawingScreen {
     constructor(keyboardHandler, pallette) {
+        this.state = new DrawingScreenState(3);
         this.miniMapAlpha = 1;
         this.toolSelector = null;
         this.redraw = false;
@@ -3946,7 +3961,6 @@ class LayeredDrawingScreen {
                 }
             });
         }
-        this.state = new DrawingScreenState(3);
         this.dim = [524, 524];
         this.canvas.width = this.dim[0];
         this.canvas.height = this.dim[1];
@@ -4060,6 +4074,10 @@ class LayeredDrawingScreen {
             this.zoom.zoomX = zoom.first;
             this.zoom.zoomY = zoom.second;
         });
+        if (this.zoom)
+            this.zoom.offsetX = 0;
+        if (this.zoom)
+            this.zoom.offsetY = 0;
         if (this.state.bufferBitMask.length !== dim[0] * dim[1]) {
             this.state.bufferBitMask = [];
             for (let i = 0; i < dim[0] * dim[1]; ++i)
@@ -5908,8 +5926,8 @@ async function main() {
         const start = Date.now();
         toolSelector.draw();
         field.update();
-        if (canvas.width != getWidth() - 350) {
-            canvas.width = getWidth() - 350;
+        if (canvas.width != getWidth() - (toolSelector.width() + 30)) {
+            canvas.width = getWidth() - toolSelector.width() - 30;
             canvas.height = screen.height * 0.6;
         }
         if (pallette.canvas.width !== canvas.width)
