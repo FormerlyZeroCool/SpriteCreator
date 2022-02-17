@@ -5044,27 +5044,28 @@ class LayeredDrawingScreen {
                     this.state.bufferBitMask.push(true);
             }
            
-        if(this.layer())
-        {     
-            
-        const bounds:number[] = [this.layer().bounds.first, this.layer().bounds.second];
+        if(this.layers[0])
+        {
+            const bounds:number[] = [this.layers[0].bounds.first, this.layers[0].bounds.second];
             this.dim = [bounds[0], bounds[1]];
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d")!;
-            this.resizeTransparencyCanvas(this.dim, bounds[0] / this.layer().dimensions.first);
+            this.resizeTransparencyCanvas(bounds, bounds[0] / this.layers[0].dimensions.first);
+            console.log("HI!")
         }
         //this.resizeTransparencyCanvas(this.dim);
     }
     resizeTransparencyCanvas(bounds:number[], dim:number):void
     {
-        if((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1]))
+        //if((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1]))
         {
             this.canvasTransparency.width = bounds[0];
-            this.canvasTransparency.height = bounds[0];
+            this.canvasTransparency.height = bounds[1];
             const ctx:CanvasRenderingContext2D = this.canvasTransparency.getContext("2d")!;
             ctx.fillStyle = "#DCDCDF";
             ctx.globalAlpha = 0.7;
+            ctx.clearRect(0, 0, bounds[0], bounds[1]);
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
             let i = 0;
             const squareSize:number = dim;
