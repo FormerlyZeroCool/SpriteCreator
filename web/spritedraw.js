@@ -2278,7 +2278,7 @@ class ScreenTransformationTool extends ExtendedTool {
 ;
 class FilesManagerTool extends ExtendedTool {
     constructor(name, path, optionPanes, field) {
-        super(name, path, optionPanes, [200, 400], [1, 22]);
+        super(name, path, optionPanes, [200, 450], [2, 50]);
         this.savePng = new GuiButton(() => { field.saveToFile(this.pngName.text); }, "Save PNG", 85, 35, 16);
         this.pngName = new GuiTextBox(true, 200, this.savePng, 16, 35, GuiTextBox.bottom, (event) => {
             if (event.textbox.text.substring(event.textbox.text.length - 4, event.textbox.text.length) !== ".png") {
@@ -2306,6 +2306,36 @@ class FilesManagerTool extends ExtendedTool {
             }
             return true;
         });
+        this.saveSprites = new GuiButton(() => {
+            const columns = this.tbXPartitions.asNumber.get();
+            const rows = this.tbYPartitions.asNumber.get();
+            if (columns && rows) {
+                const width = field.layer().dimensions.first / columns;
+                const height = field.layer().dimensions.second / rows;
+                const animation = new SpriteAnimation(0, 0, width, height);
+                field.toolSelector.animationsGroupsSelector.animationGroup().pushAnimation(animation);
+                if (animation) {
+                    for (let y = 0; y < rows; y++) {
+                        for (let x = 0; x < columns; x++) {
+                            animation.sprites.push(field.selectionToSprite(x * width, y * height, width, height));
+                        }
+                    }
+                }
+            }
+        }, "Save Grid", 125, 35, 16);
+        this.tbXPartitions = new GuiTextBox(true, 80, this.saveSprites, 16, 35, GuiTextBox.bottom, (event) => {
+            if (!event.textbox.asNumber.get()) {
+                return false;
+            }
+            return true;
+        });
+        ;
+        this.tbYPartitions = new GuiTextBox(true, 80, this.saveSprites, 16, 35, GuiTextBox.bottom, (event) => {
+            if (!event.textbox.asNumber.get()) {
+                return false;
+            }
+            return true;
+        });
         this.gifName.setText("myFirst.gif");
         this.pngName.setText("myFirst.png");
         this.projectName.setText("myFirst.proj");
@@ -2318,6 +2348,9 @@ class FilesManagerTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("Save project to a file:", 200, 16, GuiTextBox.bottom, 35));
         this.localLayout.addElement(this.projectName);
         this.localLayout.addElement(this.saveProject);
+        this.localLayout.addElement(this.tbXPartitions);
+        this.localLayout.addElement(this.tbYPartitions);
+        this.localLayout.addElement(this.saveSprites);
     }
 }
 ;
@@ -4200,6 +4233,30 @@ class LayeredDrawingScreen {
             }
         });
     }
+    selectionToSprite(x, y, width, height) {
+        //set offscreen canvas state, and get ctx for rescale
+        this.offscreenCanvas.width = width;
+        this.offscreenCanvas.height = height;
+        const ctx = this.offscreenCanvas.getContext("2d");
+        for (let i = 0; i < this.layers.length; i++) {
+            if (this.layersState[i] && this.layers[i].drawWithAlpha) {
+                const sprite = this.layers[i].selectionToSprite([x, y, width, height]);
+                const oldAlpha = ctx.globalAlpha;
+                if (oldAlpha !== this.layers[i].drawWithAlpha) {
+                    ctx.globalAlpha = this.layers[i].drawWithAlpha;
+                    ctx.drawImage(sprite.image, x, y);
+                    ctx.globalAlpha = oldAlpha;
+                }
+                else
+                    ctx.drawImage(sprite.image, x, y);
+            }
+        }
+        const result = new Sprite([], width, height, false);
+        result.imageData = ctx.getImageData(0, 0, width, height);
+        result.pixels = result.imageData.data;
+        result.refreshImage();
+        return result;
+    }
     toSprite() {
         //set offscreen canvas state, and get ctx for rescale
         this.offscreenCanvas.width = this.layer().dimensions.first;
@@ -4207,7 +4264,7 @@ class LayeredDrawingScreen {
         const ctx = this.offscreenCanvas.getContext("2d");
         //rescale main canvas with offscreen canvas
         for (let i = 0; i < this.layers.length; i++) {
-            if (this.layersState[i]) {
+            if (this.layersState[i] && this.layers[i].drawWithAlpha) {
                 const layer = this.layers[i];
                 layer.drawToContextAsSprite(ctx, 0, 0, this.layer().dimensions.first, this.layer().dimensions.second);
             }
@@ -4904,8 +4961,8 @@ class Sprite {
         buf[index++] = 3;
         buf[index] |= this.height << 16;
         buf[index++] |= this.width;
-        for (let i = 0; i < this.pixels.length; i += 4) {
-            buf[index] = view[i];
+        for (let i = 0; i < this.pixels.length; i++) {
+            buf[index++] = view[i];
         }
         return index;
     }
