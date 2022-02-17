@@ -6020,6 +6020,7 @@ async function main() {
         if (canvas.width != getWidth() - (toolSelector.width() + 30)) {
             canvas.width = getWidth() - toolSelector.width() - 30;
             canvas.height = screen.height * 0.65;
+            counter = 0;
         }
         if (pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
