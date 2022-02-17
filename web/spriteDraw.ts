@@ -366,6 +366,7 @@ class ImageContainer {
     constructor(imageName:string, imagePath:string, callBack:((image:HTMLImageElement) => void) = (img) => console.log(imageName + " loaded."))
     {
         this.image = null;
+        if(imagePath && imageName)
         fetchImage(imagePath).then(img => { 
             this.image = img;
             callBack(img);
@@ -1983,16 +1984,12 @@ class ToolBarItem {
     {
         this.selected = selected;
         this.toolImages = [];
-        if(!(toolName instanceof String) && !(toolImagePath instanceof String) && toolName.length === toolImagePath.length)
+        if(Array.isArray(toolName) && !(toolImagePath instanceof String) && toolName.length === toolImagePath.length)
         {
             for(let i = 0; i < toolName.length; i++)
                 this.toolImages.push(new ImageContainer(toolName[i], toolImagePath[i]));
         }
-        else if(!(toolName instanceof String) && (toolImagePath instanceof String))
-        {
-            throw new Error("Invalid params for toolbar item both params should be same type");
-        }
-        else if(!Array.isArray(toolName instanceof String) && Array.isArray(toolImagePath))
+        else if(!Array.isArray(toolName) && Array.isArray(toolImagePath))
         {
             for(let i = 0; i < toolName.length; i++)
                 this.toolImages.push(new ImageContainer(toolName, toolImagePath[i]));
@@ -2002,6 +1999,10 @@ class ToolBarItem {
         else if(!Array.isArray(toolName) && !Array.isArray(toolImagePath))
         {
             this.toolImages.push(new ImageContainer(toolName, toolImagePath));
+        }
+        else if(!(toolName instanceof String) && (toolImagePath instanceof String))
+        {
+            throw new Error("Invalid params for toolbar item both params should be same type");
         }
     }
     imageContainer():ImageContainer {
@@ -2017,7 +2018,9 @@ class ToolBarItem {
     }
     image():HTMLImageElement | null
     {
-        return this.imageContainer()!.image!;
+        if(this.imageContainer())
+            return this.imageContainer()!.image!;
+        return null
     }
     name():string
     {
@@ -5229,7 +5232,7 @@ class LayeredDrawingScreen {
             renderingCtx.fillStyle = `rgba(125, 125, 125, ${this.miniMapAlpha})`;
             renderingCtx.globalAlpha = this.miniMapAlpha;
             renderingCtx.fillRect(0, 0, width, height);
-            renderingCtx.drawImage(this.canvasTransparency, 0, 0, width, height, -15, -15, width + 15, height + 15);
+            renderingCtx.drawImage(this.canvasTransparency, 0, 0, width, height, 0, 0, width, height);
             renderingCtx.lineWidth = 1;
             let projectionRect:number[] = [0, 0, 0, 0];
             if((this.layer().dimensions.second / this.layer().dimensions.first) <= 1)
@@ -5244,13 +5247,16 @@ class LayeredDrawingScreen {
             renderingCtx.drawImage(this.canvas, projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
             renderingCtx.strokeRect(1, 1, width-2, height-2);
 
-            renderingCtx.fillStyle = "#808080";
-            renderingCtx.strokeRect(projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
-            //Create border when aspect ratio is not 1:1
-            renderingCtx.fillRect(0, 0, width, projectionRect[1]);
-            renderingCtx.fillRect(0, projectionRect[1] + projectionRect[3], width, height - projectionRect[1] + projectionRect[3]);
-            renderingCtx.fillRect(0, projectionRect[1], projectionRect[0], height);
-            renderingCtx.fillRect(projectionRect[0] + projectionRect[2], 0, width - projectionRect[0] + projectionRect[2], height);
+            if(this.layer().dimensions.second / this.layer().dimensions.first !== 1)
+            {
+                renderingCtx.fillStyle = "#808080";
+                renderingCtx.strokeRect(projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
+                //Create border when aspect ratio is not 1:1
+                renderingCtx.fillRect(0, 0, width, projectionRect[1]);
+                renderingCtx.fillRect(0, projectionRect[1] + projectionRect[3], width, height - projectionRect[1] + projectionRect[3]);
+                renderingCtx.fillRect(0, projectionRect[1], projectionRect[0], height);
+                renderingCtx.fillRect(projectionRect[0] + projectionRect[2], 0, width - projectionRect[0] + projectionRect[2], height);
+            }
             //Render rectangle previewing current viewpoint
             renderingCtx.strokeStyle = "#FFFFFF";
             renderingCtx.strokeRect(view[0], view[1], view[2], view[3]);
