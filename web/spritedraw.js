@@ -2300,7 +2300,7 @@ class FilesManagerTool extends ExtendedTool {
         this.saveProject = new GuiButton(() => {
             field.toolSelector.animationsGroupsSelector.saveAs(this.projectName.text);
         }, "Save Project", 125, 35, 16);
-        this.projectName = new GuiTextBox(true, 200, this.saveGif, 16, 35, GuiTextBox.bottom, (event) => {
+        this.projectName = new GuiTextBox(true, 200, this.saveProject, 16, 35, GuiTextBox.bottom, (event) => {
             if (event.textbox.text.substring(event.textbox.text.length - 5, event.textbox.text.length) !== ".proj") {
                 return false;
             }
@@ -4904,7 +4904,7 @@ class Sprite {
         buf[index++] = 3;
         buf[index] |= this.height << 16;
         buf[index++] |= this.width;
-        for (let i = 0; i < this.pixels.length; i++) {
+        for (let i = 0; i < this.pixels.length; i += 4) {
             buf[index] = view[i];
         }
         return index;
@@ -5939,6 +5939,8 @@ async function main() {
             }
         }
     });
+    canvas.width = getWidth() - 350;
+    canvas.height = 500;
     field.setDimOnCurrent([128, 128]);
     const fps = 35;
     const goalSleep = 1000 / fps;

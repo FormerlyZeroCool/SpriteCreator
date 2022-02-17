@@ -2840,7 +2840,7 @@ class FilesManagerTool extends ExtendedTool {
         this.saveProject = new GuiButton(() => {
             field.toolSelector.animationsGroupsSelector.saveAs(this.projectName.text);
         }, "Save Project", 125, 35, 16);
-        this.projectName = new GuiTextBox(true, 200, this.saveGif, 16, 35, GuiTextBox.bottom, (event) => {
+        this.projectName = new GuiTextBox(true, 200, this.saveProject, 16, 35, GuiTextBox.bottom, (event) => {
             if(event.textbox.text.substring(event.textbox.text.length - 5, event.textbox.text.length) !== ".proj")
             {
                 return false;
