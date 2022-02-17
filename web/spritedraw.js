@@ -546,7 +546,7 @@ class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
     }
 }
 class GuiListItem extends SimpleGridLayoutManager {
-    constructor(text, state, pixelDim, fontSize = 16, callBack = () => { }, genericCallBack = null, slideMoved = null, flags = GuiTextBox.default, genericTouchType = "touchend") {
+    constructor(text, state, pixelDim, fontSize = 16, callBack = () => { }, genericCallBack = null, slideMoved = null, flags = GuiTextBox.bottom, genericTouchType = "touchend") {
         super([20, 1], pixelDim);
         this.callBackType = genericTouchType;
         this.callBack = genericCallBack;
@@ -2185,12 +2185,12 @@ class CopyPasteTool extends ExtendedTool {
 }
 ;
 class LayerManagerTool extends Tool {
-    constructor(name, path, field, limit = 12) {
+    constructor(name, path, field, limit = 16) {
         super(name, path);
         this.field = field;
         this.layersLimit = isTouchSupported() ? limit - Math.floor(limit / 4) : limit;
-        this.layoutManager = new SimpleGridLayoutManager([2, 24], [200, 500]);
-        this.list = new GuiCheckList([1, this.layersLimit], [200, 400], 20, (x1, x2) => {
+        this.layoutManager = new SimpleGridLayoutManager([2, 24], [200, 640]);
+        this.list = new GuiCheckList([1, this.layersLimit], [200, 520], 20, (x1, x2) => {
             this.field.swapLayers(x1, x2);
             this.field.layer().repaint = true;
         }, (event) => {

@@ -699,7 +699,7 @@ class GuiListItem extends SimpleGridLayoutManager {
     sliderX:number;
     callBackType:string;
     callBack:((e:any) => void) | null;
-    constructor(text:string, state:boolean, pixelDim:number[], fontSize:number = 16, callBack:((e:any) => void) | null = () => {}, genericCallBack:((e:any) => void) | null = null, slideMoved:((event:SlideEvent) => void) | null = null, flags:number = GuiTextBox.default, genericTouchType:string = "touchend")
+    constructor(text:string, state:boolean, pixelDim:number[], fontSize:number = 16, callBack:((e:any) => void) | null = () => {}, genericCallBack:((e:any) => void) | null = null, slideMoved:((event:SlideEvent) => void) | null = null, flags:number = GuiTextBox.bottom, genericTouchType:string = "touchend")
     {
         super([20, 1], pixelDim);
         this.callBackType = genericTouchType;
@@ -2704,13 +2704,13 @@ class LayerManagerTool extends Tool {
     buttonAddLayer:GuiButton;
     runningId:number;
     layersLimit:number;
-    constructor(name:string, path:string[], field:LayeredDrawingScreen, limit:number = 12)
+    constructor(name:string, path:string[], field:LayeredDrawingScreen, limit:number = 16)
     {
         super(name, path);
         this.field = field;
         this.layersLimit = isTouchSupported()?limit - Math.floor(limit / 4) : limit;
-        this.layoutManager = new SimpleGridLayoutManager([2, 24], [200, 500]);
-        this.list = new GuiCheckList([1, this.layersLimit], [200, 400], 20, (x1, x2) => {
+        this.layoutManager = new SimpleGridLayoutManager([2, 24], [200, 640]);
+        this.list = new GuiCheckList([1, this.layersLimit], [200, 520], 20, (x1, x2) => {
             this.field.swapLayers(x1, x2);
             this.field.layer().repaint = true;
         },
