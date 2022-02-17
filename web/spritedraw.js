@@ -2310,8 +2310,8 @@ class FilesManagerTool extends ExtendedTool {
             const columns = this.tbXPartitions.asNumber.get();
             const rows = this.tbYPartitions.asNumber.get();
             if (columns && rows) {
-                const width = field.layer().dimensions.first / columns;
-                const height = field.layer().dimensions.second / rows;
+                const width = Math.floor(field.layer().bounds.first / columns);
+                const height = Math.floor(field.layer().bounds.second / rows);
                 const animation = new SpriteAnimation(0, 0, width, height);
                 field.toolSelector.animationsGroupsSelector.animationGroup().pushAnimation(animation);
                 if (animation) {
@@ -4235,8 +4235,10 @@ class LayeredDrawingScreen {
     }
     selectionToSprite(x, y, width, height) {
         //set offscreen canvas state, and get ctx for rescale
-        this.offscreenCanvas.width = width;
-        this.offscreenCanvas.height = height;
+        const widthCanvasSpace = Math.floor((width - this.layer().offset.first) / this.layer().bounds.first * this.layer().dimensions.first);
+        const heightCanvasSpace = Math.floor((height - this.layer().offset.second) / this.layer().bounds.second * this.layer().dimensions.second);
+        this.offscreenCanvas.width = widthCanvasSpace;
+        this.offscreenCanvas.height = heightCanvasSpace;
         const ctx = this.offscreenCanvas.getContext("2d");
         for (let i = 0; i < this.layers.length; i++) {
             if (this.layersState[i] && this.layers[i].drawWithAlpha) {
@@ -4244,15 +4246,15 @@ class LayeredDrawingScreen {
                 const oldAlpha = ctx.globalAlpha;
                 if (oldAlpha !== this.layers[i].drawWithAlpha) {
                     ctx.globalAlpha = this.layers[i].drawWithAlpha;
-                    ctx.drawImage(sprite.image, x, y);
+                    ctx.drawImage(sprite.image, 0, 0);
                     ctx.globalAlpha = oldAlpha;
                 }
                 else
-                    ctx.drawImage(sprite.image, x, y);
+                    ctx.drawImage(sprite.image, 0, 0);
             }
         }
-        const result = new Sprite([], width, height, false);
-        result.imageData = ctx.getImageData(0, 0, width, height);
+        const result = new Sprite([], widthCanvasSpace, heightCanvasSpace, false);
+        result.imageData = ctx.getImageData(0, 0, widthCanvasSpace, heightCanvasSpace);
         result.pixels = result.imageData.data;
         result.refreshImage();
         return result;
@@ -4810,10 +4812,12 @@ class Pallette {
 }
 ;
 function buildSpriteFromBuffer(buffer, index) {
+    console.log(buffer[index - 2], buffer[index - 1]);
     const size = buffer[index++];
     const type = buffer[index++];
     const height = buffer[index] >> 16;
     const width = buffer[index++] & ((1 << 17) - 1);
+    console.log(size, type, height, width);
     const sprite = new Sprite([], width, height);
     if (type !== 3)
         throw new Error("Corrupted project file sprite type should be: 3, but is: " + type.toString());
@@ -4961,8 +4965,9 @@ class Sprite {
         buf[index++] = 3;
         buf[index] |= this.height << 16;
         buf[index++] |= this.width;
-        for (let i = 0; i < this.pixels.length; i++) {
-            buf[index++] = view[i];
+        for (let i = 0; i < view.length; i++) {
+            buf[index] = view[i];
+            index++;
         }
         return index;
     }
