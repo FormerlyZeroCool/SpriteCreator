@@ -5058,10 +5058,11 @@ class LayeredDrawingScreen {
     }
     resizeTransparencyCanvas(bounds:number[], dim:number):void
     {
-        //if((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1]))
+        if((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1]))
         {
             this.canvasTransparency.width = bounds[0];
             this.canvasTransparency.height = bounds[1];
+        }
             const ctx:CanvasRenderingContext2D = this.canvasTransparency.getContext("2d")!;
             ctx.fillStyle = "#DCDCDF";
             ctx.globalAlpha = 0.7;
@@ -5079,7 +5080,6 @@ class LayeredDrawingScreen {
                 i++;
             }
         }
-    }
     swapLayers(x1:number, x2:number):void
     {
         if(this.layers[x1] && this.layers[x2])
