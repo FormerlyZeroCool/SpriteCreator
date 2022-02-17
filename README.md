@@ -1,5 +1,6 @@
 An animation creation tool that allows users to do pixel art, and make animations from that pixel art.
-You can try it out: <a href="http://andrew-rubinstein.com/SpriteCreator/web">Here!</a>
+You can try it out: <a href="http://andrew-rubinstein.com/SpriteCreator/web">Here!</a><br>
+Developed by Andrew Rubinstein, with default icon artwork done by @ThePixelSlime1 (see images/PixelSlime1Icons)
 <br>
 <h2>The Drawing Screen</h2>
 This is where you create your sprites using the tools described below.
