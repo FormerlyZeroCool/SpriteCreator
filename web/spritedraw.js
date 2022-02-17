@@ -1472,6 +1472,12 @@ class GuiToolBar {
         this.ctx = this.canvas.getContext("2d");
         this.ctx.strokeStyle = "#000000";
     }
+    setImagesIndex(value) {
+        this.tools.forEach(tool => {
+            if (tool.toolImages.length > value)
+                tool.selected = value;
+        });
+    }
     resize(width = this.width(), height = this.height()) {
         this.canvas.width = width;
         this.canvas.height = height;
@@ -1573,20 +1579,37 @@ class RGB24BitPalette {
 class GuiPaletteSelector {
 }
 class ToolBarItem {
-    constructor(toolName, toolImagePath) {
-        this.toolImage = new ImageContainer(toolName, toolImagePath);
+    constructor(toolName, toolImagePath, selected = 0) {
+        this.selected = selected;
+        this.toolImages = [];
+        if (Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length === toolImagePath.length) {
+            for (let i = 0; i < toolName.length; i++)
+                this.toolImages.push(new ImageContainer(toolName[i], toolImagePath[i]));
+            this.selected = 0;
+        }
+        else if (Array.isArray(toolName) && !Array.isArray(toolImagePath)) {
+            throw new Error("Invalid params for toolbar item both params should be same type");
+        }
+        else if (Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length !== toolImagePath.length)
+            throw new Error("Invalid params for toolbar item both lists must be same length");
+        else if (!Array.isArray(toolName) && !Array.isArray(toolImagePath)) {
+            this.toolImages.push(new ImageContainer(toolName, toolImagePath));
+        }
+    }
+    imageContainer() {
+        return this.toolImages[this.selected];
     }
     width() {
-        return this.toolImage.image.width;
+        return this.imageContainer().image.width;
     }
     height() {
-        return this.toolImage.image.height;
+        return this.imageContainer().image.height;
     }
     image() {
-        return this.toolImage.image;
+        return this.imageContainer().image;
     }
     name() {
-        return this.toolImage.name;
+        return this.imageContainer().name;
     }
     drawImage(ctx, x, y, width, height) {
         if (this.image()) {
@@ -4881,7 +4904,7 @@ class Sprite {
         buf[index++] = 3;
         buf[index] |= this.height << 16;
         buf[index++] |= this.width;
-        for (let i = 0; i < this.pixels.length; i += 4) {
+        for (let i = 0; i < this.pixels.length; i++) {
             buf[index] = view[i];
         }
         return index;
@@ -5916,8 +5939,6 @@ async function main() {
             }
         }
     });
-    canvas.width = getWidth() - 350;
-    canvas.height = 500;
     field.setDimOnCurrent([128, 128]);
     const fps = 35;
     const goalSleep = 1000 / fps;

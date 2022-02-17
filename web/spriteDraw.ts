@@ -1848,6 +1848,13 @@ class GuiToolBar implements GuiElement {
         this.ctx = this.canvas.getContext("2d")!;
         this.ctx.strokeStyle = "#000000";
     }
+    setImagesIndex(value:number):void
+    {
+        this.tools.forEach(tool => {
+            if(tool.toolImages.length > value)
+                tool.selected = value;
+        });
+    }
     resize(width:number = this.width(), height:number = this.height()):void
     {
         this.canvas.width = width;
@@ -1895,7 +1902,7 @@ class GuiToolBar implements GuiElement {
             }
             const pixelX:number = gridX * this.toolRenderDim[0];
             const pixelY:number = gridY * this.toolRenderDim[1];
-            const image:HTMLImageElement = this.tools[i].image();
+            const image:HTMLImageElement | null = this.tools[i].image();
             if(image)
             {
                 this.ctx.drawImage(image, pixelX, pixelY, this.toolRenderDim[0], this.toolRenderDim[1]);
@@ -1970,32 +1977,53 @@ class GuiPaletteSelector implements GuiElement {
 
 }
 class ToolBarItem {
-    toolImage:ImageContainer;
-    constructor(toolName:string, toolImagePath:string)
+    toolImages:ImageContainer[];
+    selected:number;
+    constructor(toolName:string | string[], toolImagePath:string | string[], selected:number = 0)
     {
-        this.toolImage = new ImageContainer(toolName, toolImagePath);
+        this.selected = selected;
+        this.toolImages = [];
+        if(Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length === toolImagePath.length)
+        {
+            for(let i = 0; i < toolName.length; i++)
+                this.toolImages.push(new ImageContainer(toolName[i], toolImagePath[i]));
+            this.selected = 0;
+        }
+        else if(Array.isArray(toolName) && !Array.isArray(toolImagePath))
+        {
+            throw new Error("Invalid params for toolbar item both params should be same type");
+        }
+        else if(Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length !== toolImagePath.length)
+            throw new Error("Invalid params for toolbar item both lists must be same length");
+        else if(!Array.isArray(toolName) && !Array.isArray(toolImagePath))
+        {
+            this.toolImages.push(new ImageContainer(toolName, toolImagePath));
+        }
+    }
+    imageContainer():ImageContainer {
+        return this.toolImages[this.selected];
     }
     width():number
     {
-        return this.toolImage.image!.width;
+        return this.imageContainer()!.image!.width;
     }
     height():number
     {
-        return this.toolImage.image!.height;
+        return this.imageContainer()!.image!.height;
     }
-    image():HTMLImageElement
+    image():HTMLImageElement | null
     {
-        return this.toolImage.image!;
+        return this.imageContainer()!.image!;
     }
     name():string
     {
-        return this.toolImage.name;
+        return this.imageContainer()!.name;
     }
     drawImage(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number)
     {
         if(this.image())
         {
-            ctx.drawImage(this.image(), x, y, width, height);
+            ctx.drawImage(this.image()!, x, y, width, height);
         }
     }
 };
