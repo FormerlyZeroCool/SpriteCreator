@@ -1983,7 +1983,6 @@ class ToolBarItem {
     {
         this.selected = selected;
         this.toolImages = [];
-        this.selected = 0;
         if(!(toolName instanceof String) && !(toolImagePath instanceof String) && toolName.length === toolImagePath.length)
         {
             for(let i = 0; i < toolName.length; i++)
