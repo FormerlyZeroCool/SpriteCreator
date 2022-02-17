@@ -1983,21 +1983,20 @@ class ToolBarItem {
     {
         this.selected = selected;
         this.toolImages = [];
-        if(Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length === toolImagePath.length)
+        this.selected = 0;
+        if(!(toolName instanceof String) && !(toolImagePath instanceof String) && toolName.length === toolImagePath.length)
         {
             for(let i = 0; i < toolName.length; i++)
                 this.toolImages.push(new ImageContainer(toolName[i], toolImagePath[i]));
-            this.selected = 0;
         }
-        else if(Array.isArray(toolName) && !Array.isArray(toolImagePath))
+        else if(!(toolName instanceof String) && (toolImagePath instanceof String))
         {
             throw new Error("Invalid params for toolbar item both params should be same type");
         }
-        else if(!Array.isArray(toolName) && Array.isArray(toolImagePath))
+        else if(!Array.isArray(toolName instanceof String) && Array.isArray(toolImagePath))
         {
             for(let i = 0; i < toolName.length; i++)
                 this.toolImages.push(new ImageContainer(toolName, toolImagePath[i]));
-            this.selected = 0;
         }
         else if(Array.isArray(toolName) && Array.isArray(toolImagePath) && toolName.length !== toolImagePath.length)
             throw new Error("Invalid params for toolbar item both lists must be same length");
@@ -2458,7 +2457,10 @@ class DrawingScreenSettingsTool extends ExtendedTool {
             this.recalcDim();
             if(this.textboxPaletteSize.asNumber.get())
             {
-                field.pallette.changeSize(this.textboxPaletteSize.asNumber.get()!)
+                if(this.textboxPaletteSize.asNumber.get() < 128)
+                    field.pallette.changeSize(this.textboxPaletteSize.asNumber.get()!)
+                else
+                    field.toolSelector.toolBar.setImagesIndex(+!this.selected);
             }
         },
             "Update", 75, 40, 16);
