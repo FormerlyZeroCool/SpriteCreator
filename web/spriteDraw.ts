@@ -2957,7 +2957,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     filesManagerTool:FilesManagerTool;
     selectionTool:SelectionTool;
     polygon:number[][];
-    constructor(pallette:Pallette, keyboardHandler:KeyboardHandler, drawingScreenListener:SingleTouchListener, imgWidth:number = 50, imgHeight:number = 50)
+    constructor(pallette:Pallette, keyboardHandler:KeyboardHandler, drawingScreenListener:SingleTouchListener, imgWidth:number = 64, imgHeight:number = 64)
     {
         this.lastDrawTime = Date.now();
         this.polygon = [];
@@ -2966,7 +2966,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         field.toolSelector = this;
         field.addBlankLayer();
         this.field = field;
-        this.toolBar = new GuiToolBar([50, 50], []);
+        this.toolBar = new GuiToolBar([64, 64], []);
         this.toolBar.activate();
         this.toolBar.toolRenderDim[1] = imgHeight;
         this.toolBar.toolRenderDim[0] = imgWidth;
@@ -7153,7 +7153,7 @@ async function main()
     const keyboardHandler:KeyboardHandler = new KeyboardHandler();
     const pallette:Pallette = new Pallette(document.getElementById("pallette_screen"), keyboardHandler);
     const canvasListener:SingleTouchListener = new SingleTouchListener(canvas, true, true);
-    const toolSelector:ToolSelector = new ToolSelector(pallette, keyboardHandler, canvasListener, 50, 50);
+    const toolSelector:ToolSelector = new ToolSelector(pallette, keyboardHandler, canvasListener, 64, 64);
     field = toolSelector.field;
     field.toolSelector = toolSelector;
     
@@ -7373,7 +7373,7 @@ async function main()
         if(canvas.width != getWidth() - (toolSelector.width() + 30))
         {
             canvas.width = getWidth() - toolSelector.width() - 30;
-            canvas.height = screen.height * 0.6;
+            canvas.height = screen.height * 0.65;
         }
         if(pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;

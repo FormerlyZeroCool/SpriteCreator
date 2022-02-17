@@ -6,24 +6,29 @@
     </head>
 <body id="body">
     <h2 id="site_name">Sprite Draw</h2>
-    <div>
-        <canvas id="pallette_screen" width="500" height="50"
-        style="border:1px solid #000000;">
-        </canvas>
-    </div>
     <div style="display: inline-block;">
-        <canvas id="screen" width="600" height="600"
-        style="border:1px solid #c3c3c3;">
-    </canvas>
-    <canvas id="tool_selector_screen" width="50" height="500"
-    style="border:1px solid #000000;">
-</canvas>
+        <table>
+            <tr>
+                <td>
+                    <canvas id="pallette_screen" width="500" height="50"
+                    style="border:1px solid #000000;"></canvas>
+                    <canvas id="screen" width="500" height="500"
+                    style="border:1px solid #c3c3c3;"></canvas>
+                </td> 
+                <td> 
+                <canvas id="tool_selector_screen" width="50" height="500"
+                style="border:1px solid #000000;"></canvas>
+                </td>
+            </tr>
+        </table>
+    </div>
+
 
     <div id="post-drawing-field" style="display: inline-block;">
 
         
     </div>
-    </div>
+    
 
     <div id="sprites_group" style="display: inline;">
         Choose image to upload to layer: <input type="file" id="file-selector" multiple><br>

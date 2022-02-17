@@ -2376,7 +2376,7 @@ class SelectionTool extends ExtendedTool {
 ;
 //megadrive mode adds 6 colors to palette, restricts color selection to 8 red 8 green 8 blue, and 1 transparent color
 class ToolSelector {
-    constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 50, imgHeight = 50) {
+    constructor(pallette, keyboardHandler, drawingScreenListener, imgWidth = 64, imgHeight = 64) {
         this.lastDrawTime = Date.now();
         this.polygon = [];
         this.animationsGroupsSelector = null;
@@ -2384,7 +2384,7 @@ class ToolSelector {
         field.toolSelector = this;
         field.addBlankLayer();
         this.field = field;
-        this.toolBar = new GuiToolBar([50, 50], []);
+        this.toolBar = new GuiToolBar([64, 64], []);
         this.toolBar.activate();
         this.toolBar.toolRenderDim[1] = imgHeight;
         this.toolBar.toolRenderDim[0] = imgWidth;
@@ -5828,7 +5828,7 @@ async function main() {
     const keyboardHandler = new KeyboardHandler();
     const pallette = new Pallette(document.getElementById("pallette_screen"), keyboardHandler);
     const canvasListener = new SingleTouchListener(canvas, true, true);
-    const toolSelector = new ToolSelector(pallette, keyboardHandler, canvasListener, 50, 50);
+    const toolSelector = new ToolSelector(pallette, keyboardHandler, canvasListener, 64, 64);
     field = toolSelector.field;
     field.toolSelector = toolSelector;
     //const field:DrawingScreen = new DrawingScreen(<HTMLCanvasElement> , keyboardHandler, pallette,[0,0], dim);
@@ -6019,7 +6019,7 @@ async function main() {
         field.update();
         if (canvas.width != getWidth() - (toolSelector.width() + 30)) {
             canvas.width = getWidth() - toolSelector.width() - 30;
-            canvas.height = screen.height * 0.6;
+            canvas.height = screen.height * 0.65;
         }
         if (pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
