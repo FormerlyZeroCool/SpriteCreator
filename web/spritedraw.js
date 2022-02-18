@@ -1906,7 +1906,7 @@ class SprayCanTool extends PenTool {
 }
 ;
 class ColorPickerTool extends ExtendedTool {
-    constructor(field, toolName = "colorPicker", pathToImage = ["images/colorPickerSprite.png"], optionPanes = []) {
+    constructor(field, toolName = "color picker", pathToImage = ["images/colorPickerSprite.png"], optionPanes = []) {
         super(toolName, pathToImage, optionPanes, [200, 100], [1, 30]);
         this.field = field;
         this.tbColor = new GuiTextBox(true, 200, null, 16, 32, GuiTextBox.default, (e) => {
@@ -2590,7 +2590,7 @@ class ToolSelector {
                         case ("paste"):
                             field.state.pasteRect = [touchPos[0] - field.state.pasteRect[2] / 2, touchPos[1] - field.state.pasteRect[3] / 2, field.state.pasteRect[2], field.state.pasteRect[3]];
                             break;
-                        case ("colorPicker"):
+                        case ("color picker"):
                             field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
                             // for Gui lib
                             field.layer().toolSelector.updateColorPickerTextBox();
@@ -2621,6 +2621,8 @@ class ToolSelector {
                         case ("outline"):
                             field.layer().autoOutline(new Pair(gx, gy), false);
                             break;
+                        case ("settings"):
+                        case ("save"):
                         case ("layers"):
                         case ("move"):
                             field.zoom.offsetX -= e.deltaX;
@@ -2684,7 +2686,7 @@ class ToolSelector {
                             field.state.pasteRect[0] += (deltaX);
                             field.state.pasteRect[1] += (deltaY);
                             break;
-                        case ("colorPicker"):
+                        case ("color picker"):
                             field.state.color.copy(field.layer().screenBuffer[gx + gy * field.layer().dimensions.first]);
                             field.layer().toolSelector.updateColorPickerTextBox();
                             repaint = false;
@@ -2772,7 +2774,7 @@ class ToolSelector {
                             field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0] + field.state.selectionRect[2], field.state.selectionRect[1] + field.state.selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
                             field.state.selectionRect = [0, 0, 0, 0];
                             break;
-                        case ("colorPicker"):
+                        case ("color picker"):
                             repaint = false;
                             break;
                     }
@@ -2780,16 +2782,16 @@ class ToolSelector {
                 field.layer().repaint = repaint;
             });
         }
-        this.filesManagerTool = new FilesManagerTool("fileManager", ["images/ThePixelSlime1Icons/filesSprite.png", "images/filesSprite.png"], [], field);
+        this.filesManagerTool = new FilesManagerTool("save", ["images/ThePixelSlime1Icons/filesSprite.png", "images/filesSprite.png"], [], field);
         this.layersTool = new LayerManagerTool("layers", ["images/ThePixelSlime1Icons/layersSprite.png", "images/layersSprite.png"], field);
         this.undoTool = new UndoRedoTool(this, "undo", ["images/ThePixelSlime1Icons/undoSprite.png", "images/undoSprite.png"], () => field.state.slow = !field.state.slow);
-        this.transformTool = new ScreenTransformationTool("move", ["images/favicon.ico"], [this.undoTool.localLayout], field);
-        this.colorPickerTool = new ColorPickerTool(field, "colorPicker", ["images/ThePixelSlime1Icons/colorPickerSprite.png", "images/colorPickerSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.transformTool = new ScreenTransformationTool("move", ["images/ThePixelSlime1Icons/moveSprite.png", "images/favicon.ico"], [this.undoTool.localLayout], field);
+        this.colorPickerTool = new ColorPickerTool(field, "color picker", ["images/ThePixelSlime1Icons/colorPickerSprite.png", "images/colorPickerSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
         this.selectionTool = new SelectionTool("selection", ["images/ThePixelSlime1Icons/selectionSprite.png", "images/selectionSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.outLineTool = new OutlineTool("outline", ["images/ThePixelSlime1Icons/outlineSprite.png", "images/outlineSprite.png"], this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
         this.rotateTool = new RotateTool("rotate", ["images/ThePixelSlime1Icons/rotateSprite.png", "images/rotateSprite.png"], () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout], this);
         this.dragTool = new DragTool("drag", ["images/ThePixelSlime1Icons/dragSprite.png", "images/dragSprite.png"], () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "move", ["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [this.transformTool.getOptionPanel()]);
+        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "settings", ["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [this.transformTool.getOptionPanel()]);
         this.copyTool = new CopyPasteTool("copy", ["images/ThePixelSlime1Icons/copySprite.png", "images/copySprite.png"], [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
@@ -2824,9 +2826,9 @@ class ToolSelector {
         this.toolBar.tools.push(this.outLineTool);
         this.toolBar.tools.push(this.layersTool);
         this.toolBar.tools.push(this.selectionTool);
+        this.toolBar.tools.push(this.transformTool);
         this.toolBar.tools.push(this.filesManagerTool);
         this.toolBar.tools.push(this.settingsTool);
-        //this.toolBar.tools.push(this.transformTool);
         this.toolBar.resize();
         this.ctx = this.canvas.getContext("2d");
         this.ctx.lineWidth = 2;
@@ -2934,17 +2936,31 @@ class ToolSelector {
         return this.canvas.height;
     }
     draw() {
+        const imgPerColumn = (this.toolPixelDim[1] / this.toolBar.toolRenderDim[1]);
+        const imgPerRow = (this.toolPixelDim[0] / this.toolBar.toolRenderDim[0]);
         if (this.repaint || Date.now() - this.lastDrawTime > 600) {
             this.repaint = false;
             this.lastDrawTime = Date.now();
             this.resizeCanvas();
-            const imgPerColumn = (this.toolPixelDim[1] / this.toolBar.toolRenderDim[1]);
-            const imgPerRow = (this.toolPixelDim[0] / this.toolBar.toolRenderDim[0]);
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.toolBar.refresh();
             this.toolBar.draw(this.ctx, 0, 0);
             if (this.tool()) {
                 this.toolBar.tools[this.selected()].drawOptionPanel(this.ctx, this.toolBar.toolRenderDim[0] * imgPerRow, 0);
+            }
+            console.log(this.touchListener.mouseOverElement);
+            if (this.touchListener.mouseOverElement) {
+                const touchPos = this.touchListener.touchPos;
+                const x = Math.floor(touchPos[0] / this.toolPixelDim[0] * imgPerRow);
+                const y = Math.floor(touchPos[1] / this.toolPixelDim[1] * imgPerColumn);
+                if (this.toolBar.tools[x * imgPerColumn + y]) {
+                    const name = this.toolBar.tools[x * imgPerColumn + y].name();
+                    this.ctx.font = '16px Calibri';
+                    this.ctx.strokeStyle = "#FFFF00";
+                    this.ctx.strokeText(name, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
+                    this.ctx.fillStyle = "#000000";
+                    this.ctx.fillText(name, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
+                }
             }
         }
     }
@@ -4503,6 +4519,7 @@ class SingleTouchListener {
             touchmove: [],
             touchend: []
         };
+        this.mouseOverElement = false;
         if (component) {
             if (isTouchSupported()) {
                 component.addEventListener('touchstart', (event) => { this.touchStartHandler(event); }, false);
@@ -4510,8 +4527,14 @@ class SingleTouchListener {
                 component.addEventListener('touchend', (event) => this.touchEndHandler(event), false);
             }
             if (mouseEmulation && !isTouchSupported()) {
+                component.addEventListener("mouseover", (event) => { this.mouseOverElement = true; });
+                component.addEventListener("mouseleave", (event) => { console.log("HI!"); this.mouseOverElement = false; });
                 component.addEventListener('mousedown', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchStartHandler(event); });
-                component.addEventListener('mousemove', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchMoveHandler(event); });
+                component.addEventListener('mousemove', (event) => {
+                    event.changedTouches = {};
+                    event.changedTouches.item = (x) => event;
+                    this.touchMoveHandler(event);
+                });
                 component.addEventListener('mouseup', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchEndHandler(event); });
             }
         }
@@ -4553,9 +4576,6 @@ class SingleTouchListener {
         if (this.registeredTouch !== SingleTouchListener.mouseDown.mouseDown) {
             this.touchEndHandler(event);
         }
-        if (!this.registeredTouch)
-            return false;
-        ++this.moveCount;
         let touchMove = event.changedTouches.item(0);
         for (let i = 0; i < event.changedTouches["length"]; i++) {
             console.log(this.touchStart.identifier, event.changedTouches.item(i).identifier);
@@ -4564,16 +4584,24 @@ class SingleTouchListener {
             }
         }
         if (touchMove) {
-            if (!touchMove["offsetY"]) {
-                touchMove.offsetY = touchMove["clientY"] - this.component.getBoundingClientRect().top;
+            try {
+                if (!touchMove["offsetY"]) {
+                    touchMove.offsetY = touchMove["clientY"] - this.component.getBoundingClientRect().top;
+                }
+                if (!touchMove["offsetX"]) {
+                    touchMove.offsetX = touchMove["clientX"] - this.component.getBoundingClientRect().left;
+                }
             }
-            if (!touchMove["offsetX"]) {
-                touchMove.offsetX = touchMove["clientX"] - this.component.getBoundingClientRect().left;
+            catch (error) {
+                console.log(error);
             }
             const deltaY = touchMove["offsetY"] - this.touchPos[1];
             const deltaX = touchMove["offsetX"] - this.touchPos[0];
             this.touchPos[1] += deltaY;
             this.touchPos[0] += deltaX;
+            if (!this.registeredTouch)
+                return false;
+            ++this.moveCount;
             const mag = this.mag([deltaX, deltaY]);
             this.touchMoveCount++;
             this.deltaTouchPos += Math.abs(mag);
