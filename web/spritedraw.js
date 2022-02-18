@@ -2956,7 +2956,7 @@ class ToolSelector {
                     const name = this.toolBar.tools[x * imgPerColumn + y].name();
                     const wordsInName = name.split(" ");
                     for (let i = 0; i < wordsInName.length; i++) {
-                        wordsInName[i] = wordsInName[i][0].toUpperCase() + wordsInName[i].substr(1);
+                        wordsInName[i] = wordsInName[i][0].toUpperCase() + wordsInName[i].substring(1);
                     }
                     const capitalized = wordsInName.join(' ');
                     this.ctx.font = '16px Calibri';

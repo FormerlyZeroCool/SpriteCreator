@@ -3598,7 +3598,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     const wordsInName:string[] = name.split(" ");
 
                     for (let i = 0; i < wordsInName.length; i++) {
-                        wordsInName[i] = wordsInName[i][0].toUpperCase() + wordsInName[i].substr(1);
+                        wordsInName[i] = wordsInName[i][0].toUpperCase() + wordsInName[i].substring(1);
                     }
                     const capitalized:string = wordsInName.join(' ');
                     this.ctx.font = '16px Calibri';
