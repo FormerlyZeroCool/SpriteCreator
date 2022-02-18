@@ -3595,11 +3595,17 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 if(this.toolBar.tools[x * imgPerColumn + y])
                 {
                     const name:string = this.toolBar.tools[x * imgPerColumn + y].name();
+                    const wordsInName:string[] = name.split(" ");
+
+                    for (let i = 0; i < wordsInName.length; i++) {
+                        wordsInName[i] = wordsInName[i][0].toUpperCase() + wordsInName[i].substr(1);
+                    }
+                    const capitalized:string = wordsInName.join(' ');
                     this.ctx.font = '16px Calibri';
                     this.ctx.strokeStyle = "#FFFF00";
-                    this.ctx.strokeText(name, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
+                    this.ctx.strokeText(capitalized, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
                     this.ctx.fillStyle = "#000000";
-                    this.ctx.fillText(name, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
+                    this.ctx.fillText(capitalized, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
                 }
             }
         }
