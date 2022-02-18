@@ -3587,7 +3587,8 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             if(this.tool()){
                 (<Tool>this.toolBar.tools[this.selected()]).drawOptionPanel(this.ctx, this.toolBar.toolRenderDim[0]*imgPerRow, 0);
             }
-            if(this.touchListener.mouseOverElement)
+            //render name of tool mouse is hovering over/last selected in touchscreen
+            if(this.touchListener.mouseOverElement || isTouchSupported())
             {
                 const touchPos:number[] = this.touchListener.touchPos;
                 const x:number = Math.floor(touchPos[0] / this.toolPixelDim[0] * imgPerRow);
