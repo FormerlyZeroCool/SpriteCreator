@@ -3587,7 +3587,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             if(this.tool()){
                 (<Tool>this.toolBar.tools[this.selected()]).drawOptionPanel(this.ctx, this.toolBar.toolRenderDim[0]*imgPerRow, 0);
             }
-            console.log(this.touchListener.mouseOverElement)
             if(this.touchListener.mouseOverElement)
             {
                 const touchPos:number[] = this.touchListener.touchPos;
@@ -5528,7 +5527,7 @@ class SingleTouchListener
             }
             if(mouseEmulation && !isTouchSupported()){
                 component.addEventListener("mouseover", (event:any) => { this.mouseOverElement = true;});
-                component.addEventListener("mouseleave", (event:any) => { console.log("HI!");this.mouseOverElement = false;});
+                component.addEventListener("mouseleave", (event:any) => { this.mouseOverElement = false;});
                 component.addEventListener('mousedown', (event:any) => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = (x:any) => event; this.touchStartHandler(event)});
                 component.addEventListener('mousemove', (event:any) => {
                     (<any>event).changedTouches = {};(<any>event).changedTouches.item = (x:any) => event; this.touchMoveHandler(event)

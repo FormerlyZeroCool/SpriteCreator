@@ -2948,7 +2948,6 @@ class ToolSelector {
             if (this.tool()) {
                 this.toolBar.tools[this.selected()].drawOptionPanel(this.ctx, this.toolBar.toolRenderDim[0] * imgPerRow, 0);
             }
-            console.log(this.touchListener.mouseOverElement);
             if (this.touchListener.mouseOverElement) {
                 const touchPos = this.touchListener.touchPos;
                 const x = Math.floor(touchPos[0] / this.toolPixelDim[0] * imgPerRow);
@@ -4528,7 +4527,7 @@ class SingleTouchListener {
             }
             if (mouseEmulation && !isTouchSupported()) {
                 component.addEventListener("mouseover", (event) => { this.mouseOverElement = true; });
-                component.addEventListener("mouseleave", (event) => { console.log("HI!"); this.mouseOverElement = false; });
+                component.addEventListener("mouseleave", (event) => { this.mouseOverElement = false; });
                 component.addEventListener('mousedown', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchStartHandler(event); });
                 component.addEventListener('mousemove', (event) => {
                     event.changedTouches = {};
