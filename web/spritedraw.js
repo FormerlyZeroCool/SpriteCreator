@@ -6012,7 +6012,7 @@ async function main() {
         if (!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)) {
             if (e.code.substring(0, "Digit".length) === "Digit") {
                 const numTyped = e.code.substring("Digit".length, e.code.length);
-                pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
+                pallette.highLightedCell = (parseInt(numTyped) + 9) % 10 + 2;
                 pallette.selectedPixelColor.color = pallette.calcColor(pallette.highLightedCell).color;
             }
         }
