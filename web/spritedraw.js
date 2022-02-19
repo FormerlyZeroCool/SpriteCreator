@@ -3878,20 +3878,23 @@ class DrawingScreen {
                 const dest_y = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height / 2) - this.offset.second) / this.bounds.second * this.dimensions.second);
                 const width = this.clipBoard.sprite.width;
                 const initialIndex = dest_x + dest_y * this.dimensions.first;
-                const view = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
-                for (let i = 0; i < view.length; i++) {
+                const clipboardView = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
+                const spriteView = new Uint32Array(spriteScreenBuf.pixels.buffer);
+                for (let i = 0; i < clipboardView.length; i++) {
                     const copyAreaX = i % width;
                     const copyAreaY = Math.floor(i / width);
                     const destIndex = initialIndex + copyAreaX + copyAreaY * this.dimensions.first;
                     const x = destIndex % this.dimensions.first;
                     const y = Math.floor(destIndex / this.dimensions.first);
-                    source.color = view[i];
+                    source.color = clipboardView[i];
                     if (this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY)) {
                         toCopy.color = this.screenBuffer[destIndex].color;
-                        if (this.state.blendAlphaOnPaste)
-                            spriteScreenBuf.fillRectAlphaBlend(toCopy, source, x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                        if (this.state.blendAlphaOnPaste) {
+                            blendAlphaCopy(source, toCopy);
+                            spriteView[destIndex] = source.color;
+                        }
                         else
-                            spriteScreenBuf.fillRect(source, x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                            spriteView[destIndex] = source.color;
                     }
                 }
             }

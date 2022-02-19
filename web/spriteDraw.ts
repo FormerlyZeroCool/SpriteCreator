@@ -4701,22 +4701,25 @@ class DrawingScreen {
                 const dest_y:number = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height/2)-this.offset.second)/this.bounds.second*this.dimensions.second);
                 const width:number = this.clipBoard.sprite.width;
                 const initialIndex:number = dest_x + dest_y*this.dimensions.first;
-                const view:Uint32Array = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
-                for(let i = 0; i < view.length; i++)
+                const clipboardView:Uint32Array = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
+                const spriteView:Uint32Array = new Uint32Array(spriteScreenBuf.pixels.buffer);
+                for(let i = 0; i < clipboardView.length; i++)
                 {
                     const copyAreaX:number = i%width;
                     const copyAreaY:number = Math.floor(i/width);
                     const destIndex:number = initialIndex + copyAreaX + copyAreaY*this.dimensions.first;
                     const x:number = destIndex % this.dimensions.first;
                     const y:number = Math.floor(destIndex/this.dimensions.first);
-                    source.color = view[i];
+                    source.color = clipboardView[i];
                     if(this.inBufferBounds(dest_x + copyAreaX, dest_y + copyAreaY))
                     {
                         toCopy.color = this.screenBuffer[destIndex].color;
-                        if(this.state.blendAlphaOnPaste)
-                            spriteScreenBuf.fillRectAlphaBlend(toCopy, source, x*cellWidth, y*cellHeight, cellWidth, cellHeight);
+                        if(this.state.blendAlphaOnPaste){
+                            blendAlphaCopy(source, toCopy);
+                            spriteView[destIndex] = source.color;
+                        }
                         else
-                            spriteScreenBuf.fillRect(source, x*cellWidth, y*cellHeight, cellWidth, cellHeight);
+                            spriteView[destIndex] = source.color;
                     
                     }
                 }
