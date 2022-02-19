@@ -2447,9 +2447,10 @@ class DrawingScreenSettingsTool extends ExtendedTool {
     dim:number[];
     field:LayeredDrawingScreen;
     textboxPaletteSize:GuiTextBox;
+    checkboxPixelGrid:GuiCheckBox;
     constructor(dim:number[] = [524, 524], field:LayeredDrawingScreen, toolName:string, pathToImage:string[], optionPanes:SimpleGridLayoutManager[])
     {
-        super(toolName, pathToImage, optionPanes, [200, 275], [4, 50]);
+        super(toolName, pathToImage, optionPanes, [200, 300], [4, 50]);
         this.dim = dim;
         this.field = field;
         this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
@@ -2499,6 +2500,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         })
         this.tbX.submissionButton = this.btUpdate;
         this.tbY.submissionButton = this.btUpdate;
+        this.checkboxPixelGrid = new GuiCheckBox((e:any) => {field.layer().repaint = true}, 40, 40);
         this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.top, 20));
         this.localLayout.addElement(new GuiLabel("Width:", 90, 16));
         this.localLayout.addElement(new GuiLabel("Height:", 90, 16));
@@ -2513,6 +2515,8 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("palette\nsize:", 100, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.textboxPaletteSize);
         this.localLayout.addElement(this.btUpdate);
+        this.localLayout.addElement(new GuiLabel("Show grid?", 100, 16, GuiTextBox.bottom, 40));
+        this.localLayout.addElement(this.checkboxPixelGrid);
 
     }
     setDim(dim:number[]):void
@@ -4885,6 +4889,7 @@ class LayeredDrawingScreen {
     clipBoard:ClipBoard;
     canvas:HTMLCanvasElement;
     canvasTransparency:HTMLCanvasElement;
+    canvasPixelGrid:HTMLCanvasElement;
     spriteTest:Sprite;
     dim:number[];
     ctx:CanvasRenderingContext2D;
@@ -4908,6 +4913,7 @@ class LayeredDrawingScreen {
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
+        this.canvasPixelGrid = document.createElement("canvas");
         this.maskWorkers = [];
         const poolSize:number = window.navigator.hardwareConcurrency < 4 ? 4 : window.navigator.hardwareConcurrency;
         for(let i = 0; i < poolSize; i++) {
@@ -5089,10 +5095,34 @@ class LayeredDrawingScreen {
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d")!;
-            this.resizeTransparencyCanvas(bounds, bounds[0] / this.layers[0].dimensions.first);
-            console.log("HI!")
+            this.resizeTransparencyCanvas(bounds, bounds[0] / this.layers[0].dimensions.first * 8);
+            this.resizePixelGridCanvas(bounds, bounds[0] / this.layers[0].dimensions.first);
         }
         //this.resizeTransparencyCanvas(this.dim);
+    }
+    
+    resizePixelGridCanvas(bounds:number[], dim:number):void
+    {
+        if((this.canvasPixelGrid.width !== bounds[0] || this.canvasPixelGrid.height !== bounds[1]))
+        {
+            this.canvasPixelGrid.width = bounds[0];
+            this.canvasPixelGrid.height = bounds[1];
+        }
+            const ctx:CanvasRenderingContext2D = this.canvasPixelGrid.getContext("2d")!;
+            ctx.strokeStyle = "#DCDCDF";
+            ctx.clearRect(0, 0, bounds[0], bounds[1]);
+            let i = 0;
+            const squareSize:number = dim;
+            ctx.beginPath();
+            for(let i = 0; i < bounds[0]; i += squareSize){
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, bounds[1]);
+            }
+            for(let i = 0; i < bounds[1]; i += squareSize){
+                ctx.moveTo(0, i);
+                ctx.lineTo(bounds[0], i);
+            }
+            ctx.stroke();
     }
     resizeTransparencyCanvas(bounds:number[], dim:number):void
     {
@@ -5117,7 +5147,7 @@ class LayeredDrawingScreen {
                 }
                 i++;
             }
-        }
+    }
     swapLayers(x1:number, x2:number):void
     {
         if(this.layers[x1] && this.layers[x2])
@@ -5350,6 +5380,8 @@ class LayeredDrawingScreen {
                 this.ctx.strokeStyle = "#FF0000";
                 this.ctx.strokeRect(this.state.selectionSelectionRect[0], this.state.selectionSelectionRect[1], this.state.selectionSelectionRect[2], this.state.selectionSelectionRect[3]);
             }
+            if(this.toolSelector.settingsTool.checkboxPixelGrid.checked)
+                this.ctx.drawImage(this.canvasPixelGrid, 0, 0);
         }
         {
             const zoomedWidth:number = this.width() * this.zoom.zoomX;

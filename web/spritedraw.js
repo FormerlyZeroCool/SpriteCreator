@@ -1973,7 +1973,7 @@ class ColorPickerTool extends ExtendedTool {
 ;
 class DrawingScreenSettingsTool extends ExtendedTool {
     constructor(dim = [524, 524], field, toolName, pathToImage, optionPanes) {
-        super(toolName, pathToImage, optionPanes, [200, 275], [4, 50]);
+        super(toolName, pathToImage, optionPanes, [200, 300], [4, 50]);
         this.dim = dim;
         this.field = field;
         this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
@@ -2017,6 +2017,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         });
         this.tbX.submissionButton = this.btUpdate;
         this.tbY.submissionButton = this.btUpdate;
+        this.checkboxPixelGrid = new GuiCheckBox((e) => { field.layer().repaint = true; }, 40, 40);
         this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.top, 20));
         this.localLayout.addElement(new GuiLabel("Width:", 90, 16));
         this.localLayout.addElement(new GuiLabel("Height:", 90, 16));
@@ -2031,6 +2032,8 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("palette\nsize:", 100, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.textboxPaletteSize);
         this.localLayout.addElement(this.btUpdate);
+        this.localLayout.addElement(new GuiLabel("Show grid?", 100, 16, GuiTextBox.bottom, 40));
+        this.localLayout.addElement(this.checkboxPixelGrid);
     }
     setDim(dim) {
         this.tbX.setText(dim[0].toString());
@@ -4027,6 +4030,7 @@ class LayeredDrawingScreen {
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
+        this.canvasPixelGrid = document.createElement("canvas");
         this.maskWorkers = [];
         const poolSize = window.navigator.hardwareConcurrency < 4 ? 4 : window.navigator.hardwareConcurrency;
         for (let i = 0; i < poolSize; i++) {
@@ -4186,10 +4190,31 @@ class LayeredDrawingScreen {
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d");
-            this.resizeTransparencyCanvas(bounds, bounds[0] / this.layers[0].dimensions.first);
-            console.log("HI!");
+            this.resizeTransparencyCanvas(bounds, bounds[0] / this.layers[0].dimensions.first * 8);
+            this.resizePixelGridCanvas(bounds, bounds[0] / this.layers[0].dimensions.first);
         }
         //this.resizeTransparencyCanvas(this.dim);
+    }
+    resizePixelGridCanvas(bounds, dim) {
+        if ((this.canvasPixelGrid.width !== bounds[0] || this.canvasPixelGrid.height !== bounds[1])) {
+            this.canvasPixelGrid.width = bounds[0];
+            this.canvasPixelGrid.height = bounds[1];
+        }
+        const ctx = this.canvasPixelGrid.getContext("2d");
+        ctx.strokeStyle = "#DCDCDF";
+        ctx.clearRect(0, 0, bounds[0], bounds[1]);
+        let i = 0;
+        const squareSize = dim;
+        ctx.beginPath();
+        for (let i = 0; i < bounds[0]; i += squareSize) {
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, bounds[1]);
+        }
+        for (let i = 0; i < bounds[1]; i += squareSize) {
+            ctx.moveTo(0, i);
+            ctx.lineTo(bounds[0], i);
+        }
+        ctx.stroke();
     }
     resizeTransparencyCanvas(bounds, dim) {
         if ((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1])) {
@@ -4408,6 +4433,8 @@ class LayeredDrawingScreen {
                 this.ctx.strokeStyle = "#FF0000";
                 this.ctx.strokeRect(this.state.selectionSelectionRect[0], this.state.selectionSelectionRect[1], this.state.selectionSelectionRect[2], this.state.selectionSelectionRect[3]);
             }
+            if (this.toolSelector.settingsTool.checkboxPixelGrid.checked)
+                this.ctx.drawImage(this.canvasPixelGrid, 0, 0);
         }
         {
             const zoomedWidth = this.width() * this.zoom.zoomX;
