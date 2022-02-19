@@ -3596,25 +3596,29 @@ class DrawingScreen {
     setDim(newDim) {
         let zoom = new Pair(1, 1);
         if (newDim.length === 2) {
-            if (newDim[0] <= 205 && newDim[1] <= 205) {
-                this.bounds.first = newDim[0] * Math.floor(1024 * 1.41 / newDim[0]);
-                this.bounds.second = newDim[1] * Math.floor(1024 * 1.41 / newDim[1]);
+            /*if(newDim[0] <= 205 && newDim[1] <= 205)
+            {
+                this.bounds.first = newDim[0] * Math.floor(1024* 1.41 / newDim[0]);
+                this.bounds.second = newDim[1] * Math.floor(1024* 1.41 / newDim[1]);
                 zoom.first = 1 / Math.floor(1024 / newDim[0]);
                 zoom.second = 1 / Math.floor(1024 / newDim[1]);
             }
-            else if (newDim[0] <= 400 && newDim[1] <= 400) {
+            else if(newDim[0] <= 400 && newDim[1] <= 400)
+            {
                 this.bounds.first = newDim[0] * 4;
                 this.bounds.second = newDim[1] * 4;
                 zoom.first = 1 / 4;
                 zoom.second = 1 / 4;
             }
-            else if (newDim[0] <= 1024 && newDim[1] <= 1024) {
+            else if(newDim[0] <= 1024 && newDim[1] <= 1024)
+            {
                 this.bounds.first = newDim[0] * 2;
                 this.bounds.second = newDim[1] * 2;
                 zoom.first = 1 / 2;
                 zoom.second = 1 / 2;
             }
-            else {
+            else*/
+            {
                 this.bounds.first = newDim[0];
                 this.bounds.second = newDim[1];
             }
@@ -4202,19 +4206,18 @@ class LayeredDrawingScreen {
         }
         const ctx = this.canvasPixelGrid.getContext("2d");
         ctx.strokeStyle = "#DCDCDF";
+        ctx.globalAlpha = 0.1;
         ctx.clearRect(0, 0, bounds[0], bounds[1]);
+        ctx.fillRect(0, 0, bounds[0], bounds[1]);
         let i = 0;
         const squareSize = dim;
-        ctx.beginPath();
-        for (let i = 0; i < bounds[0]; i += squareSize) {
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, bounds[1]);
+        for (let y = 0; y < bounds[1] + 100; y += squareSize) {
+            let offset = +(i % 2 === 0);
+            for (let x = offset * squareSize; x < bounds[0] + 200; x += squareSize * 2) {
+                ctx.clearRect(x, y, squareSize, squareSize);
+            }
+            i++;
         }
-        for (let i = 0; i < bounds[1]; i += squareSize) {
-            ctx.moveTo(0, i);
-            ctx.lineTo(bounds[0], i);
-        }
-        ctx.stroke();
     }
     resizeTransparencyCanvas(bounds, dim) {
         if ((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1])) {
@@ -4393,8 +4396,13 @@ class LayeredDrawingScreen {
     }
     draw(canvas, ctx, x, y, width, height) {
         ctx.clearRect(0, 0, width, height);
+        const zoomedWidth = this.width() * this.zoom.zoomX;
+        const zoomedHeight = this.height() * this.zoom.zoomY;
+        this.zoom.zoomedX = x - this.zoom.offsetX + (width - zoomedWidth) / 2;
+        this.zoom.zoomedY = y - this.zoom.offsetY + (height - zoomedHeight) / 2;
         if (this.repaint()) {
             this.redraw = false;
+            this.ctx.imageSmoothingEnabled = false;
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.drawImage(this.canvasTransparency, 0, 0);
             for (let i = 0; i < this.layers.length; i++) {
@@ -4433,17 +4441,14 @@ class LayeredDrawingScreen {
                 this.ctx.strokeRect(this.state.selectionSelectionRect[0], this.state.selectionSelectionRect[1], this.state.selectionSelectionRect[2], this.state.selectionSelectionRect[3]);
             }
             if (this.toolSelector.settingsTool.checkboxPixelGrid.checked)
-                this.ctx.drawImage(this.canvasPixelGrid, 0, 0);
+                this.ctx.drawImage(this.canvasPixelGrid, 0, 0, this.canvas.width, this.canvas.height);
         }
         {
-            const zoomedWidth = this.width() * this.zoom.zoomX;
-            const zoomedHeight = this.height() * this.zoom.zoomY;
-            this.zoom.zoomedX = x - this.zoom.offsetX + (width - zoomedWidth) / 2;
-            this.zoom.zoomedY = y - this.zoom.offsetY + (height - zoomedHeight) / 2;
             ctx.fillRect(0, 0, this.zoom.zoomedX, height);
             ctx.fillRect(0, 0, width, this.zoom.zoomedY);
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
             ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             const internalXScale = this.layer().bounds.first / this.layer().dimensions.first;
             const internalYScale = this.layer().bounds.second / this.layer().dimensions.second;
