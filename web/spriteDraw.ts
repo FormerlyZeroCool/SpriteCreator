@@ -4375,29 +4375,7 @@ class DrawingScreen {
     {
         let zoom:Pair<number> = new Pair<number>(1,1);
         if(newDim.length === 2)
-        { 
-            /*if(newDim[0] <= 205 && newDim[1] <= 205)
-            {
-                this.bounds.first = newDim[0] * Math.floor(1024* 1.41 / newDim[0]);
-                this.bounds.second = newDim[1] * Math.floor(1024* 1.41 / newDim[1]);
-                zoom.first = 1 / Math.floor(1024 / newDim[0]);
-                zoom.second = 1 / Math.floor(1024 / newDim[1]);
-            }
-            else if(newDim[0] <= 400 && newDim[1] <= 400)
-            {
-                this.bounds.first = newDim[0] * 4;
-                this.bounds.second = newDim[1] * 4;
-                zoom.first = 1 / 4;
-                zoom.second = 1 / 4;
-            }
-            else if(newDim[0] <= 1024 && newDim[1] <= 1024)
-            {
-                this.bounds.first = newDim[0] * 2;
-                this.bounds.second = newDim[1] * 2;
-                zoom.first = 1 / 2;
-                zoom.second = 1 / 2;
-            }
-            else*/
+        {
             {
                 this.bounds.first = newDim[0];
                 this.bounds.second = newDim[1];
@@ -5936,7 +5914,7 @@ class Pallette {
     }
     setSelectedColor(color:string)
     {
-        this.colors[this.highLightedCell].loadString(color);
+        this.selectedPixelColor.loadString(color);
     }
     cloneColor(color:RGB):RGB
     {
@@ -7385,44 +7363,7 @@ async function main()
             {
                 const numTyped:string = e.code.substring("Digit".length, e.code.length);
                 pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
-                if(!e.button) 
-                {
-                    field.layer().state.color = pallette.selectedPixelColor; 
-                    field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
-                }
-                else
-                {
-                    field.layer().state.color = (pallette.selectedBackColor); 
-                    field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
-                }
-            }
-            else if(e.code === "ShiftLeft" || e.code === "ShiftRight")
-            {
-                if(!e.button) 
-                {
-                    field.layer().state.color = pallette.selectedPixelColor; 
-                    field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
-                }
-                else
-                {
-                    field.layer().state.color = (pallette.selectedBackColor); 
-                    field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
-                }
-            }
-        }
-    });
-    keyboardHandler.registerCallBack("keyup", (e:any) => !e.defaultPrevented, (e:any) => {
-        if(e.code === "ShiftLeft" || e.code === "ShiftRight")
-        {
-            if(!e.button) 
-            {
-                field.layer().state.color = pallette.selectedPixelColor; 
-                field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
-            }
-            else
-            {
-                field.layer().state.color = (pallette.selectedBackColor); 
-                field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
+                pallette.selectedPixelColor.color = pallette.calcColor(pallette.highLightedCell).color;
             }
         }
     });
