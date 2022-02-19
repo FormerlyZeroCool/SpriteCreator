@@ -692,7 +692,7 @@ class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
         super.refreshCanvas();
     }
 
-}
+};
 class GuiListItem extends SimpleGridLayoutManager {
     textBox:GuiTextBox;
     checkBox:GuiCheckBox;
@@ -1976,7 +1976,7 @@ class RGB24BitPalette implements RenderablePalette {
 };
 class GuiPaletteSelector implements GuiElement {
 
-}
+};
 class ToolBarItem {
     toolImages:ImageContainer[];
     selected:number;
@@ -2393,15 +2393,15 @@ class ColorPickerTool extends ExtendedTool {
             if(code === 0)
             {
                 this.field.layer().palette.setSelectedColor(this.tbColor.text);
-                this.field.layer().state.color = this.field.layer().palette.calcColor();
+                this.field.layer().state.color = this.field.layer().palette.selectedPixelColor;
             }
             else if(code === 2)
             {
                 this.field.layer().palette.setSelectedColor(color.htmlRBGA());
-                this.field.layer().state.color = this.field.layer().palette.calcColor();
+                this.field.layer().state.color = this.field.layer().palette.selectedPixelColor;
             }
             else{
-                this.tbColor.setText(this.field.layer().palette.calcColor().htmlRBGA());
+                this.tbColor.setText(this.field.layer().palette.selectedPixelColor.htmlRBGA());
             }
         },
             "Update", 75, this.tbColor.height(), 16);
@@ -2459,7 +2459,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
             this.recalcDim();
             if(this.textboxPaletteSize.asNumber.get())
             {
-                if(this.textboxPaletteSize.asNumber.get() < 128)
+                if(this.textboxPaletteSize.asNumber.get()! < 128)
                     field.pallette.changeSize(this.textboxPaletteSize.asNumber.get()!)
                 else
                     field.toolSelector.toolBar.setImagesIndex(+!this.selected);
@@ -2869,7 +2869,8 @@ class FilesManagerTool extends ExtendedTool {
                 const width:number = Math.floor(field.layer().bounds.first / columns);
                 const height:number = Math.floor(field.layer().bounds.second / rows);
                 const animation:SpriteAnimation = new SpriteAnimation(0, 0, width, height);
-                field.toolSelector.animationsGroupsSelector.animationGroup().pushAnimation(animation);
+                if(field.toolSelector.animationsGroupsSelector.animationGroup())
+                    field.toolSelector.animationsGroupsSelector.animationGroup()!.pushAnimation(animation);
                 if(animation)
                 {
                     for(let y = 0; y < rows; y++)
@@ -3090,6 +3091,16 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.drawingScreenListener.registerCallBack("touchstart", 
             (e:any) => this.layersTool.list.selectedItem()! && this.layersTool.list.selectedItem()!.checkBox.checked, 
             (e:any) => {
+                if(!e.button) 
+                {
+                    field.layer().state.color = pallette.selectedPixelColor; 
+                    field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+                }
+                else
+                {
+                    field.layer().state.color = (pallette.selectedBackColor); 
+                    field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
+                }
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
                 
             const gx:number = Math.floor((touchPos[0]-field.layer().offset.first)/field.layer().bounds.first*field.layer().dimensions.first);
@@ -3193,6 +3204,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 break;
                 case("color picker"):
                 field.state.color.copy(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first]);
+                pallette.setSelectedColor(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first].htmlRBGA());
                 // for Gui lib
                 field.layer().toolSelector.updateColorPickerTextBox();
                 break;
@@ -4941,7 +4953,6 @@ class LayeredDrawingScreen {
         this.layersState = [];
         this.keyboardHandler = keyboardHandler;
         this.pallette = pallette;
-        this.resizeTransparencyCanvas([6000,6000]);
         this.setDimOnCurrent(this.dim);
         this.zoom = new ZoomState();
         this.clipBoard = new ClipBoard(<HTMLCanvasElement> document.getElementById("clipboard_canvas"), keyboardHandler, 128, 128);
@@ -5533,6 +5544,10 @@ class SingleTouchListener
                 component.addEventListener('touchend', (event:any) => this.touchEndHandler(event), false);
             }
             if(mouseEmulation && !isTouchSupported()){
+                component.addEventListener("contextmenu", (e:any) => {
+                    e.preventDefault();
+                    return false;
+                });
                 component.addEventListener("mouseover", (event:any) => { this.mouseOverElement = true;});
                 component.addEventListener("mouseleave", (event:any) => { this.mouseOverElement = false;});
                 component.addEventListener('mousedown', (event:any) => {(<any>event).changedTouches = {};(<any>event).changedTouches.item = (x:any) => event; this.touchStartHandler(event)});
@@ -5780,6 +5795,8 @@ class MultiTouchListener {
 };
 class Pallette {
     highLightedCell:number;
+    selectedPixelColor:RGB;
+    selectedBackColor:RGB;
     colors:Array<RGB>;
     canvas:any;
     listeners:SingleTouchListener;
@@ -5826,6 +5843,10 @@ class Pallette {
             this.colors.push(new RGB(224, 49, 213, 255));
             this.colors.push(new RGB(24, 220, 229, 255));
         }
+        this.selectedPixelColor = new RGB(0,0,0);
+        this.selectedBackColor = new RGB(0,0,0);
+        this.selectedPixelColor.color = this.colors[0].color;
+        this.selectedBackColor.color = this.colors[1].color;
         this.listeners.registerCallBack("touchstart", (e:any) => true, (e:any) => {
             (<any>document.activeElement).blur();
             this.handleClick(e);
@@ -5858,21 +5879,26 @@ class Pallette {
             }
         }
     }
-    calcColor(i:number = this.highLightedCell):RGB
+    calcColor(i:number):RGB
     {
         const color = new RGB(this.colors[i].red(), this.colors[i].green(), this.colors[i].blue(), this.colors[i].alpha());
-        const scale = 1.6;
-        if(this.keyboardHandler.keysHeld["ShiftLeft"] || this.keyboardHandler.keysHeld["ShiftRight"])
-        {
-            color.setRed(Math.floor(color.red()*scale) < 256 ? Math.floor(color.red()*scale) : 255);
-            color.setGreen(Math.floor(color.green()*scale) < 256 ? Math.floor(color.green()*scale) : 255);
-            color.setBlue(Math.floor(color.blue()*scale) < 256 ? Math.floor(color.blue()*scale) : 255);
-        }
         return color;
     }
     handleClick(event:any):void
     {
-        this.highLightedCell = Math.floor((event.touchPos[0] / this.canvas.width) * this.colors.length);
+        const clicked:number = Math.floor((event.touchPos[0] / this.canvas.width) * (this.colors.length+2));
+        if(clicked > 1)
+        {
+            if(!event.button)
+            {
+                this.selectedPixelColor.color = this.colors[clicked - 2].color;
+            }
+            else
+            {
+                this.selectedBackColor.color = this.colors[clicked - 2].color;
+            }
+            this.highLightedCell = clicked;
+        }
     }
     setSelectedColor(color:string)
     {
@@ -5886,38 +5912,44 @@ class Pallette {
     }
     draw():void
     {
-        const ctx = this.ctx;
         if(this.repaint)
-        for(let i = 0; i < this.colors.length; i++)
         {
-            const width:number = (this.canvas.width/this.colors.length);
+            const ctx = this.ctx;
+            const width:number = (this.canvas.width/(this.colors.length+2));
             const height:number = this.canvas.height;
-            this.ctx.strokeStyle = "#000000";
-            ctx.clearRect(i * width, 0, width, height);
-            ctx.fillStyle = this.calcColor(i).htmlRBGA();
-            ctx.fillRect(i * width, 0, width, height);
-            ctx.strokeRect(i * width, 0, width, height);
-            this.ctx.font = '16px Calibri';
-            const visibleColor:RGB = (this.calcColor(i));
-
-            ctx.strokeStyle = "#000000";
-            if(i < 10)
-            {
-                this.ctx.strokeText((i+1)%10,i*width+width*0.5 - 3, height/2 + 4);
-                visibleColor.setBlue(Math.floor(visibleColor.blue()/2));
-                visibleColor.setRed(Math.floor(visibleColor.red()/2));
-                visibleColor.setGreen(Math.floor(visibleColor.green()/2));
-                visibleColor.setAlpha(255);
-                this.ctx.fillStyle = visibleColor.htmlRBGA();
-                this.ctx.fillText((i+1)%10, i*width+width*0.5 - 3, height/2 + 4);
-            }
-       
-            if(i === this.highLightedCell)
+            ctx.clearRect(0, 0, width * (this.colors.length + 2), height);
+            for(let i = 2; i < this.colors.length+2; i++)
             {
                 this.ctx.strokeStyle = "#000000";
+                ctx.fillStyle = this.calcColor(i - 2).htmlRBGA();
+                ctx.fillRect(i * width, 0, width, height);
+                ctx.strokeRect(i * width, 0, width, height);
+                this.ctx.font = '16px Calibri';
+                const visibleColor:RGB = (this.calcColor(i - 2));
+    
+                ctx.strokeStyle = "#000000";
+                if(i < 12)
+                {
+                    this.ctx.strokeText((i-1)%10,i*width+width*0.5 - 3, height/2 + 4);
+                    visibleColor.setBlue(Math.floor(visibleColor.blue()/2));
+                    visibleColor.setRed(Math.floor(visibleColor.red()/2));
+                    visibleColor.setGreen(Math.floor(visibleColor.green()/2));
+                    visibleColor.setAlpha(255);
+                    this.ctx.fillStyle = visibleColor.htmlRBGA();
+                    this.ctx.fillText((i+1)%10, i*width+width*0.5 - 3, height/2 + 4);
+                }
+            }
+            {
+                this.ctx.strokeStyle = "#000000";
+                if(this.highLightedCell > 1)
                 for(let j = 0; j < height && j < width; j += 5)
-                    if(width - j * 2 > 0)
-                        ctx.strokeRect(i * width + j, j, width - j * 2, height - j*2);
+                    if(width - j * 2 > 0){
+                        ctx.strokeRect(this.highLightedCell * width + j, j, width - j * 2, height - j*2);
+                    }
+                ctx.fillStyle = this.selectedPixelColor.htmlRBGA();
+                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = this.selectedBackColor.htmlRBGA();
+                ctx.fillRect(width, 0, width, height);
             }
         }
     }
@@ -7224,10 +7256,30 @@ async function main()
         animationGroupSelector.cloneSelectedAnimationGroup();
     });
 
-    pallette.canvas.addEventListener("mouseup", (e:any) => { field.layer().state.color = pallette.calcColor(); 
-        field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.calcColor().htmlRBGA()); 
+    pallette.canvas.addEventListener("mouseup", (e:any) => { 
+        if(!e.button) 
+        {
+            field.layer().state.color = pallette.selectedPixelColor; 
+            field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+        }
+        else
+        {
+            field.layer().state.color = pallette.selectedBackColor; 
+            field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedBackColor.htmlRBGA()); 
+        }
     });
-    pallette.listeners.registerCallBack("touchend", (e:any) => true,  (e:any) => { field.layer().state.color = pallette.calcColor(); })
+    pallette.listeners.registerCallBack("touchend", (e:any) => true,  (e:any) => { 
+        if(!e.button) 
+        {
+            field.layer().state.color = pallette.selectedPixelColor; 
+            field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+        }
+        else
+        {
+            field.layer().state.color = (pallette.selectedBackColor); 
+            field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedBackColor.htmlRBGA()); 
+        }
+    });
     
     const add_animationButton = document.getElementById("add_animation");
     const add_animationTouchListener:SingleTouchListener = new SingleTouchListener(add_animationButton, false, true);
@@ -7299,18 +7351,45 @@ async function main()
             {
                 const numTyped:string = e.code.substring("Digit".length, e.code.length);
                 pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
-                field.layer().state.color.copy(pallette.calcColor());
+                if(!e.button) 
+                {
+                    field.layer().state.color = pallette.selectedPixelColor; 
+                    field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+                }
+                else
+                {
+                    field.layer().state.color = (pallette.selectedBackColor); 
+                    field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
+                }
             }
             else if(e.code === "ShiftLeft" || e.code === "ShiftRight")
             {
-                field.layer().state.color.copy(pallette.calcColor());
+                if(!e.button) 
+                {
+                    field.layer().state.color = pallette.selectedPixelColor; 
+                    field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+                }
+                else
+                {
+                    field.layer().state.color = (pallette.selectedBackColor); 
+                    field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
+                }
             }
         }
     });
     keyboardHandler.registerCallBack("keyup", (e:any) => !e.defaultPrevented, (e:any) => {
         if(e.code === "ShiftLeft" || e.code === "ShiftRight")
         {
-            field.layer().state.color.copy(pallette.calcColor());
+            if(!e.button) 
+            {
+                field.layer().state.color = pallette.selectedPixelColor; 
+                field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+            }
+            else
+            {
+                field.layer().state.color = (pallette.selectedBackColor); 
+                field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
+            }
         }
     });
     interface FilesHaver{
