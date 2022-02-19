@@ -5109,8 +5109,8 @@ class LayeredDrawingScreen {
             this.canvasPixelGrid.height = bounds[1];
         }
             const ctx:CanvasRenderingContext2D = this.canvasPixelGrid.getContext("2d")!;
-            ctx.strokeStyle = "#DCDCDF";
-            ctx.globalAlpha = 0.1;
+            ctx.fillStyle = "#DCDCFF";
+            ctx.globalAlpha = 0.4;
             ctx.clearRect(0, 0, bounds[0], bounds[1]);
             ctx.fillRect(0, 0, bounds[0], bounds[1]);
             let i = 0;
