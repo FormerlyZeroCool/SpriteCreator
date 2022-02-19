@@ -4928,7 +4928,7 @@ class LayeredDrawingScreen {
                 }
             });
         }
-        this.dim = [524, 524];
+        this.dim = [128, 128];
         this.canvas.width = this.dim[0];
         this.canvas.height = this.dim[1];
         this.spriteTest = new Sprite([], this.dim[0], this.dim[1], false);
@@ -5176,12 +5176,12 @@ class LayeredDrawingScreen {
         {
             finalDim = this.toolSelector.settingsTool.dim;
         }
-        const dim:number[] = this.dim;
+        const dim:number[] = this.layers[0] ? [this.layers[0].dimensions.first, this.layers[0].dimensions.second] : this.dim;
         const layer:DrawingScreen = new DrawingScreen(
-            document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [dim[0], dim[1]], this.toolSelector, this.state, this.clipBoard);
+            document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [128, 128], this.toolSelector, this.state, this.clipBoard);
         layer.setDim(dim);
-        if(finalDim)
-            layer.setDim(finalDim);
+        //if(finalDim)
+          //  layer.setDim(finalDim);
         
         this.layers.push(layer);
         this.layersState.push(true);
