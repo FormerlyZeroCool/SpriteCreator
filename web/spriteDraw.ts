@@ -4569,7 +4569,7 @@ class DrawingScreen {
         if(this.dimensions.first === this.canvas.width && this.dimensions.second === this.canvas.height)
         {//if drawing screen dimensions, and canvas dimensions are the same just update per pixel
             let index = 0
-            const limit:number = view.length - 8;
+            const limit:number = view.length === this.screenBuffer.length ? view.length - 8 : this.screenBuffer.length - 8;
             for(; index < limit;)
             {
                 view[index] = this.screenBuffer[index].color;  
