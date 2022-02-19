@@ -5345,6 +5345,8 @@ class LayeredDrawingScreen {
             this.ctx.imageSmoothingEnabled = false;
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.drawImage(this.canvasTransparency, 0, 0);
+            if(this.toolSelector.settingsTool.checkboxPixelGrid.checked)
+                this.ctx.drawImage(this.canvasPixelGrid, 0, 0, this.canvas.width, this.canvas.height);
             for(let i = 0; i < this.layers.length; i++)
             {
                 if(this.layersState[i])
@@ -5385,8 +5387,6 @@ class LayeredDrawingScreen {
                 this.ctx.strokeStyle = "#FF0000";
                 this.ctx.strokeRect(this.state.selectionSelectionRect[0], this.state.selectionSelectionRect[1], this.state.selectionSelectionRect[2], this.state.selectionSelectionRect[3]);
             }
-            if(this.toolSelector.settingsTool.checkboxPixelGrid.checked)
-                this.ctx.drawImage(this.canvasPixelGrid, 0, 0, this.canvas.width, this.canvas.height);
         }
         {
             ctx.fillRect(0,0,this.zoom.zoomedX, height);
