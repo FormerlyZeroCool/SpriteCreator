@@ -4724,10 +4724,10 @@ class DrawingScreen {
             }
             
             spriteScreenBuf.putPixels(ctx);
+            ctx.lineWidth = this.state.lineWidth;
             if(this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line")
             {
                 let touchStart = [this.state.selectionRect[0], this.state.selectionRect[1]];
-                ctx.lineWidth = 6;
                 ctx.beginPath();
                 ctx.strokeStyle = this.state.color.htmlRBGA();
                 ctx.moveTo(touchStart[0], touchStart[1]);
@@ -4736,11 +4736,11 @@ class DrawingScreen {
             }
             else if(this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.state.selectionRect[3] !== 0)
             {
-                ctx.lineWidth = 6;
                 const xr:number = Math.abs(this.state.selectionRect[2]/2);
                 const yr:number = Math.abs(this.state.selectionRect[3]/2);
                 if(this.toolSelector.selectedToolName() === "copy")
                 {
+                    ctx.lineWidth = 1;
                     ctx.strokeStyle = "#FFFFFF";
                     ctx.strokeRect(this.state.selectionRect[0]+2, this.state.selectionRect[1]+2, this.state.selectionRect[2]-4, this.state.selectionRect[3]-4);
                     ctx.strokeStyle = "#FF0000";
