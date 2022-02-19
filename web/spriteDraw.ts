@@ -5297,7 +5297,6 @@ class LayeredDrawingScreen {
             renderingCtx.fillStyle = `rgba(125, 125, 125, ${this.miniMapAlpha})`;
             renderingCtx.globalAlpha = this.miniMapAlpha;
             renderingCtx.fillRect(0, 0, width, height);
-            renderingCtx.drawImage(this.canvasTransparency, 0, 0, width, height, 0, 0, width, height);
             renderingCtx.lineWidth = 1;
             let projectionRect:number[] = [0, 0, 0, 0];
             if((this.layer().dimensions.second / this.layer().dimensions.first) <= 1)
