@@ -6118,7 +6118,9 @@ async function main() {
             }
             else if (field.zoom.zoomX > 8 && field.zoom.zoomX < 25)
                 delta = 0.2;
-            else if (field.zoom.zoomX >= 25 && e.deltaY < 0)
+            else if (field.zoom.zoomX < 50)
+                delta = 0.4;
+            else if (field.zoom.zoomX >= 50 && e.deltaY < 0)
                 delta = 0;
             if (e.deltaY < 0) {
                 field.zoom.zoomY += delta * (field.zoom.zoomY / field.zoom.zoomX);
