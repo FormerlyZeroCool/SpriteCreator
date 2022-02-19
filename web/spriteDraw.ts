@@ -7183,8 +7183,12 @@ async function main()
             {
                 delta = 0.05;
             }
-            else if(field.zoom.zoomX > 8 && field.zoom.zoomX < 25)
+            else if(field.zoom.zoomX < 8)
+                delta = 0.1;
+            else if(field.zoom.zoomX < 25)
                 delta = 0.2;
+            else if(field.zoom.zoomX < 50)
+                delta = 0.4;
             else if(field.zoom.zoomX >= 25 && e.deltaY < 0)
                 delta = 0;
     
@@ -7216,8 +7220,12 @@ async function main()
             {
                 delta = 0.05;
             }
-            else if(field.zoom.zoomX > 8 && field.zoom.zoomX < 25)
+            else if(field.zoom.zoomX < 8)
+                delta = 0.1;
+            else if(field.zoom.zoomX < 25)
                 delta = 0.2;
+            else if(field.zoom.zoomX < 50)
+                delta = 0.4;
             else if(field.zoom.zoomX >= 25 && e.deltaY < 0)
                 delta = 0;
     
