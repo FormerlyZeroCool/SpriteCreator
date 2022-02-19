@@ -4680,6 +4680,7 @@ class DrawingScreen {
                 const dragDataColors:number[] = this.dragData.second;
                 const dragDataOffsetX:number = Math.floor(this.dragData.first.first);
                 const dragDataOffsetY:number = Math.floor(this.dragData.first.second);
+                const view:Uint32Array = new Uint32Array(spriteScreenBuf.pixels.buffer);
                 for(let i:number = 0; i < this.dragData.second.length; i += 9){
                     const bx:number = Math.floor(dragDataColors[i] + dragDataOffsetX);
                     const by:number = Math.floor(dragDataColors[i+1] + dragDataOffsetY);
@@ -4689,9 +4690,7 @@ class DrawingScreen {
                         toCopy.color = dragDataColors[i + 8];
                         source.color = this.screenBuffer[key].color;
                         source.blendAlphaCopy(toCopy);
-                        const sy:number = Math.floor(Math.floor(key / this.dimensions.first) * cellHeight);
-                        const sx:number = Math.floor((key % this.dimensions.first) * cellWidth);
-                        spriteScreenBuf.fillRect(source, sx, sy, cellWidth, cellHeight);
+                        view[key] = source.color;
                     }         
                 };
     
