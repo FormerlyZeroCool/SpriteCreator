@@ -2803,7 +2803,7 @@ class ScreenTransformationTool extends ExtendedTool {
     buttonZoomToScreen:GuiButton;
     constructor(toolName:string, toolImagePath:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
-        super(toolName, toolImagePath, optionPanes, [200, 150], [20, 60]);
+        super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60]);
         this.localLayout.addElement(new GuiLabel("Zoom:", 75));
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio:number = 1;

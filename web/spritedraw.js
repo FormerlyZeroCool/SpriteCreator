@@ -2271,7 +2271,7 @@ class LayerManagerTool extends Tool {
 ;
 class ScreenTransformationTool extends ExtendedTool {
     constructor(toolName, toolImagePath, optionPanes, field) {
-        super(toolName, toolImagePath, optionPanes, [200, 150], [20, 60]);
+        super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60]);
         this.localLayout.addElement(new GuiLabel("Zoom:", 75));
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio = 1;
