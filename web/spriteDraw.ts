@@ -4884,6 +4884,7 @@ class LayeredDrawingScreen {
     keyboardHandler:KeyboardHandler;
     pallette:Pallette;
     toolSelector:ToolSelector;
+    selectionCanvas:HTMLCanvasElement;
     offscreenCanvas:HTMLCanvasElement;
     zoom:ZoomState;
     maskWorkers:Worker[];
@@ -4901,6 +4902,7 @@ class LayeredDrawingScreen {
         this.offscreenCanvas = document.createElement("canvas");
         this.canvasTransparency = document.createElement("canvas");
         this.canvasPixelGrid = document.createElement("canvas");
+        this.selectionCanvas = document.createElement("canvas");
         this.maskWorkers = [];
         const poolSize:number = window.navigator.hardwareConcurrency < 4 ? 4 : window.navigator.hardwareConcurrency;
         for(let i = 0; i < poolSize; i++) {
@@ -5087,11 +5089,12 @@ class LayeredDrawingScreen {
             this.dim = [bounds[0], bounds[1]];
             this.canvas.width = bounds[0];
             this.canvas.height = bounds[1];
+            this.selectionCanvas.width = bounds[0];
+            this.selectionCanvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d")!;
             this.resizeTransparencyCanvas(bounds, bounds[0] / this.layers[0].dimensions.first * 8);
             this.resizePixelGridCanvas(bounds, bounds[0] / this.layers[0].dimensions.first);
         }
-        //this.resizeTransparencyCanvas(this.dim);
     }
     
     resizePixelGridCanvas(bounds:number[], dim:number):void
@@ -5193,8 +5196,6 @@ class LayeredDrawingScreen {
         const layer:DrawingScreen = new DrawingScreen(
             document.createElement("canvas"), this.keyboardHandler, this.pallette, [0, 0], [128, 128], this.toolSelector, this.state, this.clipBoard);
         layer.setDim(dim);
-        //if(finalDim)
-          //  layer.setDim(finalDim);
         
         this.layers.push(layer);
         this.layersState.push(true);
@@ -5350,40 +5351,43 @@ class LayeredDrawingScreen {
                     layer.drawToContext(this.ctx, 0, 0, this.width(), this.height());
                 }
             }
+        }
+        {
             if(this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length)
             {
-                const cellWidth = this.width() / this.layer().dimensions.first;
-                const cellHeight = this.height() / this.layer().dimensions.second;
+                const cellWidth = this.zoom.zoomX * this.width() / this.layer().dimensions.first;
+                const cellHeight = this.zoom.zoomY * this.height() / this.layer().dimensions.second;
                 let start = this.toolSelector.polygon.length - 1;
-                this.ctx.lineWidth = cellWidth;
-                this.ctx.beginPath();
-                this.ctx.strokeStyle = "#FF4040";
+                ctx.lineWidth = cellWidth;
+                ctx.beginPath();
+                ctx.strokeStyle = "#FF4040";
                 for(let i = 0; i < this.toolSelector.polygon.length; i++)
                 {
                     const lineStart = this.toolSelector.polygon[start];
                     const lineEnd = this.toolSelector.polygon[i];
-                    this.ctx.moveTo(lineStart[0] * cellWidth, lineStart[1] * cellHeight);
-                    this.ctx.lineTo(lineEnd[0] * cellWidth, lineEnd[1] * cellHeight);
+                    ctx.moveTo(lineStart[0] * cellWidth + this.zoom.zoomedX, lineStart[1] * cellHeight + this.zoom.zoomedY);
+                    ctx.lineTo(lineEnd[0] * cellWidth + this.zoom.zoomedX, lineEnd[1] * cellHeight + this.zoom.zoomedY);
                     start++;
                     start %= this.toolSelector.polygon.length;
                 }
                 const lastIndex = this.toolSelector.polygon.length - 1;
-                this.ctx.lineWidth = 5;
-                this.ctx.stroke();
-                this.ctx.fillStyle = "#0000FF";
-                this.ctx.moveTo(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight);
-                this.ctx.ellipse(this.toolSelector.polygon[lastIndex][0] * cellWidth, this.toolSelector.polygon[lastIndex][1] * cellHeight, 5, 5, 0, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.fillStyle = "#000000";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                if(!this.toolSelector.drawingScreenListener.registeredTouch)
+                {
+                    ctx.fillStyle = "#0000FF";
+                    ctx.moveTo(this.toolSelector.polygon[lastIndex][0] * cellWidth + this.zoom.zoomedX, this.toolSelector.polygon[lastIndex][1] * cellHeight + this.zoom.zoomedY);
+                    ctx.ellipse(this.toolSelector.polygon[lastIndex][0] * cellWidth + this.zoom.zoomedX, this.toolSelector.polygon[lastIndex][1] * cellHeight + this.zoom.zoomedY, 5, 5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.fillStyle = "#000000";
             }
             else if(this.state.selectionSelectionRect[3] !== 0 && this.state.selectionSelectionRect[4] !== 0)
             {
-                this.ctx.lineWidth = 5;
-                this.ctx.strokeStyle = "#FF0000";
-                this.ctx.strokeRect(this.state.selectionSelectionRect[0], this.state.selectionSelectionRect[1], this.state.selectionSelectionRect[2], this.state.selectionSelectionRect[3]);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#FF0000";
+                ctx.strokeRect(this.state.selectionSelectionRect[0] * this.zoom.zoomX + this.zoom.zoomedX, this.state.selectionSelectionRect[1] * this.zoom.zoomY + this.zoom.zoomedY, this.state.selectionSelectionRect[2] * this.zoom.zoomX, this.state.selectionSelectionRect[3] * this.zoom.zoomY);
             }
-        }
-        {
             ctx.fillRect(0,0,this.zoom.zoomedX, height);
             ctx.fillRect(0,0,width, this.zoom.zoomedY);
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
@@ -7496,13 +7500,13 @@ async function main()
         }
     });
 
-    if(canvas.width != getWidth() - (toolSelector.width() + 30))
-    {
-        canvas.width = getWidth() - toolSelector.width() - 30;
-        canvas.height = screen.height * 0.65;
-        field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
-        field.zoomToScreen();
-    }
+    //setup rendering canvas, and view
+    canvas.width = getWidth() - toolSelector.width() - 30;
+    canvas.height = screen.height * 0.65;
+    field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
+    field.zoomToScreen();
+
+
     const fps = 35;
     const goalSleep = 1000/fps;
     let counter = 0;
@@ -7510,7 +7514,6 @@ async function main()
     {
         const start:number = Date.now();
         toolSelector.draw();
-        field.update();
         if(canvas.width != getWidth() - (toolSelector.width() + 30))
         {
             canvas.width = getWidth() - toolSelector.width() - 30;
@@ -7520,6 +7523,7 @@ async function main()
         if(pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
     
+        field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
         if(animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
