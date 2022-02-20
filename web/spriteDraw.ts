@@ -5871,7 +5871,17 @@ class Pallette {
             this.handleClick(e);
             this.repaint = true;
         });
-        this.keyboardHandler.registerCallBack("keydown", (e:any) => true, (e:any) => this.repaint = true);
+        this.keyboardHandler.registerCallBack("keydown", (e:any) => true, (e:any) => {
+            if(!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)){
+                if(e.code.substring(0,"Digit".length) === "Digit")
+                {
+                    const numTyped:string = e.code.substring("Digit".length, e.code.length);
+                    this.highLightedCell = (parseInt(numTyped) + 1) % 10;
+                    this.selectedPixelColor.color = this.calcColor(this.highLightedCell - 2).color;
+                }
+            }
+            this.repaint = true;
+        });
         this.keyboardHandler.registerCallBack("keyup", (e:any) => true, (e:any) => this.repaint = true);
 
     }
@@ -5933,31 +5943,31 @@ class Pallette {
             const height:number = this.canvas.height;
             ctx.clearRect(0, 0, width * (this.colors.length + 2), height);
             let j = 2;
-            this.ctx.strokeStyle = "#000000";
             for(let i = 0; i < this.colors.length; i++, j++)
             {
+                this.ctx.strokeStyle = "#000000";
                 ctx.fillStyle = this.calcColor(i).htmlRBGA();
                 ctx.fillRect(j * width, 0, width, height);
                 ctx.strokeRect(j * width, 0, width, height);
                 this.ctx.font = '16px Calibri';
                 const visibleColor:RGB = (this.calcColor(i));
     
-                if(j < 10)
+                if(i < 10)
                 {
-                    this.ctx.strokeText((i-1)%10,i*width+width*0.5 - 3, height/2 + 4);
+                    this.ctx.strokeText((i+1)%10,j * width+width*0.5 - 3, height/2 + 4);
                     visibleColor.setBlue(Math.floor(visibleColor.blue()/2));
                     visibleColor.setRed(Math.floor(visibleColor.red()/2));
                     visibleColor.setGreen(Math.floor(visibleColor.green()/2));
                     visibleColor.setAlpha(255);
                     this.ctx.fillStyle = visibleColor.htmlRBGA();
-                    this.ctx.fillText((i+1)%10, i*width+width*0.5 - 3, height/2 + 4);
+                    this.ctx.fillText((i+1)%10, j*width+width*0.5 - 3, height/2 + 4);
                 }
             }
             {
                 if(this.highLightedCell > 1)
                 for(let j = 0; j < height && j < width; j += 5)
                     if(width - j * 2 > 0){
-                        ctx.strokeRect(this.highLightedCell * width + j, j, width - j * 2, height - j*2);
+                        ctx.strokeRect((this.highLightedCell) * width + j, j, width - j * 2, height - j*2);
                     }
                 ctx.fillStyle = this.selectedPixelColor.htmlRBGA();
                 ctx.fillRect(0, 0, width, height);
@@ -7374,16 +7384,6 @@ async function main()
         {
             const defGroup:AnimationGroup = group;
             defGroup.spriteSelector.deleteSelectedSprite();
-        }
-    });
-    keyboardHandler.registerCallBack("keydown", (e:any) => true, (e:any) => {
-        if(!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)){
-            if(e.code.substring(0,"Digit".length) === "Digit")
-            {
-                const numTyped:string = e.code.substring("Digit".length, e.code.length);
-                pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
-                pallette.selectedPixelColor.color = pallette.calcColor(pallette.highLightedCell).color;
-            }
         }
     });
     interface FilesHaver{
