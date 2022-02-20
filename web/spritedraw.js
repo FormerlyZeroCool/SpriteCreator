@@ -4835,13 +4835,6 @@ class Pallette {
             this.repaint = true;
         });
         this.keyboardHandler.registerCallBack("keydown", (e) => true, (e) => {
-            if (!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)) {
-                if (e.code.substring(0, "Digit".length) === "Digit") {
-                    const numTyped = e.code.substring("Digit".length, e.code.length);
-                    this.highLightedCell = (parseInt(numTyped) + 9) % 10;
-                    this.selectedPixelColor.color = this.calcColor(this.highLightedCell).color;
-                }
-            }
             this.repaint = true;
         });
         this.keyboardHandler.registerCallBack("keyup", (e) => true, (e) => this.repaint = true);
@@ -5959,6 +5952,16 @@ async function main() {
     field.setDimOnCurrent([128, 128]);
     toolSelector.penTool.tbSize.setText(field.layer().suggestedLineWidth().toString());
     toolSelector.penTool.lineWidth = field.layer().suggestedLineWidth();
+    keyboardHandler.registerCallBack("keydown", (e) => true, (e) => {
+        if (!e.defaultPrevented && (document.getElementById('body') === document.activeElement || document.getElementById('screen') === document.activeElement)) {
+            if (e.code.substring(0, "Digit".length) === "Digit") {
+                const numTyped = e.code.substring("Digit".length, e.code.length);
+                pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
+                pallette.selectedPixelColor.color = pallette.calcColor(pallette.highLightedCell).color;
+            }
+        }
+        pallette.repaint = true;
+    });
     //const field:DrawingScreen = new DrawingScreen(<HTMLCanvasElement> , keyboardHandler, pallette,[0,0], dim);
     const animationGroupSelector = new AnimationGroupsSelector(field, keyboardHandler, "animation_group_selector", "animations", "sprites_canvas", dim[0], dim[1], 128, 128);
     animationGroupSelector.createAnimationGroup();
