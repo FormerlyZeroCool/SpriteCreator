@@ -3,7 +3,7 @@ You can try it out: <a href="http://andrew-rubinstein.com/SpriteCreator/web">Her
 Developed by Andrew Rubinstein, with default icon artwork done by @ThePixelSlime1 (see images/PixelSlime1Icons)
 <br>
 <h2>The Drawing Screen</h2>
-This is where you create your sprites using the tools described below.
+This is where you create your sprites using the tools described below. To use the pixel color left click, and to use the background color right click.
 <br>
 <h2>Animation Groups</h2>
 These are meant to organize animations, so that for instance if you wish to create the animations for a game you may organize the groups so each group is all the animations for one character in the game.
