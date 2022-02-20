@@ -5876,8 +5876,8 @@ class Pallette {
                 if(e.code.substring(0,"Digit".length) === "Digit")
                 {
                     const numTyped:string = e.code.substring("Digit".length, e.code.length);
-                    this.highLightedCell = (parseInt(numTyped) + 1) % 10;
-                    this.selectedPixelColor.color = this.calcColor(this.highLightedCell - 2).color;
+                    this.highLightedCell = (parseInt(numTyped) + 9) % 10;
+                    this.selectedPixelColor.color = this.calcColor(this.highLightedCell).color;
                 }
             }
             this.repaint = true;
@@ -5967,7 +5967,7 @@ class Pallette {
                 if(this.highLightedCell > 1)
                 for(let j = 0; j < height && j < width; j += 5)
                     if(width - j * 2 > 0){
-                        ctx.strokeRect((this.highLightedCell) * width + j, j, width - j * 2, height - j*2);
+                        ctx.strokeRect((this.highLightedCell + 2) * width + j, j, width - j * 2, height - j*2);
                     }
                 ctx.fillStyle = this.selectedPixelColor.htmlRBGA();
                 ctx.fillRect(0, 0, width, height);
