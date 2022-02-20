@@ -2800,9 +2800,10 @@ class LayerManagerTool extends Tool {
 class ScreenTransformationTool extends ExtendedTool {
     textBoxZoom:GuiTextBox;
     buttonUpdateZoom:GuiButton;
+    buttonZoomToScreen:GuiButton;
     constructor(toolName:string, toolImagePath:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
-        super(toolName, toolImagePath, optionPanes, [200, 120], [2, 30]);
+        super(toolName, toolImagePath, optionPanes, [200, 150], [20, 60]);
         this.localLayout.addElement(new GuiLabel("Zoom:", 75));
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio:number = 1;
@@ -2812,11 +2813,16 @@ class ScreenTransformationTool extends ExtendedTool {
                 field.zoom.zoomY = field.zoom.zoomY * ratio;
             }
         }, "Set Zoom", 100, 40, 16);
+        this.buttonZoomToScreen = new GuiButton(() => {
+            field.zoomToScreen();
+            this.textBoxZoom.setText((Math.round(field.zoom.zoomX*100)/100).toString());
+        }, "Auto Zoom", 95, 40, 16);
         this.localLayout.addElement(new GuiSpacer([50,10]))
         this.textBoxZoom = new GuiTextBox(true, 70, this.buttonUpdateZoom, 16, 32);
         this.textBoxZoom.setText(field.zoom.zoomX.toString());
         this.localLayout.addElement(this.textBoxZoom);
         this.localLayout.addElement(this.buttonUpdateZoom);
+        this.localLayout.addElement(this.buttonZoomToScreen);
         this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
     }
 };
@@ -4872,6 +4878,7 @@ class LayeredDrawingScreen {
     canvasPixelGrid:HTMLCanvasElement;
     spriteTest:Sprite;
     dim:number[];
+    renderDim:number[];
     ctx:CanvasRenderingContext2D;
     redraw:boolean;
     keyboardHandler:KeyboardHandler;
@@ -4929,6 +4936,7 @@ class LayeredDrawingScreen {
             });
         }
         this.dim = [128, 128];
+        this.renderDim = [this.dim[0], this.dim[1]];
         this.canvas.width = this.dim[0];
         this.canvas.height = this.dim[1];
         this.spriteTest = new Sprite([], this.dim[0], this.dim[1], false);
@@ -5049,18 +5057,23 @@ class LayeredDrawingScreen {
         }
         return repaint;
     }
+    zoomToScreen():void
+    {
+        if(this.zoom){
+            const whRatio:number = (this.zoom.zoomX / this.zoom.zoomY);
+            this.zoom.offsetX = 0;
+            this.zoom.offsetY = 0;
+            this.zoom.zoomY = this.renderDim[1] / dim[1];
+            this.zoom.zoomX = this.zoom.zoomY * whRatio;
+        }
+    }
     setDimOnCurrent(dim:number[]):void {
         if(this.toolSelector && this.toolSelector.settingsTool)
             this.toolSelector.settingsTool.setDim(dim);
             this.layers.forEach(layer => {
                 const zoom:Pair<number> = layer.setDim(dim);
-                this.zoom.zoomX = zoom.first;
-                this.zoom.zoomY = zoom.second;
             });
-            if(this.zoom)
-                this.zoom.offsetX = 0;
-            if(this.zoom)
-                this.zoom.offsetY = 0;
+            this.zoomToScreen();
             if(this.state.bufferBitMask.length !== dim[0] * dim[1])
             {
                 this.state.bufferBitMask = [];
@@ -5314,6 +5327,8 @@ class LayeredDrawingScreen {
     }
     draw(canvas:HTMLCanvasElement, ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void 
     {
+        this.renderDim[0] = width;
+        this.renderDim[1] = height;
         ctx.clearRect(0, 0, width, height);
         const zoomedWidth:number = this.width() * this.zoom.zoomX;
         const zoomedHeight:number = this.height() * this.zoom.zoomY;
