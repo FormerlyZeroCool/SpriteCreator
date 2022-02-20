@@ -6128,8 +6128,12 @@ async function main() {
             }
         }
     });
-    canvas.width = getWidth() - 350;
-    canvas.height = 500;
+    if (canvas.width != getWidth() - (toolSelector.width() + 30)) {
+        canvas.width = getWidth() - toolSelector.width() - 30;
+        canvas.height = screen.height * 0.65;
+        field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
+        field.zoomToScreen();
+    }
     const fps = 35;
     const goalSleep = 1000 / fps;
     let counter = 0;
