@@ -5900,16 +5900,16 @@ class Pallette {
     }
     handleClick(event:any):void
     {
-        const clicked:number = Math.floor((event.touchPos[0] / this.canvas.width) * (this.colors.length+2)) - 2;
+        const clicked:number = Math.floor((event.touchPos[0] / this.canvas.width) * (this.colors.length+2));
         if(clicked > -1)
         {
             if(!event.button)
             {
-                this.selectedPixelColor.color = this.colors[clicked].color;
+                this.selectedPixelColor.color = this.colors[clicked - 2].color;
             }
             else
             {
-                this.selectedBackColor.color = this.colors[clicked].color;
+                this.selectedBackColor.color = this.colors[clicked - 2].color;
             }
             this.highLightedCell = clicked;
         }
