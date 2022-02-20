@@ -5353,6 +5353,13 @@ class LayeredDrawingScreen {
             }
         }
         {
+
+            ctx.fillRect(0,0,this.zoom.zoomedX, height);
+            ctx.fillRect(0,0,width, this.zoom.zoomedY);
+            ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
+            ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             if(this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length)
             {
                 const cellWidth = this.zoom.zoomX * this.width() / this.layer().dimensions.first;
@@ -5381,19 +5388,16 @@ class LayeredDrawingScreen {
                     ctx.fill();
                 }
                 ctx.fillStyle = "#000000";
+                ctx.strokeStyle = "#000000";
             }
             else if(this.state.selectionSelectionRect[3] !== 0 && this.state.selectionSelectionRect[4] !== 0)
             {
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = "#FF0000";
                 ctx.strokeRect(this.state.selectionSelectionRect[0] * this.zoom.zoomX + this.zoom.zoomedX, this.state.selectionSelectionRect[1] * this.zoom.zoomY + this.zoom.zoomedY, this.state.selectionSelectionRect[2] * this.zoom.zoomX, this.state.selectionSelectionRect[3] * this.zoom.zoomY);
+
+                ctx.strokeStyle = "#000000";
             }
-            ctx.fillRect(0,0,this.zoom.zoomedX, height);
-            ctx.fillRect(0,0,width, this.zoom.zoomedY);
-            ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
-            ctx.fillRect(0, this.zoom.zoomedY + zoomedHeight, width, height);
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             
             const internalXScale: number =  this.layer().bounds.first / this.layer().dimensions.first;
             const internalYScale: number =  this.layer().bounds.second / this.layer().dimensions.second;
