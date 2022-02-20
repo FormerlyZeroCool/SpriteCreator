@@ -5965,18 +5965,25 @@ class Pallette {
             const width:number = (this.canvas.width/(this.colors.length+2));
             const height:number = this.canvas.height;
             ctx.clearRect(0, 0, width * (this.colors.length + 2), height);
+            
             let j = 2;
             for(let i = 0; i < this.colors.length; i++, j++)
             {
-                this.ctx.strokeStyle = "#000000";
                 ctx.fillStyle = this.calcColor(i).htmlRBGA();
                 ctx.fillRect(j * width, 0, width, height);
                 ctx.strokeRect(j * width, 0, width, height);
-                this.ctx.font = '16px Calibri';
-                const visibleColor:RGB = (this.calcColor(i));
     
+                if(this.highLightedCell == i)
+                for(let j = 0; j < height && j < width; j += 5)
+                    if(width - j * 2 > 0){
+                        ctx.strokeRect((this.highLightedCell + 2) * width + j, j, width - j * 2, height - j*2);
+                    }
                 if(i < 10)
                 {
+                    this.ctx.font = '18px Calibri';
+                    const visibleColor:RGB = (this.calcColor(i));
+                    this.ctx.strokeStyle = "#FFFFFF";
+                    this.ctx.lineWidth = 2;
                     this.ctx.strokeText((i+1)%10,j * width+width*0.5 - 3, height/2 + 4);
                     visibleColor.setBlue(Math.floor(visibleColor.blue()/2));
                     visibleColor.setRed(Math.floor(visibleColor.red()/2));
@@ -5984,14 +5991,11 @@ class Pallette {
                     visibleColor.setAlpha(255);
                     this.ctx.fillStyle = visibleColor.htmlRBGA();
                     this.ctx.fillText((i+1)%10, j*width+width*0.5 - 3, height/2 + 4);
+                    this.ctx.strokeStyle = "#000000";
+                    this.ctx.lineWidth = 1;
                 }
             }
             {
-                if(this.highLightedCell >= 0)
-                for(let j = 0; j < height && j < width; j += 5)
-                    if(width - j * 2 > 0){
-                        ctx.strokeRect((this.highLightedCell + 2) * width + j, j, width - j * 2, height - j*2);
-                    }
                 ctx.fillStyle = this.selectedPixelColor.htmlRBGA();
                 ctx.fillRect(0, 0, width, height);
                 ctx.fillStyle = this.selectedBackColor.htmlRBGA();
