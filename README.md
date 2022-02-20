@@ -27,8 +27,10 @@ To delete an existing sprite simply press the "Delete Sprite" button, and the cu
 Drag, and drop existing sprites to change their order in the animation. 
 <br>
 <h2>Color Palette</h2>
-The Color Palette is a simple tool found underneath the main drawing screen to select the color used for drawing.<br>
-You can either click on the color you wish to use to select the color, or select it by pressing one of the number keys 0-9.<br>
+The Color Palette is a tool found above the main drawing screen to select the color used for drawing.<br>
+The first two colors shown are the selected pixel, and background colors.<br>
+Around the pixel color is a red border, and around the background color is a blue one.<br>
+You can either click on the color you wish to use to select the color (right clicking will update the background color), or select by pressing one of the number keys 0-9.<br>
 When you select a color you will notice it's red green blue, and transparency values popup in the text box in the color text box,
 you can change on of these values and press Update, or the enter key to save the new color to the palette
 <br>
