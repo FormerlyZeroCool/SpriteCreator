@@ -2804,7 +2804,7 @@ class ScreenTransformationTool extends ExtendedTool {
     constructor(toolName:string, toolImagePath:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
         super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60]);
-        this.localLayout.addElement(new GuiLabel("Zoom:", 75));
+        this.localLayout.addElement(new GuiLabel("Zoom:", 100));
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio:number = 1;
             if(this.textBoxZoom.asNumber.get()) {
@@ -2817,7 +2817,6 @@ class ScreenTransformationTool extends ExtendedTool {
             field.zoomToScreen();
             this.textBoxZoom.setText((Math.round(field.zoom.zoomX*100)/100).toString());
         }, "Auto Zoom", 95, 40, 16);
-        this.localLayout.addElement(new GuiSpacer([50,10]))
         this.textBoxZoom = new GuiTextBox(true, 70, this.buttonUpdateZoom, 16, 32);
         this.textBoxZoom.setText(field.zoom.zoomX.toString());
         this.localLayout.addElement(this.textBoxZoom);
