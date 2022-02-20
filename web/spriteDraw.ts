@@ -5900,16 +5900,16 @@ class Pallette {
     }
     handleClick(event:any):void
     {
-        const clicked:number = Math.floor((event.touchPos[0] / this.canvas.width) * (this.colors.length+2));
-        if(clicked > 1)
+        const clicked:number = Math.floor((event.touchPos[0] / this.canvas.width) * (this.colors.length+2)) - 2;
+        if(clicked > -1)
         {
             if(!event.button)
             {
-                this.selectedPixelColor.color = this.colors[clicked - 2].color;
+                this.selectedPixelColor.color = this.colors[clicked].color;
             }
             else
             {
-                this.selectedBackColor.color = this.colors[clicked - 2].color;
+                this.selectedBackColor.color = this.colors[clicked].color;
             }
             this.highLightedCell = clicked;
         }
@@ -5932,17 +5932,17 @@ class Pallette {
             const width:number = (this.canvas.width/(this.colors.length+2));
             const height:number = this.canvas.height;
             ctx.clearRect(0, 0, width * (this.colors.length + 2), height);
-            for(let i = 2; i < this.colors.length+2; i++)
+            let j = 2;
+            this.ctx.strokeStyle = "#000000";
+            for(let i = 0; i < this.colors.length; i++, j++)
             {
-                this.ctx.strokeStyle = "#000000";
-                ctx.fillStyle = this.calcColor(i - 2).htmlRBGA();
-                ctx.fillRect(i * width, 0, width, height);
-                ctx.strokeRect(i * width, 0, width, height);
+                ctx.fillStyle = this.calcColor(i).htmlRBGA();
+                ctx.fillRect(j * width, 0, width, height);
+                ctx.strokeRect(j * width, 0, width, height);
                 this.ctx.font = '16px Calibri';
-                const visibleColor:RGB = (this.calcColor(i - 2));
+                const visibleColor:RGB = (this.calcColor(i));
     
-                ctx.strokeStyle = "#000000";
-                if(i < 12)
+                if(j < 10)
                 {
                     this.ctx.strokeText((i-1)%10,i*width+width*0.5 - 3, height/2 + 4);
                     visibleColor.setBlue(Math.floor(visibleColor.blue()/2));
@@ -5954,7 +5954,6 @@ class Pallette {
                 }
             }
             {
-                this.ctx.strokeStyle = "#000000";
                 if(this.highLightedCell > 1)
                 for(let j = 0; j < height && j < width; j += 5)
                     if(width - j * 2 > 0){
@@ -5964,6 +5963,16 @@ class Pallette {
                 ctx.fillRect(0, 0, width, height);
                 ctx.fillStyle = this.selectedBackColor.htmlRBGA();
                 ctx.fillRect(width, 0, width, height);
+                for(let j = 0; j < height * 1/5; j += 2)
+                {
+                    this.ctx.strokeStyle = "#000000";
+                    ctx.strokeRect(j, j, width - j*2, height - j*2);
+                    ctx.strokeRect(width + j, j, width - j*2, height - j*2);
+                    this.ctx.strokeStyle = "#FF0000";
+                    ctx.strokeRect(j, j, width - j*2, height - j*2);
+                    this.ctx.strokeStyle = "#0000FF";
+                    ctx.strokeRect(width + j, j, width - j*2, height - j*2);
+                }
             }
         }
     }
@@ -7374,7 +7383,6 @@ async function main()
                 const numTyped:string = e.code.substring("Digit".length, e.code.length);
                 pallette.highLightedCell = (parseInt(numTyped) + 9) % 10;
                 pallette.selectedPixelColor.color = pallette.calcColor(pallette.highLightedCell).color;
-                pallette.highLightedCell += 2;
             }
         }
     });
