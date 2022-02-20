@@ -135,14 +135,23 @@ When checked each time you click on the screen another point in a polygonal area
 Click this button to reset the selection made
 <h4>Undo Last Point</h4>
 Undo setting the last point added to the selection polygon when polygonal selection is checked
-<h3>17.) Save Tool</h3>
+<h3>17.) Screen Transformation Tool</h3>
+<h4>Zoom</h4>
+Displays value of x zoom, y zoom is auto calculated to keep pixel aspect ratio 1:1
+<h4>Set Zoom Button</h4>
+Update zoom in text box, and press enter to set the x zoom manually
+<h4>Auto Zoom Button</h4>
+Automatically zooms screen to make the sprite's height the same as the screen height, auto calulate's x zoom to keep pixel aspect ratio 1:1
+<h4>Center Screen Button</h4>
+Automatically centers screen view to show middle of working sprite
+<h3>18.) Save Tool</h3>
 <h4>Save PNG</h4>
 Saves what is currently rendered to the drawing screen as a png with the file name supplied in the textbox
 <h4>Save Animation</h4>
 Saves the currently selected animation as a gif with the file name supplied in the textbox
 <h4>Save Project</h4>
 Saves all data in project to one binary file that can be loaded by sprite creator at a later time using the "Choose project to load" button
-<h3>18.) Settings Tool</h3>
+<h3>19.) Settings Tool</h3>
 <h4>Sprite Resolution</h4>
 Set the width, and height of the current drawing space in pixels
 <h4>Resize</h4>
