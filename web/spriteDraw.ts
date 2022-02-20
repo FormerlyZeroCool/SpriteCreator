@@ -5921,7 +5921,7 @@ class Pallette {
             {
                 this.selectedBackColor.color = this.colors[clicked - 2].color;
             }
-            this.highLightedCell = clicked;
+            this.highLightedCell = clicked - 2;
         }
     }
     setSelectedColor(color:string)
