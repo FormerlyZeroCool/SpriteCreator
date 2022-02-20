@@ -4772,6 +4772,7 @@ class Pallette {
     constructor(canvas, keyboardHandler, colorCount = 10, colors = null) {
         this.repaint = true;
         this.canvas = canvas;
+        this.renderedSpace = [0, 0];
         this.keyboardHandler = keyboardHandler;
         this.ctx = canvas.getContext("2d");
         this.highLightedCell = 0;
@@ -4892,7 +4893,7 @@ class Pallette {
                 }
             }
             {
-                if (this.highLightedCell > 1)
+                if (this.highLightedCell >= 0)
                     for (let j = 0; j < height && j < width; j += 5)
                         if (width - j * 2 > 0) {
                             ctx.strokeRect((this.highLightedCell + 2) * width + j, j, width - j * 2, height - j * 2);
