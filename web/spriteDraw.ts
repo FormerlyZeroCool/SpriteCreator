@@ -4405,6 +4405,7 @@ class DrawingScreen {
                     canvas.width = newDim[0];
                     canvas.height = newDim[1];
                     const ctx = canvas.getContext("2d")!;
+                    ctx.imageSmoothingEnabled = false;
                     ctx.drawImage(this.canvas, 0, 0, newDim[0], newDim[1]);
                     sprite.imageData = ctx.getImageData(0, 0, newDim[0], newDim[1]);
                     sprite.pixels = sprite.imageData.data;
