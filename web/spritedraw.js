@@ -3225,7 +3225,7 @@ class DrawingScreen {
         const pixelColor = this.screenBuffer[gx + gy * this.dimensions.first];
         if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && !pixelColor.compare(this.state.color)) {
             this.state.screenBufUnlocked = false;
-            if (gx >= 0 && gy >= 0 && gx <= this.dimensions.first && gy < this.dimensions.second) {
+            if (this.state.bufferBitMask[gx + gy * this.dimensions.first] && gx >= 0 && gy >= 0 && gx <= this.dimensions.first && gy < this.dimensions.second) {
                 this.state.pixelPerfectBuffer.push((gx << 16) | gy);
                 this.state.pixelPerfectBuffer.push(pixelColor.color);
                 pixelColor.copy(this.state.color);
