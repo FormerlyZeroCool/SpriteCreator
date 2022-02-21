@@ -3363,7 +3363,10 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 const min_y:number = Math.min(touchPos[1] - deltaY, touchPos[1]);
                 const max_y:number = Math.max(touchPos[1] - deltaY, touchPos[1]);
                 field.state.selectionRect = [0,0,0,0];
-                field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                if(this.penTool.checkboxPixelPerfect.checked)
+                    field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                else
+                    field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
                 break;
                 case("pen"):
                 if(this.penTool.checkboxPixelPerfect.checked)
@@ -3401,7 +3404,10 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     {
                         field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                     }
-                    field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                    if(this.penTool.checkboxPixelPerfect.checked)
+                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                    else
+                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
                     field.state.selectionRect = [0,0,0,0];
                 break;
                 case("selection"):
@@ -3427,8 +3433,11 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     field.layer().paste();
                 break;
                 case("rect"):
+                if(this.penTool.checkboxPixelPerfect.checked)
+                    field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0]+field.state.selectionRect[2], field.state.selectionRect[1]+ field.state.selectionRect[3]], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                else
                     field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0]+field.state.selectionRect[2], field.state.selectionRect[1]+ field.state.selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                    field.state.selectionRect = [0,0,0,0];
+                field.state.selectionRect = [0,0,0,0];
                 break;
                 case("color picker"):
                 repaint = false;
