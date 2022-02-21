@@ -2820,6 +2820,7 @@ class ToolSelector {
                     }
                 if (this.penTool.checkboxPixelPerfect.checked || this.eraserTool.checkboxPixelPerfect.checked) {
                     this.field.layer().cleanPixelPerfectBuffer();
+                    this.field.layer().cleanPixelPerfectBuffer();
                 }
                 field.layer().updateLabelUndoRedoCount();
                 field.layer().repaint = repaint;
@@ -4676,9 +4677,10 @@ class SingleTouchListener {
     }
     callHandler(type, event) {
         const handlers = this.listenerTypeMap[type];
+        const touchSupported = isTouchSupported();
         if (SingleTouchListener.mouseDown.getTouchCount() < 2)
             handlers.forEach((handler) => {
-                if (!event.defaultPrevented && handler.pred(event)) {
+                if ((!event.defaultPrevented || touchSupported) && handler.pred(event)) {
                     handler.callBack(event);
                 }
             });
@@ -6229,12 +6231,16 @@ async function main() {
     const fps = 35;
     const goalSleep = 1000 / fps;
     let counter = 0;
+    const touchScreen = isTouchSupported();
     while (true) {
         const start = Date.now();
         toolSelector.draw();
         if (canvas.width != getWidth() - (toolSelector.width() + 30)) {
             canvas.width = getWidth() - toolSelector.width() - 30;
-            canvas.height = screen.height * 0.65;
+            if (!touchScreen)
+                canvas.height = screen.height * 0.65;
+            else
+                canvas.height = screen.height;
             counter = 0;
         }
         if (pallette.canvas.width !== canvas.width)
