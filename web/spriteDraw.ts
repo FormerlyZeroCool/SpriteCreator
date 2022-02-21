@@ -3947,7 +3947,7 @@ class DrawingScreen {
                 this.updatesStack.get(this.updatesStack.length() - 1).push(idata);
             }
         }
-        this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - 4);
+        this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - 8);
     }
     handleTapPixelPerfect(px:number, py:number)
     {
@@ -3963,7 +3963,7 @@ class DrawingScreen {
                 this.state.pixelPerfectBuffer.push(pixelColor.color);
                 pixelColor.copy(this.state.color);
             }
-            if(this.state.pixelPerfectBuffer.length > 150)
+            if(this.state.pixelPerfectBuffer.length > 16)
             {
                 this.cleanPixelPerfectBuffer();
             }
