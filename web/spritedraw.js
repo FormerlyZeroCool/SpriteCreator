@@ -2651,6 +2651,13 @@ class ToolSelector {
                             field.zoom.offsetY -= e.deltaY;
                             repaint = false;
                             break;
+                        case ("eraser"):
+                            if (this.eraserTool.checkboxPixelPerfect.checked) {
+                                field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                                break;
+                            }
+                            field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                            break;
                         case ("pen"):
                             if (this.penTool.checkboxPixelPerfect.checked) {
                                 field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
@@ -2658,9 +2665,6 @@ class ToolSelector {
                             }
                         case ("spraycan"):
                             field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                            break;
-                        case ("eraser"):
-                            field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
                             break;
                         case ("drag"):
                             field.layer().dragData.first.first += (deltaX / field.layer().bounds.first) * field.layer().dimensions.first;
@@ -2753,7 +2757,8 @@ class ToolSelector {
                             }
                             break;
                         case ("eraser"):
-                            field.layer().handleTap(touchPos[0], touchPos[1]);
+                            if (deltaX === 0 && deltaY === 0 && this.eraserTool.checkboxPixelPerfect)
+                                field.layer().handleTap(touchPos[0], touchPos[1]);
                             field.state.color.copy(colorBackup);
                             break;
                         case ("rotate"):
@@ -3233,7 +3238,7 @@ class DrawingScreen {
         const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
         const gy = Math.floor((py - this.offset.second) / this.bounds.second * this.dimensions.second);
         const pixelColor = this.screenBuffer[gx + gy * this.dimensions.first];
-        if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && !pixelColor.compare(this.state.color)) {
+        if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && pixelColor && !this.state.color.compare(pixelColor)) {
             this.state.screenBufUnlocked = false;
             if (this.state.bufferBitMask[gx + gy * this.dimensions.first] && gx >= 0 && gy >= 0 && gx <= this.dimensions.first && gy < this.dimensions.second) {
                 this.state.pixelPerfectBuffer.push((gx << 16) | gy);

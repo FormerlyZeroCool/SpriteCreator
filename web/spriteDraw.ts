@@ -3262,6 +3262,14 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.zoom.offsetY -= e.deltaY;
                 repaint = false;
                 break;
+                case("eraser"):
+                if(this.eraserTool.checkboxPixelPerfect.checked)
+                {
+                    field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                    break;
+                }
+                field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                break;
                 case("pen"):
                 if(this.penTool.checkboxPixelPerfect.checked)
                 {
@@ -3270,9 +3278,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 }
                 case("spraycan"):
                 field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                break;
-                case("eraser"):
-                field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1]);
                 break;
                 case("drag"):
                 field.layer().dragData!.first.first += (deltaX / field.layer().bounds.first) * field.layer().dimensions.first;
@@ -3375,8 +3380,10 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 }
                 break;
                 case("eraser"):
+                if(deltaX === 0 && deltaY === 0 && this.eraserTool.checkboxPixelPerfect)
                     field.layer().handleTap(touchPos[0], touchPos[1]);
-                    field.state.color.copy(colorBackup);
+
+                field.state.color.copy(colorBackup);
                 break;
                 case("rotate"):
                     if(field.state.antiAliasRotation)
@@ -3954,7 +3961,7 @@ class DrawingScreen {
         const gx:number = Math.floor((px-this.offset.first)/this.bounds.first*this.dimensions.first);
         const gy:number = Math.floor((py-this.offset.second)/this.bounds.second*this.dimensions.second);
         const pixelColor:RGB = this.screenBuffer[gx + gy * this.dimensions.first];
-        if(gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && !pixelColor.compare(this.state.color)) 
+        if(gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && pixelColor && !this.state.color.compare(pixelColor)) 
         {
             this.state.screenBufUnlocked = false;
             if(this.state.bufferBitMask[gx + gy * this.dimensions.first] && gx >= 0 && gy >= 0 && gx <= this.dimensions.first && gy < this.dimensions.second)
