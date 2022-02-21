@@ -156,7 +156,7 @@ class RGB {
         this.setAlpha(a0*255);*/
     }
     compare(color) {
-        return this.color === color.color;
+        return color && this.color === color.color;
     }
     copy(color) {
         this.color = color.color;

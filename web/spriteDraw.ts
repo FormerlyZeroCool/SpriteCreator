@@ -195,7 +195,7 @@ class RGB {
     }
     compare(color:RGB):boolean
     {
-        return this.color === color.color;
+        return color && this.color === color.color;
     }
     copy(color:RGB):void
     {
