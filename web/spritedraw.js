@@ -3194,15 +3194,16 @@ class DrawingScreen {
                 && this.screenBuffer[key].compare(this.screenBuffer[key - 1]));
     }
     cleanPixelPerfectBuffer() {
-        for (let i = 0; i < this.state.pixelPerfectBuffer.length - 1; i += 2) {
+        const buffer = this.state.pixelPerfectBuffer;
+        for (let i = 0; i < buffer.length - 1; i += 2) {
             let adjacent = 0;
-            const idata = new Pair(this.state.pixelPerfectBuffer[i], new RGB(0, 0, 0, 0));
-            idata.second.color = this.state.pixelPerfectBuffer[i + 1];
+            const idata = new Pair(buffer[i], new RGB(0, 0, 0, 0));
+            idata.second.color = buffer[i + 1];
             const ix = idata.first >> 16;
             const iy = idata.first & ((1 << 16) - 1);
-            for (let j = 0; j < this.state.pixelPerfectBuffer.length - 1; j += 2) {
-                const jdata = new Pair(this.state.pixelPerfectBuffer[j], new RGB(0, 0, 0, 0));
-                jdata.second.color = this.state.pixelPerfectBuffer[j + 1];
+            for (let j = 0; j < buffer.length - 1; j += 2) {
+                const jdata = new Pair(buffer[j], new RGB(0, 0, 0, 0));
+                jdata.second.color = buffer[j + 1];
                 const jx = jdata.first >> 16;
                 const jy = jdata.first & ((1 << 16) - 1);
                 const dx = ix - jx;
@@ -3217,7 +3218,7 @@ class DrawingScreen {
             if (adjacent > 1 && (adjacent !== 2 || !this.horizontalsAdjacent(ix, iy))) {
                 {
                     this.screenBuffer[ix + iy * this.dimensions.first].color = idata.second.color;
-                    this.state.pixelPerfectBuffer.splice(i, 2);
+                    buffer.splice(i, 2);
                     i -= 2;
                 }
             }
@@ -3226,7 +3227,7 @@ class DrawingScreen {
                 this.updatesStack.get(this.updatesStack.length() - 1).push(idata);
             }
         }
-        this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length);
+        this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - 4);
     }
     handleTapPixelPerfect(px, py) {
         const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
