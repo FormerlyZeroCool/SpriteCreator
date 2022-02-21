@@ -3914,7 +3914,6 @@ class DrawingScreen {
                 const jy:number = jdata.first & ((1 << 16) - 1);
                 const dx:number = ix - jx;
                 const dy:number = iy - jy;
-                //if(dx !== 0 || dy !== 0)
                 if(Math.abs(dx) === 1 && Math.abs(dy) === 0)
                 {
                     adjacent++;
@@ -3948,9 +3947,12 @@ class DrawingScreen {
         if(gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && !pixelColor.compare(this.state.color)) 
         {
             this.state.screenBufUnlocked = false;
-            this.state.pixelPerfectBuffer.push((gx << 16) | gy);
-            this.state.pixelPerfectBuffer.push(pixelColor.color);
-            pixelColor.copy(this.state.color);
+            if(gx >= 0 && gy >= 0 && gx <= this.dimensions.first && gy < this.dimensions.second)
+            {
+                this.state.pixelPerfectBuffer.push((gx << 16) | gy);
+                this.state.pixelPerfectBuffer.push(pixelColor.color);
+                pixelColor.copy(this.state.color);
+            }
             if(this.state.pixelPerfectBuffer.length > 150)
             {
                 this.cleanPixelPerfectBuffer();
