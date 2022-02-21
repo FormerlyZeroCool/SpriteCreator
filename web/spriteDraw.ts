@@ -3446,7 +3446,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 repaint = false;
                 break;
             }
-            if(this.penTool.checkboxPixelPerfect.checked)
+            if(this.penTool.checkboxPixelPerfect.checked || this.eraserTool.checkboxPixelPerfect.checked)
             {
                 this.field.layer().cleanPixelPerfectBuffer();
             }

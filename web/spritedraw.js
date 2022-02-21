@@ -2818,7 +2818,7 @@ class ToolSelector {
                             repaint = false;
                             break;
                     }
-                if (this.penTool.checkboxPixelPerfect.checked) {
+                if (this.penTool.checkboxPixelPerfect.checked || this.eraserTool.checkboxPixelPerfect.checked) {
                     this.field.layer().cleanPixelPerfectBuffer();
                 }
                 field.layer().updateLabelUndoRedoCount();
