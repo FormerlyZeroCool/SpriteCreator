@@ -1830,10 +1830,11 @@ class PenViewTool extends ViewLayoutTool {
 }
 ;
 class PenTool extends ExtendedTool {
-    constructor(strokeWith, toolName = "pen", pathToImage = ["images/penSprite.png"], optionPanes, dimLocal = [200, 110]) {
-        super(toolName, pathToImage, optionPanes, dimLocal, [2, 30], [1, 50]);
-        this.layoutManager.pixelDim = [200, 500];
+    constructor(strokeWith, toolName = "pen", pathToImage = ["images/penSprite.png"], optionPanes, dimLocal = [200, 160]) {
+        super(toolName, pathToImage, optionPanes, [200, 200], [2, 30], [1, 40]);
+        this.layoutManager.pixelDim = [200, 600];
         this.lineWidth = strokeWith;
+        this.checkboxPixelPerfect = new GuiCheckBox(() => { }, 40, 40, false);
         this.tbSize = new GuiTextBox(true, 80, null, 16, 35, GuiTextBox.default, (event) => {
             if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
                 return false;
@@ -1855,6 +1856,8 @@ class PenTool extends ExtendedTool {
         this.localLayout.addElement(this.btUpdate);
         this.localLayout.addElement(new GuiLabel("Round\npen tip:", 90, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(PenTool.checkDrawCircular);
+        this.localLayout.addElement(new GuiLabel("Pixel\nperfect:", 90, 16, GuiTextBox.bottom, 40));
+        this.localLayout.addElement(this.checkboxPixelPerfect);
     }
     activateOptionPanel() {
         this.layoutManager.activate();
@@ -2649,6 +2652,10 @@ class ToolSelector {
                             repaint = false;
                             break;
                         case ("pen"):
+                            if (this.penTool.checkboxPixelPerfect.checked) {
+                                field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                                break;
+                            }
                         case ("spraycan"):
                             field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
                             break;
@@ -2738,7 +2745,10 @@ class ToolSelector {
                             field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
                             break;
                         case ("pen"):
-                            if (deltaX === 0 && deltaY === 0) {
+                            if (this.penTool.checkboxPixelPerfect.checked) {
+                                this.field.layer().cleanPixelPerfectBuffer();
+                            }
+                            else if (deltaX === 0 && deltaY === 0) {
                                 field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                             }
                             break;
@@ -3021,6 +3031,7 @@ class DrawingScreenState {
         this.pasteRect = [0, 0, 0, 0];
         this.selectionSelectionRect = [0, 0, 0, 0];
         this.lineWidth = lineWidth; //dimensions[0] / bounds[0] * 4;
+        this.pixelPerfectBuffer = [];
     }
 }
 ;
@@ -3162,6 +3173,64 @@ class DrawingScreen {
                         this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(destIndex, color));
                     }
                 }
+            }
+            this.state.screenBufUnlocked = true;
+        }
+    }
+    horizontalsAdjacent(x, y) {
+        const key = x + y * this.dimensions.first;
+        return (this.screenBuffer[key].compare(this.screenBuffer[key + this.dimensions.first])
+            && this.screenBuffer[key].compare(this.screenBuffer[key - this.dimensions.first]))
+            || (this.screenBuffer[key].compare(this.screenBuffer[key + 1])
+                && this.screenBuffer[key].compare(this.screenBuffer[key - 1]));
+    }
+    cleanPixelPerfectBuffer() {
+        for (let i = 0; i < this.state.pixelPerfectBuffer.length - 1; i += 2) {
+            let adjacent = 0;
+            const idata = new Pair(this.state.pixelPerfectBuffer[i], new RGB(0, 0, 0, 0));
+            idata.second.color = this.state.pixelPerfectBuffer[i + 1];
+            const ix = idata.first >> 16;
+            const iy = idata.first & ((1 << 16) - 1);
+            for (let j = 0; j < this.state.pixelPerfectBuffer.length - 1; j += 2) {
+                const jdata = new Pair(this.state.pixelPerfectBuffer[j], new RGB(0, 0, 0, 0));
+                jdata.second.color = this.state.pixelPerfectBuffer[j + 1];
+                const jx = jdata.first >> 16;
+                const jy = jdata.first & ((1 << 16) - 1);
+                const dx = ix - jx;
+                const dy = iy - jy;
+                //if(dx !== 0 || dy !== 0)
+                if (Math.abs(dx) === 1 && Math.abs(dy) === 0) {
+                    adjacent++;
+                }
+                else if (Math.abs(dx) === 0 && Math.abs(dy) === 1) {
+                    adjacent++;
+                }
+            }
+            if (adjacent > 1 && (adjacent !== 2 || !this.horizontalsAdjacent(ix, iy))) {
+                {
+                    this.screenBuffer[ix + iy * this.dimensions.first].color = idata.second.color;
+                    this.state.pixelPerfectBuffer.splice(i, 2);
+                    i -= 2;
+                }
+            }
+            else {
+                idata.first = ix + iy * this.dimensions.first;
+                this.updatesStack.get(this.updatesStack.length() - 1).push(idata);
+            }
+        }
+        this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length);
+    }
+    handleTapPixelPerfect(px, py) {
+        const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
+        const gy = Math.floor((py - this.offset.second) / this.bounds.second * this.dimensions.second);
+        const pixelColor = this.screenBuffer[gx + gy * this.dimensions.first];
+        if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && !pixelColor.compare(this.state.color)) {
+            this.state.screenBufUnlocked = false;
+            this.state.pixelPerfectBuffer.push((gx << 16) | gy);
+            this.state.pixelPerfectBuffer.push(pixelColor.color);
+            pixelColor.copy(this.state.color);
+            if (this.state.pixelPerfectBuffer.length > 150) {
+                this.cleanPixelPerfectBuffer();
             }
             this.state.screenBufUnlocked = true;
         }
@@ -4163,7 +4232,7 @@ class LayeredDrawingScreen {
             const whRatio = (this.zoom.zoomX / this.zoom.zoomY);
             this.zoom.offsetX = 0;
             this.zoom.offsetY = 0;
-            this.zoom.zoomY = this.renderDim[1] / dim[1];
+            this.zoom.zoomY = this.renderDim[1] / this.height();
             this.zoom.zoomX = this.zoom.zoomY * whRatio;
         }
     }
@@ -5960,9 +6029,7 @@ async function main() {
                 pallette.selectedPixelColor.color = pallette.calcColor(pallette.highLightedCell).color;
             }
         }
-        pallette.repaint = true;
     });
-    //const field:DrawingScreen = new DrawingScreen(<HTMLCanvasElement> , keyboardHandler, pallette,[0,0], dim);
     const animationGroupSelector = new AnimationGroupsSelector(field, keyboardHandler, "animation_group_selector", "animations", "sprites_canvas", dim[0], dim[1], 128, 128);
     animationGroupSelector.createAnimationGroup();
     animationGroupSelector.selectedAnimationGroup = 0;
