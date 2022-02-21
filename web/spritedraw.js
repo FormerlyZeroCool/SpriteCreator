@@ -2748,10 +2748,7 @@ class ToolSelector {
                                 field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
                             break;
                         case ("pen"):
-                            if (this.penTool.checkboxPixelPerfect.checked) {
-                                this.field.layer().cleanPixelPerfectBuffer();
-                            }
-                            else if (deltaX === 0 && deltaY === 0) {
+                            if (deltaX === 0 && deltaY === 0) {
                                 field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                             }
                             break;
@@ -2816,6 +2813,9 @@ class ToolSelector {
                             repaint = false;
                             break;
                     }
+                if (this.penTool.checkboxPixelPerfect.checked) {
+                    this.field.layer().cleanPixelPerfectBuffer();
+                }
                 field.layer().updateLabelUndoRedoCount();
                 field.layer().repaint = repaint;
             });
