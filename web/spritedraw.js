@@ -3199,7 +3199,7 @@ class DrawingScreen {
             || (this.screenBuffer[key].compare(this.screenBuffer[key + 1])
                 && this.screenBuffer[key].compare(this.screenBuffer[key - 1]));
     }
-    cleanPixelPerfectBuffer() {
+    cleanPixelPerfectBuffer(rollover = 8) {
         const buffer = this.state.pixelPerfectBuffer;
         for (let i = 0; i < buffer.length - 1; i += 2) {
             let adjacent = 0;
@@ -3233,9 +3233,10 @@ class DrawingScreen {
                 this.updatesStack.get(this.updatesStack.length() - 1).push(idata);
             }
         }
-        this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - 16);
+        this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - rollover);
     }
-    handleTapPixelPerfect(px, py) {
+    handleTapPixelPerfect(px, py, bufLen = 24) {
+        bufLen += bufLen % 2;
         const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
         const gy = Math.floor((py - this.offset.second) / this.bounds.second * this.dimensions.second);
         const pixelColor = this.screenBuffer[gx + gy * this.dimensions.first];
@@ -3246,8 +3247,8 @@ class DrawingScreen {
                 this.state.pixelPerfectBuffer.push(pixelColor.color);
                 pixelColor.copy(this.state.color);
             }
-            if (this.state.pixelPerfectBuffer.length > 24) {
-                this.cleanPixelPerfectBuffer();
+            if (this.state.pixelPerfectBuffer.length > bufLen) {
+                this.cleanPixelPerfectBuffer(bufLen - 6);
             }
             this.state.screenBufUnlocked = true;
         }
@@ -4957,6 +4958,7 @@ class Pallette {
         }
     }
     setSelectedColor(color) {
+        this.colors[this.highLightedCell].loadString(color);
         this.selectedPixelColor.loadString(color);
     }
     cloneColor(color) {
