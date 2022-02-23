@@ -2537,10 +2537,15 @@ class ColorPickerTool extends ExtendedTool {
     }
     setColorText():void
     {
+        const color:RGB = new RGB(0,0,0);
         if(this.color())
-            this.tbColor.setText(this.color().htmlRBGA());
+            color.copy(this.color());
         else
-            this.tbColor.setText(new RGB(0, 0, 0, 0).htmlRBGA())
+            color.copy(new RGB(0, 0, 0, 0));
+        
+        this.chosenColor.color.copy(color);
+        this.tbColor.setText(color.htmlRBGA());
+        this.field.toolSelector.repaint = true;
     }
     activateOptionPanel():void { this.layoutManager.activate(); }
     deactivateOptionPanel():void { this.layoutManager.deactivate(); }
@@ -3224,12 +3229,12 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 if(!e.button) 
                 {
                     field.layer().state.color = pallette.selectedPixelColor; 
-                    field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+                    field.layer().toolSelector.colorPickerTool.setColorText(); 
                 }
                 else
                 {
                     field.layer().state.color = (pallette.selectedBackColor); 
-                    field.layer().toolSelector.colorPickerTool.tbColor.setText((pallette.selectedBackColor).htmlRBGA()); 
+                    field.layer().toolSelector.colorPickerTool.setColorText(); 
                 }
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
                 
@@ -3334,7 +3339,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 break;
                 case("color picker"):
                 field.state.color.copy(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first]);
-                pallette.setSelectedColor(field.layer().screenBuffer[gx + gy*field.layer().dimensions.first].htmlRBGA());
                 // for Gui lib
                 field.layer().toolSelector.updateColorPickerTextBox();
                 break;
