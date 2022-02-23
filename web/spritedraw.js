@@ -42,7 +42,7 @@ class Queue {
     push(val) {
         if (this.length === this.data.length) {
             const newData = [];
-            newData.length = this.data.length << 1;
+            newData.length = this.data.length * 2;
             for (let i = 0; i < this.data.length; i++) {
                 newData[i] = this.data[(i + this.start) % this.data.length];
             }
@@ -51,6 +51,51 @@ class Queue {
             this.data = newData;
             this.data[this.end++] = val;
             this.length++;
+        }
+        else {
+            this.data[this.end++] = val;
+            this.end &= this.data.length - 1;
+            this.length++;
+        }
+    }
+    pop() {
+        if (this.length) {
+            const val = this.data[this.start];
+            this.start++;
+            this.start &= this.data.length - 1;
+            this.length--;
+            return val;
+        }
+        throw new Error("No more values in the queue");
+    }
+    get(index) {
+        if (index < this.length) {
+            return this.data[(index + this.start) & (this.data.length - 1)];
+        }
+        throw new Error(`Could not get value at index ${index}`);
+    }
+    set(index, obj) {
+        if (index < this.length) {
+            this.data[(index + this.start) & (this.data.length - 1)] = obj;
+        }
+        throw new Error(`Could not set value at index ${index}`);
+    }
+}
+;
+class FixedSizeQueue {
+    constructor(size) {
+        this.data = [];
+        this.data.length = size;
+        this.start = 0;
+        this.end = 0;
+        this.length = 0;
+    }
+    push(val) {
+        if (this.length === this.data.length) {
+            this.start++;
+            this.data[this.end++] = val;
+            this.start &= this.data.length - 1;
+            this.end &= this.data.length - 1;
         }
         else {
             this.data[this.end++] = val;
@@ -3026,6 +3071,9 @@ class ToolSelector {
     }
 }
 ;
+class TransformedView {
+}
+;
 class DrawingScreenState {
     constructor(lineWidth) {
         this.color = new RGB(0, 0, 0);
@@ -3235,7 +3283,7 @@ class DrawingScreen {
         }
         this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - rollover);
     }
-    handleTapPixelPerfect(px, py, bufLen = 24) {
+    handleTapPixelPerfect(px, py, bufLen = 20) {
         bufLen += bufLen % 2;
         const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
         const gy = Math.floor((py - this.offset.second) / this.bounds.second * this.dimensions.second);
@@ -4859,7 +4907,7 @@ class MultiTouchListener {
             this.registeredMultiTouchEvent = true;
         }
         if (this.registeredMultiTouchEvent) {
-            const newDist = Math.sqrt(Math.pow((touch1.clientX - touch2.clientX), 2) || Math.pow(touch1.clientY - touch2.clientY, 2));
+            const newDist = Math.sqrt(Math.pow((touch1.clientX - touch2.clientX), 2) + Math.pow(touch1.clientY - touch2.clientY, 2));
             if (this.lastDistance > newDist) {
                 this.callHandler("pinchOut", event);
             }
