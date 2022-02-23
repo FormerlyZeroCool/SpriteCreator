@@ -1088,6 +1088,66 @@ class GuiSpacer implements GuiElement {
         return false;
     }
 };
+class GuiColoredSpacer implements GuiElement {
+    dim:number[];
+    color:RGB;
+    constructor(dim:number[], color:RGB){
+        this.dim = [dim[0], dim[1]];
+        this.color = new RGB(0,0,0);
+        this.color.copy(color);
+        this.refresh();
+    }
+    active():boolean
+    {
+        return false;
+    }
+    deactivate():void
+    {}
+    activate():void
+    {}
+    width():number
+    {
+        return this.dim[0];
+    }
+    height():number
+    {
+        return this.dim[1];
+    }
+    refresh():void
+    {}
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, offsetX:number, offsetY:number):void
+    {
+        const originalFillStyle:string | CanvasPattern | CanvasGradient = ctx.fillStyle;
+        const originalStrokeStyle:string | CanvasPattern | CanvasGradient = ctx.strokeStyle;
+        const colorString:string = this.color.htmlRBGA();
+        if(colorString !== originalFillStyle)
+        {
+            ctx.fillStyle = colorString;
+        }
+        if("#000000" !== originalStrokeStyle)
+        {
+            ctx.strokeStyle = "#000000";
+        }
+        ctx.fillRect(x + offsetX, y + offsetY, this.dim[0], this.dim[1]);
+        ctx.strokeRect(x + offsetX, y + offsetY, this.dim[0], this.dim[1]);
+        if(colorString !== originalFillStyle)
+        {
+            ctx.fillStyle = originalFillStyle;
+        }
+        if("#000000" !== originalStrokeStyle)
+        {
+            ctx.strokeStyle = originalStrokeStyle;
+        }
+    }
+    handleKeyBoardEvents(type:string, e:any):void
+    {}
+    handleTouchEvents(type:string, e:any):void
+    {}
+    isLayoutManager():boolean
+    {
+        return false;
+    }
+};
 class GuiButton implements GuiElement {
 
     text:string;
@@ -2337,12 +2397,15 @@ class PenTool extends ExtendedTool {
     checkboxPixelPerfect:GuiCheckBox;
     static checkboxSprayPaint:GuiCheckBox = new GuiCheckBox(null, 40, 40);
     static checkDrawCircular:GuiCheckBox = new GuiCheckBox(null, 40, 40);
-    constructor(strokeWith:number, toolName:string = "pen", pathToImage:string[] = ["images/penSprite.png"], optionPanes:SimpleGridLayoutManager[], dimLocal:number[] = [200,160])
+    constructor(strokeWith:number, toolName:string = "pen", pathToImage:string[] = ["images/penSprite.png"], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen, dimLocal:number[] = [200,160])
     {
         super(toolName, pathToImage, optionPanes, [200, 200], [2,30], [1, 40]);
         this.layoutManager.pixelDim = [200, 600];
         this.lineWidth = strokeWith;
-        this.checkboxPixelPerfect = new GuiCheckBox(() => {}, 40, 40, false);
+        this.checkboxPixelPerfect = new GuiCheckBox(() => { 
+            field.state.lineWidth = 1;
+            this.lineWidth = 1;
+        }, 40, 40, false);
         this.tbSize = new GuiTextBox(true, 80, null, 16, 35, GuiTextBox.default, (event:TextBoxEvent) => {
             if(!event.textbox.asNumber.get() && event.textbox.text.length > 1)
             {
@@ -2399,28 +2462,18 @@ class PenTool extends ExtendedTool {
     }
 };
 class SprayCanTool extends PenTool {
-    tbProbability:GuiTextBox;
-    constructor(strokeWidth:number, toolName:string, pathToImage:string[], callBack:(tbProbability:GuiTextBox)=>void, optionPanes:SimpleGridLayoutManager[])
+    tbProbability:GuiSlider;
+    constructor(strokeWidth:number, toolName:string, pathToImage:string[], callBack:(tbProbability:GuiSlider)=>void, optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
-        super(strokeWidth, toolName, pathToImage, optionPanes, [200, 155]);
-        this.tbProbability = new GuiTextBox(true, 99, this.btUpdate, 16, 35, GuiTextBox.default, (event:TextBoxEvent) => {
-            if(event.textbox.asNumber.get() === null)
-            {
-                return false;
-            }
-            else if(event.textbox.asNumber.get()! > 1 && event.textbox.text.length > 0)
-            {
-                event.textbox.setText((1).toString());
-                event.textbox.cursor = 1;
-            }
-            return true;
+        super(strokeWidth, toolName, pathToImage, optionPanes, field, [200, 155]);
+        this.tbProbability = new GuiSlider(1, [100, 40], (event:SlideEvent) => {
+            callBack(this.tbProbability);
         });
         this.btUpdate.callback = () => { 
             this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get()! <= 128 ? this.tbSize.asNumber.get()! : 128):this.lineWidth; 
             this.tbSize.setText(String(this.lineWidth));
             callBack(this.tbProbability);
         };
-        this.tbProbability.setText((1).toString());
         this.localLayout.addElement(new GuiLabel("Spray\nprob:", 99, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.tbProbability);
     }
@@ -2429,10 +2482,13 @@ class ColorPickerTool extends ExtendedTool {
     field:LayeredDrawingScreen;
     tbColor:GuiTextBox;
     btUpdate:GuiButton;
+    chosenColor:GuiColoredSpacer;
     constructor(field:LayeredDrawingScreen, toolName:string = "color picker", pathToImage:string[] = ["images/colorPickerSprite.png"], optionPanes:SimpleGridLayoutManager[] = [])
     {
-        super(toolName, pathToImage, optionPanes, [200, 100], [1, 30]);
+        super(toolName, pathToImage, optionPanes, [200, 100], [2, 30]);
         this.field = field;
+        this.chosenColor = new GuiColoredSpacer([100, 32], new RGB(0,0,0,255));
+        field.toolSelector.repaint = true;
         this.tbColor = new GuiTextBox(true, 200, null, 16, 32, GuiTextBox.default, (e) =>
         {
             const color:RGB = new RGB(0,0,0,0);
@@ -2445,6 +2501,8 @@ class ColorPickerTool extends ExtendedTool {
             {
                 return false;
             }
+            this.chosenColor.color.copy(color);
+            field.toolSelector.repaint = true;
             return true;
         });
         this.tbColor.promptText = "Enter RGBA color here (RGB 0-255 A 0-1):";
@@ -2468,7 +2526,8 @@ class ColorPickerTool extends ExtendedTool {
         },
             "Update", 75, this.tbColor.height(), 16);
         this.tbColor.submissionButton = this.btUpdate;
-        this.localLayout.addElement(new GuiLabel("Color:", 150, 16));
+        this.localLayout.addElement(new GuiLabel("Color:", 100, 16));
+        this.localLayout.addElement(this.chosenColor);
         this.localLayout.addElement(this.tbColor);
         this.localLayout.addElement(this.btUpdate);
     }
@@ -3529,15 +3588,15 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.copyTool = new CopyPasteTool("copy", ["images/ThePixelSlime1Icons/copySprite.png", "images/copySprite.png"], [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
-        const sprayCallBack:(tb:GuiTextBox) => void = (tbprob)=>{
-            this.field.layer().state.sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get()! <= 1 && tbprob.asNumber.get()! > 0?tbprob.asNumber.get()!:this.field.layer().state.sprayProbability;
+        const sprayCallBack:(tb:GuiSlider) => void = (tbprob)=> {
+            const state:number = tbprob.state === 1? 1 : tbprob.state / this.field.state.lineWidth;
+            this.field.layer().state.sprayProbability = state;
             this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get()?this.penTool.tbSize.asNumber.get()!:this.field.layer().state.lineWidth;
-            tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen",["images/ThePixelSlime1Icons/penSprite.png", "images/penSprite.png"], sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen",["images/ThePixelSlime1Icons/penSprite.png", "images/penSprite.png"], sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout], this.field);
         this.penTool.activateOptionPanel();
-        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser",["images/ThePixelSlime1Icons/eraserSprite.png", "images/eraserSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser",["images/ThePixelSlime1Icons/eraserSprite.png", "images/eraserSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout], this.field);
 
         PenTool.checkDrawCircular.callback = () => field.state.drawCircular = PenTool.checkDrawCircular.checked;
         this.fillTool = new FillTool("fill", ["images/ThePixelSlime1Icons/fillSprite.png", "images/fillSprite.png"], [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout],
@@ -5986,7 +6045,7 @@ class MultiTouchListener {
         }
         if(this.registeredMultiTouchEvent)
         {
-            const newDist:number = Math.sqrt(Math.pow((touch1.clientX - touch2.clientX),2) +  Math.pow(touch1.clientY - touch2.clientY, 2));
+            const newDist:number = Math.sqrt(Math.pow((touch1.clientX - touch2.clientX),2) + Math.pow(touch1.clientY - touch2.clientY, 2));
             if(this.lastDistance > newDist)
             {
                 this.callHandler("pinchOut", event);

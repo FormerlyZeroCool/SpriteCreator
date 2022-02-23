@@ -855,6 +855,51 @@ class GuiSpacer {
     }
 }
 ;
+class GuiColoredSpacer {
+    constructor(dim, color) {
+        this.dim = [dim[0], dim[1]];
+        this.color = new RGB(0, 0, 0);
+        this.color.copy(color);
+        this.refresh();
+    }
+    active() {
+        return false;
+    }
+    deactivate() { }
+    activate() { }
+    width() {
+        return this.dim[0];
+    }
+    height() {
+        return this.dim[1];
+    }
+    refresh() { }
+    draw(ctx, x, y, offsetX, offsetY) {
+        const originalFillStyle = ctx.fillStyle;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const colorString = this.color.htmlRBGA();
+        if (colorString !== originalFillStyle) {
+            ctx.fillStyle = colorString;
+        }
+        if ("#000000" !== originalStrokeStyle) {
+            ctx.strokeStyle = "#000000";
+        }
+        ctx.fillRect(x + offsetX, y + offsetY, this.dim[0], this.dim[1]);
+        ctx.strokeRect(x + offsetX, y + offsetY, this.dim[0], this.dim[1]);
+        if (colorString !== originalFillStyle) {
+            ctx.fillStyle = originalFillStyle;
+        }
+        if ("#000000" !== originalStrokeStyle) {
+            ctx.strokeStyle = originalStrokeStyle;
+        }
+    }
+    handleKeyBoardEvents(type, e) { }
+    handleTouchEvents(type, e) { }
+    isLayoutManager() {
+        return false;
+    }
+}
+;
 class GuiButton {
     constructor(callBack, text, width = 200, height = 50, fontSize = 12, pressedColor = new RGB(150, 150, 200, 255), unPressedColor = new RGB(255, 255, 255, 195), fontName = "button_font") {
         this.text = text;
@@ -1875,11 +1920,14 @@ class PenViewTool extends ViewLayoutTool {
 }
 ;
 class PenTool extends ExtendedTool {
-    constructor(strokeWith, toolName = "pen", pathToImage = ["images/penSprite.png"], optionPanes, dimLocal = [200, 160]) {
+    constructor(strokeWith, toolName = "pen", pathToImage = ["images/penSprite.png"], optionPanes, field, dimLocal = [200, 160]) {
         super(toolName, pathToImage, optionPanes, [200, 200], [2, 30], [1, 40]);
         this.layoutManager.pixelDim = [200, 600];
         this.lineWidth = strokeWith;
-        this.checkboxPixelPerfect = new GuiCheckBox(() => { }, 40, 40, false);
+        this.checkboxPixelPerfect = new GuiCheckBox(() => {
+            field.state.lineWidth = 1;
+            this.lineWidth = 1;
+        }, 40, 40, false);
         this.tbSize = new GuiTextBox(true, 80, null, 16, 35, GuiTextBox.default, (event) => {
             if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
                 return false;
@@ -1932,24 +1980,16 @@ PenTool.checkboxSprayPaint = new GuiCheckBox(null, 40, 40);
 PenTool.checkDrawCircular = new GuiCheckBox(null, 40, 40);
 ;
 class SprayCanTool extends PenTool {
-    constructor(strokeWidth, toolName, pathToImage, callBack, optionPanes) {
-        super(strokeWidth, toolName, pathToImage, optionPanes, [200, 155]);
-        this.tbProbability = new GuiTextBox(true, 99, this.btUpdate, 16, 35, GuiTextBox.default, (event) => {
-            if (event.textbox.asNumber.get() === null) {
-                return false;
-            }
-            else if (event.textbox.asNumber.get() > 1 && event.textbox.text.length > 0) {
-                event.textbox.setText((1).toString());
-                event.textbox.cursor = 1;
-            }
-            return true;
+    constructor(strokeWidth, toolName, pathToImage, callBack, optionPanes, field) {
+        super(strokeWidth, toolName, pathToImage, optionPanes, field, [200, 155]);
+        this.tbProbability = new GuiSlider(1, [100, 40], (event) => {
+            callBack(this.tbProbability);
         });
         this.btUpdate.callback = () => {
             this.lineWidth = this.tbSize.asNumber.get() ? (this.tbSize.asNumber.get() <= 128 ? this.tbSize.asNumber.get() : 128) : this.lineWidth;
             this.tbSize.setText(String(this.lineWidth));
             callBack(this.tbProbability);
         };
-        this.tbProbability.setText((1).toString());
         this.localLayout.addElement(new GuiLabel("Spray\nprob:", 99, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.tbProbability);
     }
@@ -1957,8 +1997,10 @@ class SprayCanTool extends PenTool {
 ;
 class ColorPickerTool extends ExtendedTool {
     constructor(field, toolName = "color picker", pathToImage = ["images/colorPickerSprite.png"], optionPanes = []) {
-        super(toolName, pathToImage, optionPanes, [200, 100], [1, 30]);
+        super(toolName, pathToImage, optionPanes, [200, 100], [2, 30]);
         this.field = field;
+        this.chosenColor = new GuiColoredSpacer([100, 32], new RGB(0, 0, 0, 255));
+        field.toolSelector.repaint = true;
         this.tbColor = new GuiTextBox(true, 200, null, 16, 32, GuiTextBox.default, (e) => {
             const color = new RGB(0, 0, 0, 0);
             const code = color.loadString(e.textbox.text);
@@ -1970,6 +2012,8 @@ class ColorPickerTool extends ExtendedTool {
              {
                 return false;
             }
+            this.chosenColor.color.copy(color);
+            field.toolSelector.repaint = true;
             return true;
         });
         this.tbColor.promptText = "Enter RGBA color here (RGB 0-255 A 0-1):";
@@ -1990,7 +2034,8 @@ class ColorPickerTool extends ExtendedTool {
             }
         }, "Update", 75, this.tbColor.height(), 16);
         this.tbColor.submissionButton = this.btUpdate;
-        this.localLayout.addElement(new GuiLabel("Color:", 150, 16));
+        this.localLayout.addElement(new GuiLabel("Color:", 100, 16));
+        this.localLayout.addElement(this.chosenColor);
         this.localLayout.addElement(this.tbColor);
         this.localLayout.addElement(this.btUpdate);
     }
@@ -2885,14 +2930,14 @@ class ToolSelector {
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack = (tbprob) => {
-            this.field.layer().state.sprayProbability = tbprob.asNumber.get() && tbprob.asNumber.get() <= 1 && tbprob.asNumber.get() > 0 ? tbprob.asNumber.get() : this.field.layer().state.sprayProbability;
+            const state = tbprob.state === 1 ? 1 : tbprob.state / this.field.state.lineWidth;
+            this.field.layer().state.sprayProbability = state;
             this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get() ? this.penTool.tbSize.asNumber.get() : this.field.layer().state.lineWidth;
-            tbprob.setText(this.field.layer().state.sprayProbability.toString());
         };
         //this.sprayCanTool = new SprayCanTool(field.layer().suggestedLineWidth(), "spraycan", "images/spraycanSprite.png", sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
-        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen", ["images/ThePixelSlime1Icons/penSprite.png", "images/penSprite.png"], sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.penTool = new SprayCanTool(field.layer().suggestedLineWidth(), "pen", ["images/ThePixelSlime1Icons/penSprite.png", "images/penSprite.png"], sprayCallBack, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout], this.field);
         this.penTool.activateOptionPanel();
-        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser", ["images/ThePixelSlime1Icons/eraserSprite.png", "images/eraserSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout]);
+        this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser", ["images/ThePixelSlime1Icons/eraserSprite.png", "images/eraserSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout], this.field);
         PenTool.checkDrawCircular.callback = () => field.state.drawCircular = PenTool.checkDrawCircular.checked;
         this.fillTool = new FillTool("fill", ["images/ThePixelSlime1Icons/fillSprite.png", "images/fillSprite.png"], [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout], () => {
             field.layer().state.ignoreAlphaInFill = this.fillTool.checkIgnoreAlpha.checked;
