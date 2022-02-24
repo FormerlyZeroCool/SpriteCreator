@@ -251,6 +251,77 @@ class RGB {
         this.setGreen((alphanc*color.green() + alphant*this.green() * a)*a1);
         this.setAlpha(a0*255);*/
     }
+    toHSL():number[]//[hue, saturation, lightness]
+    {
+        const normRed:number = this.red() / 255;
+        const normGreen:number = this.green() / 255;
+        const normBlue:number = this.blue() / 255;
+        const cMax:number = Math.max(normBlue, normGreen, normRed);
+        const cMin:number = Math.min(normBlue, normGreen, normRed);
+        const delta:number = cMax - cMin;
+        let hue:number = 0;
+        if(delta !== 0)
+        {
+            if(cMax === normRed)
+            {
+                hue = 60 * ((normGreen - normBlue) / delta % 6);
+            }
+            else if(cMax === normGreen)
+            {
+                hue = 60 * ((normBlue - normRed) / delta + 2);
+            }
+            else
+            {
+                hue = 60 * ((normRed - normGreen) / delta + 4);
+            }
+        }
+        const lightness:number = (cMax + cMin) / 2;
+        const saturation:number = delta / (1 - Math.abs(2*lightness - 1));
+        return [hue, saturation, lightness];
+    }
+    setByHSL(hue:number, saturation:number, lightness:number): void
+    {
+        const c:number = (1 - Math.abs(2 * lightness - 1)) * saturation;
+        const x:number = c * (1 - Math.abs(hue / 60 % 2 - 1));
+        const m:number = lightness - c / 2;
+        if(hue < 60)
+        {
+            this.setRed((c + m) * 255);
+            this.setGreen((x + m) * 255);
+            this.setBlue(0);
+        }
+        else if(hue < 120)
+        {
+            this.setRed((x + m) * 255);
+            this.setGreen((c + m) * 255);
+            this.setBlue(m * 255);
+        }
+        else if(hue < 180)
+        {
+            this.setRed(m * 255);
+            this.setGreen((c + m) * 255);
+            this.setBlue((x + m) * 255);
+        }
+        else if(hue < 240)
+        {
+            this.setRed(0);
+            this.setGreen((x + m) * 255);
+            this.setBlue((c + m) * 255);
+        }
+        else if(hue < 300)
+        {
+            this.setRed((x + m) * 255);
+            this.setGreen(m * 255);
+            this.setBlue((c + m) * 255);
+        }
+        else
+        {
+            this.setRed((c + m) * 255);
+            this.setGreen(m * 255);
+            this.setBlue((x + m) * 255);
+        }
+        this.setAlpha(255);
+    }
     compare(color:RGB):boolean
     {
         return color && this.color === color.color;
@@ -2093,7 +2164,6 @@ class RGB24BitPalette implements RenderablePalette {
     }
 };
 class GuiPaletteSelector implements GuiElement {
-
 };
 class ToolBarItem {
     toolImages:ImageContainer[];
@@ -2483,9 +2553,13 @@ class ColorPickerTool extends ExtendedTool {
     tbColor:GuiTextBox;
     btUpdate:GuiButton;
     chosenColor:GuiColoredSpacer;
+    hueSlider:GuiSlider;
+    saturationSlider:GuiSlider;
+    lightnessSlider:GuiSlider;
+    alphaSlider:GuiSlider;
     constructor(field:LayeredDrawingScreen, toolName:string = "color picker", pathToImage:string[] = ["images/colorPickerSprite.png"], optionPanes:SimpleGridLayoutManager[] = [])
     {
-        super(toolName, pathToImage, optionPanes, [200, 100], [2, 30]);
+        super(toolName, pathToImage, optionPanes, [200, 230], [4, 30]);
         this.field = field;
         this.chosenColor = new GuiColoredSpacer([100, 32], new RGB(0,0,0,255));
         field.toolSelector.repaint = true;
@@ -2526,10 +2600,33 @@ class ColorPickerTool extends ExtendedTool {
         },
             "Update", 75, this.tbColor.height(), 16);
         this.tbColor.submissionButton = this.btUpdate;
+        const colorSlideEvent:(event:SlideEvent) => void = (event:SlideEvent) => {
+            const color:RGB = new RGB(0, 0, 0, 0);
+            color.setByHSL(this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state);
+            color.setAlpha(this.alphaSlider.state * 255);
+            this.color().copy(color);
+            this.setColorText();
+        }
+        this.hueSlider = new GuiSlider(0, [150, 25], colorSlideEvent);
+        this.saturationSlider = new GuiSlider(1, [150, 25], colorSlideEvent);
+        this.lightnessSlider = new GuiSlider(0, [150, 25], colorSlideEvent);
+        this.alphaSlider = new GuiSlider(1, [150, 25], colorSlideEvent);
         this.localLayout.addElement(new GuiLabel("Color:", 100, 16));
         this.localLayout.addElement(this.chosenColor);
         this.localLayout.addElement(this.tbColor);
         this.localLayout.addElement(this.btUpdate);
+        const slidersLayout:SimpleGridLayoutManager = new SimpleGridLayoutManager([4, 30], [200, 100]);
+
+        slidersLayout.addElement(new GuiLabel("Hue", 50, 16, GuiTextBox.bottom, 25));
+        slidersLayout.addElement(this.hueSlider);
+        slidersLayout.addElement(new GuiLabel("Sat", 50, 16, GuiTextBox.bottom, 25));
+        slidersLayout.addElement(this.saturationSlider);
+        slidersLayout.addElement(new GuiLabel("light", 50, 16, GuiTextBox.bottom, 25));
+        slidersLayout.addElement(this.lightnessSlider);
+        slidersLayout.addElement(new GuiLabel("ap", 50, 16, GuiTextBox.bottom, 25));
+        slidersLayout.addElement(this.alphaSlider);
+        this.localLayout.addElement(slidersLayout);
+        
     }
     color():RGB
     {
