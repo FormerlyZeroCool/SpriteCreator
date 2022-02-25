@@ -1987,7 +1987,7 @@ class PenViewTool extends ViewLayoutTool {
 ;
 class PenTool extends ExtendedTool {
     constructor(strokeWith, toolName = "pen", pathToImage = ["images/penSprite.png"], optionPanes, field, dimLocal = [200, 160]) {
-        super(toolName, pathToImage, optionPanes, [200, 200], [2, 30], [1, 40]);
+        super(toolName, pathToImage, optionPanes, [200, 200], [2, 30], [1, 80]);
         this.layoutManager.pixelDim = [200, 600];
         this.lineWidth = strokeWith;
         this.checkboxPixelPerfect = new GuiCheckBox(() => {

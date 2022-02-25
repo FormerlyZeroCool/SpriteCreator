@@ -2477,7 +2477,7 @@ class PenTool extends ExtendedTool {
     static checkDrawCircular:GuiCheckBox = new GuiCheckBox(null, 40, 40);
     constructor(strokeWith:number, toolName:string = "pen", pathToImage:string[] = ["images/penSprite.png"], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen, dimLocal:number[] = [200,160])
     {
-        super(toolName, pathToImage, optionPanes, [200, 200], [2,30], [1, 40]);
+        super(toolName, pathToImage, optionPanes, [200, 200], [2,30], [1, 80]);
         this.layoutManager.pixelDim = [200, 600];
         this.lineWidth = strokeWith;
         this.checkboxPixelPerfect = new GuiCheckBox(() => { 
