@@ -1058,7 +1058,10 @@ class GuiSlider implements GuiElement {
     }
     setState(value:number):void
     {
-        this.state = value;
+        if(value < 1  && value >= 0)
+            this.state = value;
+        else if(value >= 1)
+            this.state = value;
         this.refresh();
     }
     active():boolean
@@ -2609,7 +2612,7 @@ class ColorPickerTool extends ExtendedTool {
             color.setByHSL(this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state);
             color.setAlpha(this.alphaSlider.state * 255);
             this.color().copy(color);
-            this.setColorText();
+            this._setColorText();
         }
         this.hueSlider = new GuiSlider(0, [150, 25], colorSlideEvent);
         this.saturationSlider = new GuiSlider(1, [150, 25], colorSlideEvent);
@@ -2639,20 +2642,24 @@ class ColorPickerTool extends ExtendedTool {
     }
     setColorText():void
     {
-        const color:RGB = new RGB(0,0,0);
-        if(this.color())
-            color.copy(this.color());
-        else
-            color.copy(new RGB(0, 0, 0, 0));
-        
-        this.chosenColor.color.copy(color);
+        const color:RGB = this._setColorText();
         const hsl:number[] = color.toHSL();
         this.hueSlider.setState(hsl[0] / 360);
         this.saturationSlider.setState(hsl[1]);
         this.lightnessSlider.setState(hsl[2]);
         this.alphaSlider.setState(color.alpha() / 255);
+        this.field.toolSelector.repaint = true;
+    }
+    _setColorText():RGB
+    {
+        const color:RGB = new RGB(0,0,0);
+        if(this.color())
+            color.copy(this.color());
+        
+        this.chosenColor.color.copy(color);
         this.tbColor.setText(color.htmlRBGA());
         this.field.toolSelector.repaint = true;
+        return color;
     }
     activateOptionPanel():void { this.layoutManager.activate(); }
     deactivateOptionPanel():void { this.layoutManager.deactivate(); }

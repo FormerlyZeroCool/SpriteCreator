@@ -833,7 +833,10 @@ class GuiSlider {
         this.refresh();
     }
     setState(value) {
-        this.state = value;
+        if (value < 1 && value >= 0)
+            this.state = value;
+        else if (value >= 1)
+            this.state = value;
         this.refresh();
     }
     active() {
@@ -2101,7 +2104,7 @@ class ColorPickerTool extends ExtendedTool {
             color.setByHSL(this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state);
             color.setAlpha(this.alphaSlider.state * 255);
             this.color().copy(color);
-            this.setColorText();
+            this._setColorText();
         };
         this.hueSlider = new GuiSlider(0, [150, 25], colorSlideEvent);
         this.saturationSlider = new GuiSlider(1, [150, 25], colorSlideEvent);
@@ -2127,19 +2130,22 @@ class ColorPickerTool extends ExtendedTool {
         return this.field.layer().state.color;
     }
     setColorText() {
-        const color = new RGB(0, 0, 0);
-        if (this.color())
-            color.copy(this.color());
-        else
-            color.copy(new RGB(0, 0, 0, 0));
-        this.chosenColor.color.copy(color);
+        const color = this._setColorText();
         const hsl = color.toHSL();
         this.hueSlider.setState(hsl[0] / 360);
         this.saturationSlider.setState(hsl[1]);
         this.lightnessSlider.setState(hsl[2]);
         this.alphaSlider.setState(color.alpha() / 255);
+        this.field.toolSelector.repaint = true;
+    }
+    _setColorText() {
+        const color = new RGB(0, 0, 0);
+        if (this.color())
+            color.copy(this.color());
+        this.chosenColor.color.copy(color);
         this.tbColor.setText(color.htmlRBGA());
         this.field.toolSelector.repaint = true;
+        return color;
     }
     activateOptionPanel() { this.layoutManager.activate(); }
     deactivateOptionPanel() { this.layoutManager.deactivate(); }
