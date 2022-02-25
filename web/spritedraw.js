@@ -832,6 +832,10 @@ class GuiSlider {
         this.canvas.height = this.height();
         this.refresh();
     }
+    setState(value) {
+        this.state = value;
+        this.refresh();
+    }
     active() {
         return this.focused;
     }
@@ -2076,7 +2080,6 @@ class ColorPickerTool extends ExtendedTool {
             return true;
         });
         this.tbColor.promptText = "Enter RGBA color here (RGB 0-255 A 0-1):";
-        this.setColorText();
         this.btUpdate = new GuiButton(() => {
             const color = new RGB(0, 0, 0, 0);
             const code = color.loadString(this.tbColor.text);
@@ -2118,6 +2121,7 @@ class ColorPickerTool extends ExtendedTool {
         slidersLayout.addElement(new GuiLabel("ap", 50, 16, GuiTextBox.bottom, 25));
         slidersLayout.addElement(this.alphaSlider);
         this.localLayout.addElement(slidersLayout);
+        this.setColorText();
     }
     color() {
         return this.field.layer().state.color;
@@ -2129,6 +2133,11 @@ class ColorPickerTool extends ExtendedTool {
         else
             color.copy(new RGB(0, 0, 0, 0));
         this.chosenColor.color.copy(color);
+        const hsl = color.toHSL();
+        this.hueSlider.setState(hsl[0] / 360);
+        this.saturationSlider.setState(hsl[1]);
+        this.lightnessSlider.setState(hsl[2]);
+        this.alphaSlider.setState(color.alpha() / 255);
         this.tbColor.setText(color.htmlRBGA());
         this.field.toolSelector.repaint = true;
     }
