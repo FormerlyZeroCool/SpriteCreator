@@ -1987,7 +1987,7 @@ class PenViewTool extends ViewLayoutTool {
 ;
 class PenTool extends ExtendedTool {
     constructor(strokeWith, toolName = "pen", pathToImage = ["images/penSprite.png"], optionPanes, field, dimLocal = [200, 160]) {
-        super(toolName, pathToImage, optionPanes, [200, 200], [2, 30], [1, 80]);
+        super(toolName, pathToImage, optionPanes, [200, 200], [2, 30], [1, 160]);
         this.layoutManager.pixelDim = [200, 600];
         this.lineWidth = strokeWith;
         this.checkboxPixelPerfect = new GuiCheckBox(() => {
@@ -2063,7 +2063,7 @@ class SprayCanTool extends PenTool {
 ;
 class ColorPickerTool extends ExtendedTool {
     constructor(field, toolName = "color picker", pathToImage = ["images/colorPickerSprite.png"], optionPanes = []) {
-        super(toolName, pathToImage, optionPanes, [200, 230], [4, 30]);
+        super(toolName, pathToImage, optionPanes, [200, 235], [4, 50]);
         this.field = field;
         this.chosenColor = new GuiColoredSpacer([100, 32], new RGB(0, 0, 0, 255));
         field.toolSelector.repaint = true;
@@ -2114,7 +2114,7 @@ class ColorPickerTool extends ExtendedTool {
         this.localLayout.addElement(this.chosenColor);
         this.localLayout.addElement(this.tbColor);
         this.localLayout.addElement(this.btUpdate);
-        const slidersLayout = new SimpleGridLayoutManager([4, 30], [200, 100]);
+        const slidersLayout = new SimpleGridLayoutManager([4, 30], [200, 110]);
         slidersLayout.addElement(new GuiLabel("Hue", 50, 16, GuiTextBox.bottom, 25));
         slidersLayout.addElement(this.hueSlider);
         slidersLayout.addElement(new GuiLabel("Sat", 50, 16, GuiTextBox.bottom, 25));
