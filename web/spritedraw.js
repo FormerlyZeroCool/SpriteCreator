@@ -854,12 +854,15 @@ class GuiSlider {
     height() {
         return this.dim[1];
     }
+    getBounds() {
+        return [this.width() / 10, this.height() / 10, this.width() - this.width() / 5, this.height() - this.height() / 5];
+    }
     refresh() {
         const ctx = this.canvas.getContext("2d");
         ctx.clearRect(0, 0, this.width(), this.height());
         ctx.fillStyle = "#FFFFFF";
         //ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
-        const bounds = [this.width() / 10, this.height() / 10, this.width() - this.width() / 5, this.height() - this.height() / 5];
+        const bounds = this.getBounds();
         const center = [bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2];
         const displayLineX = this.state * bounds[2] + bounds[0];
         ctx.fillRect(bounds[0] - 1, center[1] - 1, bounds[2] + 2, 4);
@@ -2061,6 +2064,33 @@ class SprayCanTool extends PenTool {
     }
 }
 ;
+class CustomBackgroundSlider extends GuiSlider {
+    constructor(state, dim, movedCallBack, refreshBackgroundCallBack) {
+        super(state, dim, movedCallBack);
+        this.refreshBackground = refreshBackgroundCallBack;
+    }
+    refresh() {
+        super.refresh();
+        if (!this.backgroundCanvas) {
+            this.backgroundCanvas = document.createElement("canvas");
+            this.backctx = this.canvas.getContext("2d");
+        }
+        if (this.backgroundCanvas.width !== this.canvas.width || this.backgroundCanvas.height !== this.canvas.height) {
+            this.backgroundCanvas.width = this.canvas.width;
+            this.backgroundCanvas.height = this.canvas.height;
+            this.backctx = this.backgroundCanvas.getContext("2d");
+        }
+        const bounds = this.getBounds();
+        this.backctx.clearRect(0, 0, this.width(), this.height());
+        if (this.refreshBackground)
+            this.refreshBackground(this.backctx, bounds[0], bounds[1], bounds[2], bounds[3]);
+    }
+    draw(ctx, x, y, offsetX, offsetY) {
+        ctx.drawImage(this.backgroundCanvas, x + offsetX, y + offsetY);
+        super.draw(ctx, x, y, offsetX, offsetY);
+    }
+}
+;
 class ColorPickerTool extends ExtendedTool {
     constructor(field, toolName = "color picker", pathToImage = ["images/colorPickerSprite.png"], optionPanes = []) {
         super(toolName, pathToImage, optionPanes, [200, 235], [4, 50]);
@@ -2106,10 +2136,62 @@ class ColorPickerTool extends ExtendedTool {
             this.color().copy(color);
             this._setColorText();
         };
-        this.hueSlider = new GuiSlider(0, [150, 25], colorSlideEvent);
-        this.saturationSlider = new GuiSlider(1, [150, 25], colorSlideEvent);
-        this.lightnessSlider = new GuiSlider(0, [150, 25], colorSlideEvent);
-        this.alphaSlider = new GuiSlider(1, [150, 25], colorSlideEvent);
+        this.hueSlider = new CustomBackgroundSlider(0, [150, 25], colorSlideEvent, (ctx, x, y, width, height) => {
+            const color = new RGB(0, 0, 0, 0);
+            if (this.color()) {
+                const hsl = [this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state];
+                const unitStep = 1 / width;
+                let i = 0;
+                for (let j = 0; j < 1; j += unitStep) {
+                    hsl[0] = j * 360;
+                    color.setByHSL(hsl[0], hsl[1], hsl[2]);
+                    color.setAlpha(this.color().alpha());
+                    ctx.fillStyle = color.htmlRBGA();
+                    ctx.fillRect(j * width + x, y, unitStep * width, height);
+                }
+            }
+        });
+        this.saturationSlider = new CustomBackgroundSlider(1, [150, 25], colorSlideEvent, (ctx, x, y, width, height) => {
+            const color = new RGB(0, 0, 0, 0);
+            if (this.color()) {
+                const hsl = [this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state];
+                const unitStep = 1 / width;
+                let i = 0;
+                for (let j = 0; j < 1; j += unitStep) {
+                    color.setByHSL(hsl[0], j, hsl[2]);
+                    color.setAlpha(this.color().alpha());
+                    ctx.fillStyle = color.htmlRBGA();
+                    ctx.fillRect(j * width + x, y, unitStep * width, height);
+                }
+            }
+        });
+        this.lightnessSlider = new CustomBackgroundSlider(0, [150, 25], colorSlideEvent, (ctx, x, y, width, height) => {
+            const color = new RGB(0, 0, 0, 0);
+            if (this.color()) {
+                const hsl = [this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state];
+                const unitStep = 1 / width;
+                let i = 0;
+                for (let j = 0; j < 1; j += unitStep, i++) {
+                    hsl[2] = j;
+                    color.setByHSL(hsl[0], hsl[1], hsl[2]);
+                    color.setAlpha(this.color().alpha());
+                    ctx.fillStyle = color.htmlRBGA();
+                    ctx.fillRect(i + x, y, unitStep * width, height);
+                }
+            }
+        });
+        this.alphaSlider = new CustomBackgroundSlider(1, [150, 25], colorSlideEvent, (ctx, x, y, width, height) => {
+            const color = new RGB(0, 0, 0, 0);
+            if (this.color()) {
+                color.setByHSL(this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state);
+                const unitStep = width / 255;
+                for (let j = 0; j < width; j += unitStep) {
+                    color.setAlpha(j);
+                    ctx.fillStyle = color.htmlRBGA();
+                    ctx.fillRect(j + x, y, unitStep, height);
+                }
+            }
+        });
         this.localLayout.addElement(new GuiLabel("Color:", 100, 16));
         this.localLayout.addElement(this.chosenColor);
         this.localLayout.addElement(this.tbColor);
