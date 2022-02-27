@@ -2133,7 +2133,8 @@ class ColorPickerTool extends ExtendedTool {
             const color = new RGB(0, 0, 0, 0);
             color.setByHSL(this.hueSlider.state * 360, this.saturationSlider.state, this.lightnessSlider.state);
             color.setAlpha(this.alphaSlider.state * 255);
-            this.color().copy(color);
+            field.pallette.selectedPixelColor.copy(color);
+            //this.color().copy(color);
             this._setColorText();
         };
         this.hueSlider = new CustomBackgroundSlider(0, [150, 25], colorSlideEvent, (ctx, x, y, width, height) => {
