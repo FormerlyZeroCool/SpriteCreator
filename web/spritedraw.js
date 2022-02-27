@@ -2093,7 +2093,7 @@ class CustomBackgroundSlider extends GuiSlider {
 ;
 class ColorPickerTool extends ExtendedTool {
     constructor(field, toolName = "color picker", pathToImage = ["images/colorPickerSprite.png"], optionPanes = []) {
-        super(toolName, pathToImage, optionPanes, [200, 235], [4, 50]);
+        super(toolName, pathToImage, optionPanes, [200, 220], [4, 50]);
         this.field = field;
         this.chosenColor = new GuiColoredSpacer([100, 32], new RGB(0, 0, 0, 255));
         field.toolSelector.repaint = true;
