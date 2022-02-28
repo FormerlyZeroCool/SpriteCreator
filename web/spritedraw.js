@@ -456,6 +456,7 @@ class SimpleGridLayoutManager {
         this.canvas.width = pixelDim[0];
         this.canvas.height = pixelDim[1];
         this.ctx = this.canvas.getContext("2d");
+        this.elementTouched = null;
     }
     createHandlers(keyboardHandler, touchHandler) {
         if (keyboardHandler) {
@@ -483,30 +484,47 @@ class SimpleGridLayoutManager {
             let record = null;
             let index = 0;
             let runningNumber = 0;
-            this.elementsPositions.forEach(el => {
-                el.element.deactivate();
-                el.element.refresh();
-                if (e.touchPos[0] >= el.x && e.touchPos[0] < el.x + el.element.width() &&
-                    e.touchPos[1] >= el.y && e.touchPos[1] < el.y + el.element.height()) {
-                    record = el;
-                    index = runningNumber;
+            if (!this.elementTouched) {
+                this.elementsPositions.forEach(el => {
+                    el.element.deactivate();
+                    el.element.refresh();
+                    if (e.touchPos[0] >= el.x && e.touchPos[0] < el.x + el.element.width() &&
+                        e.touchPos[1] >= el.y && e.touchPos[1] < el.y + el.element.height()) {
+                        record = el;
+                        index = runningNumber;
+                    }
+                    runningNumber++;
+                });
+                if (record) {
+                    e.preventDefault();
+                    if (type !== "touchmove")
+                        record.element.activate();
+                    e.translateEvent(e, -record.x, -record.y);
+                    record.element.handleTouchEvents(type, e);
+                    e.translateEvent(e, record.x, record.y);
+                    record.element.refresh();
+                    this.elementTouched = record;
+                    if (e.repaint) {
+                        this.refreshCanvas();
+                    }
+                    this.lastTouched = index;
                 }
-                runningNumber++;
-            });
-            if (record) {
-                e.preventDefault();
-                if (type !== "touchmove")
-                    record.element.activate();
-                e.translateEvent(e, -record.x, -record.y);
-                record.element.handleTouchEvents(type, e);
-                e.translateEvent(e, record.x, record.y);
-                record.element.refresh();
-                if (e.repaint) {
-                    this.refreshCanvas();
-                }
-                this.lastTouched = index;
             }
         }
+        if (this.elementTouched) {
+            e.preventDefault();
+            if (type !== "touchmove")
+                this.elementTouched.element.activate();
+            e.translateEvent(e, -this.elementTouched.x, -this.elementTouched.y);
+            this.elementTouched.element.handleTouchEvents(type, e);
+            e.translateEvent(e, this.elementTouched.x, this.elementTouched.y);
+            this.elementTouched.element.refresh();
+            if (e.repaint) {
+                this.refreshCanvas();
+            }
+        }
+        if (type === "touchend")
+            this.elementTouched = null;
     }
     refresh() {
         this.refreshMetaData();
