@@ -6598,13 +6598,13 @@ async function main() {
     let toolCtx = toolCanvas.getContext("2d");
     while (true) {
         const start = Date.now();
-        if (canvas.width != getWidth() - (toolCanvas.width + 30) || toolCanvas.width !== toolSelector.width() / toolSelector.height() * toolCanvas.height) {
+        if (canvas.width != getWidth() - (toolCanvas.width + 30) || toolCanvas.width !== Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height)) {
             if (!touchScreen)
                 canvas.height = screen.height * 0.65;
             else
                 canvas.height = screen.height;
             toolCanvas.height = pallette.canvas.height + canvas.height;
-            toolCanvas.width = toolSelector.width() / toolSelector.height() * toolCanvas.height;
+            toolCanvas.width = Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height);
             toolSelector.repaint = true;
             canvas.width = getWidth() - toolCanvas.width - 30;
             counter = 0;
