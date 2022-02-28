@@ -3088,8 +3088,10 @@ class LayerManagerTool extends Tool {
         this.layersLimit = isTouchSupported()?limit - Math.floor(limit / 4) : limit;
         this.layoutManager = new SimpleGridLayoutManager([2, 24], [200, 640]);
         this.list = new GuiCheckList([1, this.layersLimit], [200, 520], 20, (x1, x2) => {
-            this.field.swapLayers(x1, x2);
-            this.field.layer().repaint = true;
+            if(this.field.layers[x1] && this.field.layers[x2])
+            {
+                this.field.swapLayers(x1, x2);
+            }
         },
         (event:SlideEvent) => {
             const index:number = this.list.list.findIndex(element => element.slider === event.element);
@@ -5527,7 +5529,7 @@ class LayeredDrawingScreen {
                 const message:MessageData = {
                     start: i * lenPerWorker,
                     end: (i + 1) * lenPerWorker,
-                    height: this.layer().dimensions.second,
+                    height: this.height(),
                     width: this.layer().dimensions.first,
                     polygon: shape,
                     poolIndex: i
@@ -5537,7 +5539,7 @@ class LayeredDrawingScreen {
             const message:MessageData = {
                 start: i * lenPerWorker,
                 end: (i + 1) * lenPerWorker + remainder,
-                height: this.layer().dimensions.second,
+                height: this.height(),
                 width: this.layer().dimensions.first,
                 polygon: shape,
                 poolIndex: i
@@ -5556,9 +5558,9 @@ class LayeredDrawingScreen {
         {
             //converts values in screenspace to canvas space
             const convertX = (x:number) =>  Math.floor(x / this.width() * this.layer().dimensions.first);
-            const convertY = (y:number) =>  Math.floor(y / this.height() * this.layer().dimensions.second);
+            const convertY = (y:number) =>  Math.floor(y / this.height() * this.height());
             this.clearBitMask();
-            for(let y = 0; y < this.layer().dimensions.second; ++y)
+            for(let y = 0; y < this.height(); ++y)
             {
                 for(let x = 0; x < this.layer().dimensions.first; ++x)
                 {
@@ -5703,6 +5705,7 @@ class LayeredDrawingScreen {
             this.layers[x2] = temp;
             this.layersState[x1] = this.layersState[x2];
             this.layersState[x2] = temp2;
+            this.redraw = true;
         }
     }
     layer():DrawingScreen {
@@ -5716,7 +5719,7 @@ class LayeredDrawingScreen {
             this.layersState.splice(index, 1);
             if(this.selected && this.selected >= this.layers.length)
                 this.selected = this.layers.length - 1;
-            this.layer().repaint = true;
+            this.redraw = true;
         }
     }
     loadImageToLayer(image:HTMLImageElement):void
@@ -5807,7 +5810,7 @@ class LayeredDrawingScreen {
     {
         //set offscreen canvas state, and get ctx for rescale
         this.offscreenCanvas.width = this.layer().dimensions.first;
-        this.offscreenCanvas.height = this.layer().dimensions.second;
+        this.offscreenCanvas.height = this.height();
         const ctx:CanvasRenderingContext2D = this.offscreenCanvas.getContext("2d")!;
         //rescale main canvas with offscreen canvas
 
@@ -5847,10 +5850,10 @@ class LayeredDrawingScreen {
             renderingCtx.fillRect(0, 0, width, height);
             renderingCtx.lineWidth = 1;
             let projectionRect:number[] = [0, 0, 0, 0];
-            if((this.layer().dimensions.second / this.layer().dimensions.first) <= 1)
-                projectionRect = [fullCanvas[0], fullCanvas[1], fullCanvas[2],(this.layer().dimensions.second / this.layer().dimensions.first) * fullCanvas[3]];
-            else //if((this.layer().dimensions.first / this.layer().dimensions.second) < 1)
-                projectionRect = [fullCanvas[0], fullCanvas[1], (this.layer().dimensions.first / this.layer().dimensions.second) * fullCanvas[2], fullCanvas[3]];
+            if((this.height() / this.width()) <= 1)
+                projectionRect = [fullCanvas[0], fullCanvas[1], fullCanvas[2],(this.height() / this.width()) * fullCanvas[3]];
+            else //if((this.width() / this.height()) < 1)
+                projectionRect = [fullCanvas[0], fullCanvas[1], (this.width() / this.height()) * fullCanvas[2], fullCanvas[3]];
             projectionRect[0] += width / 2 - projectionRect[2] / 2;
             projectionRect[1] += height / 2 - projectionRect[3] / 2;
             
@@ -5859,7 +5862,7 @@ class LayeredDrawingScreen {
             renderingCtx.drawImage(this.canvas, projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
             renderingCtx.strokeRect(1, 1, width-2, height-2);
 
-            if(this.layer().dimensions.second / this.layer().dimensions.first !== 1)
+            if(this.height() / this.width() !== 1)
             {
                 renderingCtx.fillStyle = "#808080";
                 renderingCtx.strokeRect(projectionRect[0], projectionRect[1], projectionRect[2], projectionRect[3]);
@@ -5915,8 +5918,8 @@ class LayeredDrawingScreen {
             ctx.drawImage(this.canvas, this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             if(this.toolSelector.selectionTool.checkboxComplexPolygon.checked && this.toolSelector.polygon.length)
             {
-                const cellWidth = this.zoom.zoomX * this.width() / this.layer().dimensions.first;
-                const cellHeight = this.zoom.zoomY * this.height() / this.layer().dimensions.second;
+                const cellWidth = this.zoom.zoomX * this.width() / this.width();
+                const cellHeight = this.zoom.zoomY * this.height() / this.height();
                 let start = this.toolSelector.polygon.length - 1;
                 ctx.lineWidth = cellWidth;
                 ctx.beginPath();
@@ -5952,8 +5955,6 @@ class LayeredDrawingScreen {
                 ctx.strokeStyle = "#000000";
             }
             
-            const internalXScale: number =  this.layer().bounds.first / this.layer().dimensions.first;
-            const internalYScale: number =  this.layer().bounds.second / this.layer().dimensions.second;
             ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
             if(zoomedHeight > canvas.height || zoomedWidth > canvas.width)
             {
@@ -7052,7 +7053,7 @@ class SpriteSelector {
     }
     pushSelectedToCanvas()
     {
-        const spriteWidth:number = this.drawingField.layer().dimensions.first;
+        const spriteWidth:number = this.drawingField.width();
         const spriteHeight:number = this.drawingField.layer().dimensions.second;
         if(this.selectedSpriteVal())
         {
