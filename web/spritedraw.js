@@ -2513,7 +2513,7 @@ class LayerManagerTool extends Tool {
         this.list.refresh();
     }
     deleteItem(index = this.field.selected) {
-        if (this.field.layers[index]) {
+        if (this.field.layers.length > 1 && this.field.layers[index]) {
             this.list.delete(index);
             this.field.deleteLayer(index);
         }
@@ -4684,11 +4684,13 @@ class LayeredDrawingScreen {
         return this.layers[this.selected];
     }
     deleteLayer(index) {
-        this.layers.splice(index, 1);
-        this.layersState.splice(index, 1);
-        if (this.selected >= this.layers.length)
-            this.selected = this.layers.length - 1;
-        this.layer().repaint = true;
+        if (this.layers.length > 1 && this.layers.length > index && index >= 0) {
+            this.layers.splice(index, 1);
+            this.layersState.splice(index, 1);
+            if (this.selected && this.selected >= this.layers.length)
+                this.selected = this.layers.length - 1;
+            this.layer().repaint = true;
+        }
     }
     loadImageToLayer(image) {
         const bounds = [image.width, image.height];

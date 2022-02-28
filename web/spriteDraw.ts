@@ -3113,7 +3113,7 @@ class LayerManagerTool extends Tool {
     }
     deleteItem(index:number = this.field.selected):void
     {
-        if(this.field.layers[index]){
+        if(this.field.layers.length > 1 && this.field.layers[index]){
             this.list.delete(index);
             this.field.deleteLayer(index);
         }
@@ -5710,11 +5710,14 @@ class LayeredDrawingScreen {
     }
     deleteLayer(index:number): void
     {
-        this.layers.splice(index, 1);
-        this.layersState.splice(index, 1);
-        if(this.selected >= this.layers.length)
-            this.selected = this.layers.length - 1;
-        this.layer().repaint = true;
+        if(this.layers.length > 1 && this.layers.length > index && index >= 0)
+        {
+            this.layers.splice(index, 1);
+            this.layersState.splice(index, 1);
+            if(this.selected && this.selected >= this.layers.length)
+                this.selected = this.layers.length - 1;
+            this.layer().repaint = true;
+        }
     }
     loadImageToLayer(image:HTMLImageElement):void
     {
