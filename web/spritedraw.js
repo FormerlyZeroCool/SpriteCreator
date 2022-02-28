@@ -4672,9 +4672,7 @@ class LayeredDrawingScreen {
         }
     }
     swapLayers(x1, x2) {
-        if (x1 >= 0 && x1 < this.layers.length && x2 < this.layers.length && x2 >= 0)
-            ;
-        {
+        if (x1 >= 0 && x1 < this.layers.length && x2 < this.layers.length && x2 >= 0) {
             const temp = this.layers[x1];
             const temp2 = this.layersState[x1];
             this.layers[x1] = this.layers[x2];

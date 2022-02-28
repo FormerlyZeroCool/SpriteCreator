@@ -5697,7 +5697,7 @@ class LayeredDrawingScreen {
     }
     swapLayers(x1:number, x2:number):void
     {
-        if(x1 >= 0 && x1 < this.layers.length && x2 < this.layers.length && x2 >= 0])
+        if(x1 >= 0 && x1 < this.layers.length && x2 < this.layers.length && x2 >= 0)
         {
             const temp:DrawingScreen = this.layers[x1];
             const temp2:boolean = this.layersState[x1];
