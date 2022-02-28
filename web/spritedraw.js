@@ -3688,7 +3688,8 @@ class DrawingScreen {
                 }
                 i++;
             }
-            this.updatesStack.push([]);
+            if (this.updatesStack.get(this.updatesStack.length() - 1).length)
+                this.updatesStack.push([]);
             this.state.screenBufUnlocked = true;
         }
     }
