@@ -2697,7 +2697,8 @@ class ToolSelector {
         this.sprayPaint = false;
         this.repaint = false;
         this.toolPixelDim = [imgWidth, imgHeight * 10];
-        this.canvas = document.getElementById("tool_selector_screen");
+        this.canvas = document.createElement("canvas");
+        this.externalCanvas = document.getElementById("tool_selector_screen");
         this.keyboardHandler = keyboardHandler;
         this.keyboardHandler.registerCallBack("keydown", (e) => true, event => {
             switch (event.code) {
@@ -2757,26 +2758,11 @@ class ToolSelector {
             }
             this.repaint = true;
         });
-        this.touchListener = new SingleTouchListener(this.canvas, true, true);
+        this.touchListener = new SingleTouchListener(this.externalCanvas, true, true);
         this.touchListener.registerCallBack("touchstart", (e) => this.tool().getOptionPanel(), (e) => {
-            e.translateEvent(e, -this.tool().getOptionPanel().x, -this.tool().getOptionPanel().y);
+            this.transformEvent(e);
             this.tool().getOptionPanel().handleTouchEvents("touchstart", e);
-            this.repaint = true;
             e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
-        });
-        this.touchListener.registerCallBack("touchmove", (e) => this.tool().getOptionPanel(), (e) => {
-            e.translateEvent(e, -this.tool().getOptionPanel().x, -this.tool().getOptionPanel().y);
-            this.tool().getOptionPanel().handleTouchEvents("touchmove", e);
-            this.repaint = true;
-            e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
-        });
-        this.touchListener.registerCallBack("touchend", (e) => this.tool().getOptionPanel(), (e) => {
-            e.translateEvent(e, -this.tool().getOptionPanel().x, -this.tool().getOptionPanel().y);
-            this.tool().getOptionPanel().handleTouchEvents("touchend", e);
-            this.repaint = true;
-            e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
-        });
-        this.touchListener.registerCallBack("touchstart", (e) => true, (e) => {
             document.activeElement.blur();
             const previousTool = this.selected();
             const imgPerColumn = (this.canvas.height / this.toolBar.toolRenderDim[1]);
@@ -2799,6 +2785,19 @@ class ToolSelector {
             if (this.tool()) {
                 this.tool().activateOptionPanel();
             }
+            this.invScaleEvent(e);
+            this.repaint = true;
+        });
+        this.touchListener.registerCallBack("touchmove", (e) => this.tool().getOptionPanel(), (e) => {
+            this.transformEvent(e);
+            this.tool().getOptionPanel().handleTouchEvents("touchmove", e);
+            e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
+            this.repaint = true;
+        });
+        this.touchListener.registerCallBack("touchend", (e) => this.tool().getOptionPanel(), (e) => {
+            this.transformEvent(e);
+            this.tool().getOptionPanel().handleTouchEvents("touchend", e);
+            e.translateEvent(e, this.tool().getOptionPanel().x, this.tool().getOptionPanel().y);
             this.repaint = true;
         });
         {
@@ -3171,6 +3170,19 @@ class ToolSelector {
         this.repaint = true;
         this.lastDrawTime = Date.now();
     }
+    transformEvent(e) {
+        const xScale = this.canvas.width / this.externalCanvas.width;
+        const yScale = this.canvas.height / this.externalCanvas.height;
+        e.touchPos[0] *= xScale;
+        e.touchPos[1] *= yScale;
+        e.translateEvent(e, -this.tool().getOptionPanel().x, -this.tool().getOptionPanel().y);
+    }
+    invScaleEvent(e) {
+        const xScale = 1 / this.canvas.width / this.externalCanvas.width;
+        const yScale = 1 / this.canvas.height / this.externalCanvas.height;
+        e.touchPos[0] *= xScale;
+        e.touchPos[1] *= yScale;
+    }
     setNormalInputValidation() {
         this.settingsTool.tbX.validationCallback = (event) => {
             if (!event.textbox.asNumber.get() && event.textbox.text.length > 1) {
@@ -3285,8 +3297,10 @@ class ToolSelector {
             //render name of tool mouse is hovering over/last selected in touchscreen
             if (this.touchListener.mouseOverElement || isTouchSupported()) {
                 const touchPos = this.touchListener.touchPos;
-                const x = Math.floor(touchPos[0] / this.toolPixelDim[0] * imgPerRow);
-                const y = Math.floor(touchPos[1] / this.toolPixelDim[1] * imgPerColumn);
+                const xScale = this.canvas.width / this.externalCanvas.width;
+                const yScale = this.canvas.height / this.externalCanvas.height;
+                const x = Math.floor(touchPos[0] / this.toolPixelDim[0] * imgPerRow * xScale);
+                const y = Math.floor(touchPos[1] / this.toolPixelDim[1] * imgPerColumn * yScale);
                 if (this.toolBar.tools[x * imgPerColumn + y]) {
                     const name = this.toolBar.tools[x * imgPerColumn + y].name();
                     const wordsInName = name.split(" ");
@@ -3301,6 +3315,9 @@ class ToolSelector {
                     this.ctx.fillText(capitalized, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
                 }
             }
+            const extCtx = this.externalCanvas.getContext("2d");
+            extCtx.clearRect(0, 0, this.externalCanvas.width, this.externalCanvas.height);
+            extCtx.drawImage(this.canvas, 0, 0, this.externalCanvas.width, this.externalCanvas.height);
         }
     }
     selectedToolName() {
@@ -4925,6 +4942,7 @@ class SingleTouchListener {
         this.moveCount = 0;
         this.touchMoveEvents = [];
         this.translateEvent = (e, dx, dy) => e.touchPos = [e.touchPos[0] + dx, e.touchPos[1] + dy];
+        this.scaleEvent = (e, dx, dy) => e.touchPos = [e.touchPos[0] * dx, e.touchPos[1] * dy];
         this.startTouchPos = [0, 0];
         this.component = component;
         this.preventDefault = preventDefault;
@@ -4987,8 +5005,9 @@ class SingleTouchListener {
             this.touchPos = [this.touchStart["clientX"] - this.component.getBoundingClientRect().left, this.touchStart["clientY"] - this.component.getBoundingClientRect().top];
         }
         this.startTouchPos = [this.touchPos[0], this.touchPos[1]];
-        event.touchPos = this.touchPos;
+        event.touchPos = this.touchPos ? [this.touchPos[0], this.touchPos[1]] : [0, 0];
         event.translateEvent = this.translateEvent;
+        event.scaleEvent = this.scaleEvent;
         this.touchMoveEvents = [];
         this.touchVelocity = 0;
         this.touchMoveCount = 0;
@@ -5003,7 +5022,6 @@ class SingleTouchListener {
         }
         let touchMove = event.changedTouches.item(0);
         for (let i = 0; i < event.changedTouches["length"]; i++) {
-            console.log(this.touchStart.identifier, event.changedTouches.item(i).identifier);
             if (event.changedTouches.item(i).identifier == this.touchStart.identifier) {
                 touchMove = event.changedTouches.item(i);
             }
@@ -5041,11 +5059,12 @@ class SingleTouchListener {
             event.mag = mag;
             event.angle = angle;
             event.avgVelocity = this.touchVelocity;
-            event.touchPos = this.touchPos;
+            event.touchPos = this.touchPos ? [this.touchPos[0], this.touchPos[1]] : [0, 0];
             event.startTouchTime = this.lastTouchTime;
             event.eventTime = Date.now();
             event.moveCount = this.moveCount;
             event.translateEvent = this.translateEvent;
+            event.scaleEvent = this.scaleEvent;
             this.touchMoveEvents.push(event);
             this.callHandler("touchmove", event);
         }
@@ -5081,12 +5100,13 @@ class SingleTouchListener {
                 event.mag = mag;
                 event.angle = angle;
                 event.avgVelocity = this.touchVelocity;
-                event.touchPos = this.touchPos;
+                event.touchPos = this.touchPos ? [this.touchPos[0], this.touchPos[1]] : [0, 0];
                 event.timeDelayFromStartToEnd = delay;
                 event.startTouchTime = this.lastTouchTime;
                 event.eventTime = Date.now();
                 event.moveCount = this.moveCount;
                 event.translateEvent = this.translateEvent;
+                event.scaleEvent = this.scaleEvent;
                 try {
                     this.callHandler("touchend", event);
                 }
@@ -6524,17 +6544,22 @@ async function main() {
     const goalSleep = 1000 / fps;
     let counter = 0;
     const touchScreen = isTouchSupported();
+    const toolCanvas = document.getElementById("tool_selector_screen");
+    let toolCtx = toolCanvas.getContext("2d");
     while (true) {
         const start = Date.now();
-        toolSelector.draw();
-        if (canvas.width != getWidth() - (toolSelector.width() + 30)) {
-            canvas.width = getWidth() - toolSelector.width() - 30;
+        if (canvas.width != getWidth() - (toolCanvas.width + 30)) {
             if (!touchScreen)
                 canvas.height = screen.height * 0.65;
             else
                 canvas.height = screen.height;
+            toolCanvas.height = pallette.canvas.height + canvas.height;
+            toolCanvas.width = toolSelector.width() / toolSelector.height() * toolCanvas.height;
+            toolSelector.repaint = true;
+            canvas.width = getWidth() - toolCanvas.width - 30;
             counter = 0;
         }
+        toolSelector.draw();
         if (pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
         field.update();
