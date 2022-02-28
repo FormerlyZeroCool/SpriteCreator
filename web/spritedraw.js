@@ -652,15 +652,6 @@ class SimpleGridLayoutManager {
         this.refreshCanvas();
         ctx.drawImage(this.canvas, xPos + offsetX, yPos + offsetY);
     }
-    drawScaled(ctx, xPos = this.x, yPos = this.y, width, height, imageSmoothing = true) {
-        //this.refreshCanvas();
-        const originalStateImageSmoothingEnabled = ctx.imageSmoothingEnabled;
-        if (imageSmoothing !== originalStateImageSmoothingEnabled)
-            ctx.imageSmoothingEnabled = imageSmoothing;
-        ctx.drawImage(this.canvas, xPos, yPos, width, height);
-        if (imageSmoothing !== originalStateImageSmoothingEnabled)
-            ctx.imageSmoothingEnabled = originalStateImageSmoothingEnabled;
-    }
 }
 ;
 class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
@@ -2706,7 +2697,7 @@ class ToolSelector {
         this.sprayPaint = false;
         this.repaint = false;
         this.toolPixelDim = [imgWidth, imgHeight * 10];
-        this.canvas = document.createElement("canvas");
+        this.canvas = document.getElementById("tool_selector_screen");
         this.keyboardHandler = keyboardHandler;
         this.keyboardHandler.registerCallBack("keydown", (e) => true, event => {
             switch (event.code) {
@@ -3310,13 +3301,6 @@ class ToolSelector {
                     this.ctx.fillText(capitalized, x * this.toolBar.toolRenderDim[0], 16 + y * this.toolBar.toolRenderDim[1]);
                 }
             }
-        }
-    }
-    drawScaled(ctx, x, y, width, height) {
-        const repaint = this.repaint;
-        this.draw();
-        if (repaint) {
-            ctx.drawImage(this.canvas, x, y, width, height);
         }
     }
     selectedToolName() {
@@ -6540,26 +6524,19 @@ async function main() {
     const goalSleep = 1000 / fps;
     let counter = 0;
     const touchScreen = isTouchSupported();
-    const toolSelectorCanvas = document.getElementById("tool_selector_screen");
-    let toolSelectorCTX = toolSelectorCanvas.getContext("2d");
     while (true) {
         const start = Date.now();
-        if (canvas.width != getWidth() - (toolSelectorCanvas.width + 30)) {
+        toolSelector.draw();
+        if (canvas.width != getWidth() - (toolSelector.width() + 30)) {
+            canvas.width = getWidth() - toolSelector.width() - 30;
             if (!touchScreen)
                 canvas.height = screen.height * 0.65;
             else
                 canvas.height = screen.height;
-            const toolSelectorAspect = toolSelector.width() / toolSelector.height();
-            toolSelectorCanvas.height = canvas.height + pallette.canvas.height;
-            toolSelectorCanvas.width = Math.ceil(toolSelectorCanvas.height * toolSelectorAspect);
-            toolSelectorCTX = toolSelectorCanvas.getContext("2d");
-            toolSelector.repaint = true;
-            canvas.width = getWidth() - toolSelectorCanvas.width - 30;
             counter = 0;
         }
         if (pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
-        toolSelector.drawScaled(toolSelectorCTX, 0, 0, toolSelectorCanvas.width, toolSelectorCanvas.height);
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
         if (animationGroupSelector.animationGroup())
