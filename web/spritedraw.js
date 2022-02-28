@@ -1989,10 +1989,10 @@ class UndoRedoTool extends ExtendedTool {
 class FillTool extends ExtendedTool {
     constructor(name, path, optionPanes, updateIgnoreSameColorBoundaries) {
         super(name, path, optionPanes, [200, 100], [30, 10]);
-        this.checkIgnoreAlpha = new GuiCheckBox(updateIgnoreSameColorBoundaries);
+        this.checkNonContiguous = new GuiCheckBox(updateIgnoreSameColorBoundaries);
         this.localLayout.addElement(new GuiLabel("Fill Options:", 200, 16, GuiTextBox.bottom, 35));
-        this.localLayout.addElement(new GuiLabel("Ignore Alpha:", 130, 16, GuiTextBox.bottom, 35));
-        this.localLayout.addElement(this.checkIgnoreAlpha);
+        this.localLayout.addElement(new GuiLabel("Non\nContiguous:", 130, 16, GuiTextBox.bottom, 35));
+        this.localLayout.addElement(this.checkNonContiguous);
     }
 }
 ;
@@ -2978,7 +2978,10 @@ class ToolSelector {
                             }
                             break;
                         case ("fill"):
-                            field.layer().fillArea(new Pair(gx, gy));
+                            if (this.fillTool.checkNonContiguous.checked)
+                                field.layer().fillNonContiguous(new Pair(gx, gy));
+                            else
+                                field.layer().fillArea(new Pair(gx, gy));
                             break;
                         case ("selection"):
                             if (this.selectionTool.checkboxComplexPolygon.checked) {
@@ -3064,7 +3067,10 @@ class ToolSelector {
                         case ("fill"):
                             const gx = Math.floor((touchPos[0] - field.layer().offset.first) / field.layer().bounds.first * field.layer().dimensions.first);
                             const gy = Math.floor((touchPos[1] - field.layer().offset.second) / field.layer().bounds.second * field.layer().dimensions.second);
-                            field.layer().fillArea(new Pair(gx, gy));
+                            if (this.fillTool.checkNonContiguous.checked)
+                                field.layer().fillNonContiguous(new Pair(gx, gy));
+                            else
+                                field.layer().fillArea(new Pair(gx, gy));
                             break;
                         case ("line"):
                             if (deltaX === 0 && deltaY === 0) {
@@ -3138,9 +3144,7 @@ class ToolSelector {
         this.penTool.activateOptionPanel();
         this.eraserTool = new PenTool(field.layer().suggestedLineWidth() * 3, "eraser", ["images/ThePixelSlime1Icons/eraserSprite.png", "images/eraserSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout], this.field);
         PenTool.checkDrawCircular.callback = () => field.state.drawCircular = PenTool.checkDrawCircular.checked;
-        this.fillTool = new FillTool("fill", ["images/ThePixelSlime1Icons/fillSprite.png", "images/fillSprite.png"], [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout], () => {
-            field.layer().state.ignoreAlphaInFill = this.fillTool.checkIgnoreAlpha.checked;
-        });
+        this.fillTool = new FillTool("fill", ["images/ThePixelSlime1Icons/fillSprite.png", "images/fillSprite.png"], [this.transformTool.localLayout, this.colorPickerTool.localLayout, this.undoTool.localLayout], () => { });
         this.toolBar.tools = [];
         this.toolBar.tools.push(this.penTool);
         //this.toolBar.tools.push(this.sprayCanTool);
@@ -3342,7 +3346,6 @@ class DrawingScreenState {
         this.antiAliasRotation = true;
         this.screenBufUnlocked = true;
         this.blendAlphaOnPutSelectedPixels = true;
-        this.ignoreAlphaInFill = false;
         this.dragOnlyOneColor = false;
         this.rotateOnlyOneColor = false;
         this.drawCircular = true;
@@ -3646,6 +3649,47 @@ class DrawingScreen {
             this.state.screenBufUnlocked = true;
         }
     }
+    fillNonContiguous(startCoordinate) {
+        if (this.state.screenBufUnlocked &&
+            startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
+            startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second) {
+            this.state.screenBufUnlocked = false;
+            const startIndex = startCoordinate.first + startCoordinate.second * this.dimensions.first;
+            const startPixel = this.screenBuffer[startIndex];
+            const spc = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
+            let i = 0;
+            while (i < this.screenBuffer.length - 4) {
+                if (spc.compare(this.screenBuffer[i])) {
+                    this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
+                    this.screenBuffer[i].copy(this.state.color);
+                }
+                i++;
+                if (spc.compare(this.screenBuffer[i])) {
+                    this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
+                    this.screenBuffer[i].copy(this.state.color);
+                }
+                i++;
+                if (spc.compare(this.screenBuffer[i])) {
+                    this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
+                    this.screenBuffer[i].copy(this.state.color);
+                }
+                i++;
+                if (spc.compare(this.screenBuffer[i])) {
+                    this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
+                    this.screenBuffer[i].copy(this.state.color);
+                }
+                i++;
+            }
+            while (i < this.screenBuffer.length) {
+                if (spc.compare(this.screenBuffer[i])) {
+                    this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
+                    this.screenBuffer[i].copy(this.state.color);
+                }
+                i++;
+            }
+            this.state.screenBufUnlocked = true;
+        }
+    }
     fillArea(startCoordinate) {
         if (this.state.screenBufUnlocked &&
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
@@ -3667,7 +3711,7 @@ class DrawingScreen {
                 const cur = stack.pop();
                 const pixelColor = this.screenBuffer[cur];
                 if (cur >= 0 && cur < length &&
-                    (pixelColor.compare(spc) || (this.state.ignoreAlphaInFill && pixelColor.alpha() === 0)) && !checkedMap[cur] && this.state.bufferBitMask[cur]) {
+                    pixelColor.compare(spc) && !checkedMap[cur] && this.state.bufferBitMask[cur]) {
                     checkedMap[cur] = true;
                     if (!pixelColor.compare(this.state.color)) {
                         this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
