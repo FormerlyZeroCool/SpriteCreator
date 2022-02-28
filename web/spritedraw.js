@@ -4936,7 +4936,7 @@ class MouseDownTracker {
     getTouchCount() { return this.count; }
 }
 class SingleTouchListener {
-    constructor(component, preventDefault, mouseEmulation) {
+    constructor(component, preventDefault, mouseEmulation, stopRightClick = false) {
         this.lastTouchTime = Date.now();
         this.offset = [];
         this.moveCount = 0;
@@ -4965,10 +4965,11 @@ class SingleTouchListener {
                 component.addEventListener('touchend', (event) => this.touchEndHandler(event), false);
             }
             if (mouseEmulation && !isTouchSupported()) {
-                component.addEventListener("contextmenu", (e) => {
-                    e.preventDefault();
-                    return false;
-                });
+                if (stopRightClick)
+                    component.addEventListener("contextmenu", (e) => {
+                        e.preventDefault();
+                        return false;
+                    });
                 component.addEventListener("mouseover", (event) => { this.mouseOverElement = true; });
                 component.addEventListener("mouseleave", (event) => { this.mouseOverElement = false; });
                 component.addEventListener('mousedown', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchStartHandler(event); });
@@ -5190,7 +5191,7 @@ class Pallette {
         this.keyboardHandler = keyboardHandler;
         this.ctx = canvas.getContext("2d");
         this.highLightedCell = 0;
-        this.listeners = new SingleTouchListener(canvas, true, true);
+        this.listeners = new SingleTouchListener(canvas, true, true, true);
         this.colors = new Array();
         const width = canvas.width / colorCount;
         const height = canvas.height;
@@ -6344,7 +6345,7 @@ async function main() {
     });
     const keyboardHandler = new KeyboardHandler();
     const pallette = new Pallette(document.getElementById("pallette_screen"), keyboardHandler);
-    const canvasListener = new SingleTouchListener(canvas, true, true);
+    const canvasListener = new SingleTouchListener(canvas, true, true, true);
     const toolSelector = new ToolSelector(pallette, keyboardHandler, canvasListener, 64, 64);
     field = toolSelector.field;
     field.toolSelector = toolSelector;
