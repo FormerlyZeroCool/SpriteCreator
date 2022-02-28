@@ -822,6 +822,18 @@ class SimpleGridLayoutManager implements GuiElement {
         this.refreshCanvas();
         ctx.drawImage(this.canvas, xPos + offsetX, yPos + offsetY);
     }
+    drawScaled(ctx:CanvasRenderingContext2D, xPos:number = this.x, yPos:number = this.y, width:number, height:number, imageSmoothing:boolean = true): void
+    {
+        //this.refreshCanvas();
+        const originalStateImageSmoothingEnabled:boolean = ctx.imageSmoothingEnabled;
+        if(imageSmoothing !== originalStateImageSmoothingEnabled)
+            ctx.imageSmoothingEnabled = imageSmoothing;
+
+        ctx.drawImage(this.canvas, xPos, yPos, width, height);
+
+        if(imageSmoothing !== originalStateImageSmoothingEnabled)
+            ctx.imageSmoothingEnabled = originalStateImageSmoothingEnabled;
+    }
 };
 class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
     offset:number[];
@@ -1113,7 +1125,6 @@ class GuiSlider implements GuiElement {
         const ctx:CanvasRenderingContext2D = this.canvas.getContext("2d")!;
         ctx.clearRect(0, 0, this.width(), this.height());
         ctx.fillStyle = "#FFFFFF";
-        //ctx.fillRect(1, 1, this.width() - 2, this.height() - 2);
         const bounds:number[] = this.getBounds();
         const center:number[] = [bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2];
         const displayLineX:number = this.state * bounds[2] + bounds[0];
@@ -3357,7 +3368,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.sprayPaint = false;
         this.repaint = false;
         this.toolPixelDim = [imgWidth,imgHeight*10];
-        this.canvas = <HTMLCanvasElement> document.getElementById("tool_selector_screen");
+        this.canvas = document.createElement("canvas");
         this.keyboardHandler = keyboardHandler;
         this.keyboardHandler.registerCallBack("keydown", (e:any) => true, event => {
             switch(event.code) {
@@ -4029,6 +4040,15 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             }
         }
     }
+    drawScaled(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number): void
+    {
+        const repaint:boolean = this.repaint;
+        this.draw();
+        if(repaint)
+        {
+            ctx.drawImage(this.canvas, x, y, width, height);
+        }
+    }
     selectedToolName():string | null
     {
         if(this.tool())
@@ -4043,11 +4063,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         return null;
     }
 
-};
-class TransformedView {
-    enableImageSmoothing:boolean;
-    scale:number[];
-    translation:number[];
 };
 class DrawingScreenState {
     color:RGB;
@@ -8000,22 +8015,29 @@ async function main()
     const goalSleep = 1000/fps;
     let counter = 0;
     const touchScreen:boolean = isTouchSupported();
+    const toolSelectorCanvas:HTMLCanvasElement = <HTMLCanvasElement> document.getElementById("tool_selector_screen");
+    let toolSelectorCTX:CanvasRenderingContext2D = toolSelectorCanvas.getContext("2d")!;
     while(true)
     {
         const start:number = Date.now();
-        toolSelector.draw();
-        if(canvas.width != getWidth() - (toolSelector.width() + 30))
+        if(canvas.width != getWidth() - (toolSelectorCanvas.width + 30))
         {
-            canvas.width = getWidth() - toolSelector.width() - 30;
             if(!touchScreen)
                 canvas.height = screen.height * 0.65;
             else
-            canvas.height = screen.height;
+                canvas.height = screen.height;
+            const toolSelectorAspect:number = toolSelector.width() / toolSelector.height();
+            toolSelectorCanvas.height = canvas.height + pallette.canvas.height;
+            toolSelectorCanvas.width = Math.ceil(toolSelectorCanvas.height * toolSelectorAspect);
+            toolSelectorCTX = toolSelectorCanvas.getContext("2d")!;
+            toolSelector.repaint = true;
+            canvas.width = getWidth() - toolSelectorCanvas.width - 30;
             counter = 0;
         }
         if(pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
     
+        toolSelector.drawScaled(toolSelectorCTX, 0, 0, toolSelectorCanvas.width, toolSelectorCanvas.height);
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
         if(animationGroupSelector.animationGroup())
