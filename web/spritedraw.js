@@ -4686,6 +4686,8 @@ class LayeredDrawingScreen {
     deleteLayer(index) {
         this.layers.splice(index, 1);
         this.layersState.splice(index, 1);
+        if (this.selected >= this.layers.length)
+            this.selected = this.layers.length - 1;
         this.layer().repaint = true;
     }
     loadImageToLayer(image) {
