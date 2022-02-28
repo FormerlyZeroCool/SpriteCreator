@@ -479,36 +479,34 @@ class SimpleGridLayoutManager {
         }
     }
     handleTouchEvents(type, e) {
-        if (e.touchPos[0] >= 0 && e.touchPos[0] < this.width() &&
+        if (!this.elementTouched && e.touchPos[0] >= 0 && e.touchPos[0] < this.width() &&
             e.touchPos[1] >= 0 && e.touchPos[1] < this.height()) {
             let record = null;
             let index = 0;
             let runningNumber = 0;
-            if (!this.elementTouched) {
-                this.elementsPositions.forEach(el => {
-                    el.element.deactivate();
-                    el.element.refresh();
-                    if (e.touchPos[0] >= el.x && e.touchPos[0] < el.x + el.element.width() &&
-                        e.touchPos[1] >= el.y && e.touchPos[1] < el.y + el.element.height()) {
-                        record = el;
-                        index = runningNumber;
-                    }
-                    runningNumber++;
-                });
-                if (record) {
-                    e.preventDefault();
-                    if (type !== "touchmove")
-                        record.element.activate();
-                    e.translateEvent(e, -record.x, -record.y);
-                    record.element.handleTouchEvents(type, e);
-                    e.translateEvent(e, record.x, record.y);
-                    record.element.refresh();
-                    this.elementTouched = record;
-                    if (e.repaint) {
-                        this.refreshCanvas();
-                    }
-                    this.lastTouched = index;
+            this.elementsPositions.forEach(el => {
+                el.element.deactivate();
+                el.element.refresh();
+                if (e.touchPos[0] >= el.x && e.touchPos[0] < el.x + el.element.width() &&
+                    e.touchPos[1] >= el.y && e.touchPos[1] < el.y + el.element.height()) {
+                    record = el;
+                    index = runningNumber;
                 }
+                runningNumber++;
+            });
+            if (record) {
+                e.preventDefault();
+                if (type !== "touchmove")
+                    record.element.activate();
+                e.translateEvent(e, -record.x, -record.y);
+                record.element.handleTouchEvents(type, e);
+                e.translateEvent(e, record.x, record.y);
+                record.element.refresh();
+                this.elementTouched = record;
+                if (e.repaint) {
+                    this.refreshCanvas();
+                }
+                this.lastTouched = index;
             }
         }
         if (this.elementTouched) {

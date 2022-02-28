@@ -618,15 +618,13 @@ class SimpleGridLayoutManager implements GuiElement {
     }
     handleTouchEvents(type:string, e:any):void
     {
-        if(e.touchPos[0] >= 0 && e.touchPos[0] < this.width() &&
+        if(!this.elementTouched && e.touchPos[0] >= 0 && e.touchPos[0] < this.width() &&
             e.touchPos[1] >= 0 && e.touchPos[1] < this.height())
         {
             let record:RowRecord = <any> null;
             let index:number = 0;
             let runningNumber:number = 0;
-            if(!this.elementTouched)
-            {
-                this.elementsPositions.forEach(el => {
+            this.elementsPositions.forEach(el => {
                     el.element.deactivate();
                     el.element.refresh();
                     if(e.touchPos[0] >= el.x && e.touchPos[0] < el.x + el.element.width() &&
@@ -636,8 +634,8 @@ class SimpleGridLayoutManager implements GuiElement {
                         index = runningNumber;
                     }
                     runningNumber++;
-                });
-                if(record)
+            });
+            if(record)
                 {
                     e.preventDefault();
                     if(type !== "touchmove")
@@ -652,8 +650,8 @@ class SimpleGridLayoutManager implements GuiElement {
                         this.refreshCanvas();
                     }
                     this.lastTouched = index;
-                }
             }
+            
         }
         if(this.elementTouched)
         {
