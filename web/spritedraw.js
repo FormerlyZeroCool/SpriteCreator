@@ -2152,6 +2152,10 @@ class ColorPickerTool extends ExtendedTool {
             field.pallette.selectedPixelColor.copy(color);
             this.color().copy(color);
             this._setColorText();
+            this.hueSlider.refresh();
+            this.saturationSlider.refresh();
+            this.lightnessSlider.refresh();
+            this.alphaSlider.refresh();
         };
         this.hueSlider = new CustomBackgroundSlider(0, [150, 25], colorSlideEvent, (ctx, x, y, width, height) => {
             const color = new RGB(0, 0, 0, 0);
