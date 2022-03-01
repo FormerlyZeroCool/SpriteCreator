@@ -15,6 +15,7 @@ function changeFavicon(src) {
 fetchImage('/web/images/favicon.ico').then((value) => changeFavicon('/web/images/favicon.ico'));
 fetchImage('images/favicon.ico').then((value) => changeFavicon('images/favicon.ico'));
 const dim = [128, 128];
+;
 function threeByThreeMat(a, b) {
     return [a[0] * b[0] + a[1] * b[3] + a[2] * b[6],
         a[0] * b[1] + a[1] * b[4] + a[2] * b[7],
@@ -2592,7 +2593,7 @@ class ScreenTransformationTool extends ExtendedTool {
 ;
 class FilesManagerTool extends ExtendedTool {
     constructor(name, path, optionPanes, field) {
-        super(name, path, optionPanes, [200, 500], [2, 50]);
+        super(name, path, optionPanes, [200, 550], [2, 55]);
         this.savePng = new GuiButton(() => { field.saveToFile(this.pngName.text); }, "Save PNG", 85, 35, 16);
         this.pngName = new GuiTextBox(true, 200, this.savePng, 16, 35, GuiTextBox.bottom, (event) => {
             if (event.textbox.text.substring(event.textbox.text.length - 4, event.textbox.text.length) !== ".png") {
@@ -2651,6 +2652,38 @@ class FilesManagerTool extends ExtendedTool {
             }
             return true;
         });
+        this.loadImage = new GuiButton(() => {
+            const input = document.createElement('input');
+            input.type = "file";
+            input.addEventListener('change', (event) => {
+                const fileList = event.target.files;
+                const reader = new FileReader();
+                reader.readAsDataURL(fileList[0]);
+                reader.onload = (() => {
+                    const img = new Image();
+                    img.onload = () => {
+                        field.toolSelector.layersTool.pushList(`l${field.toolSelector.layersTool.runningId++}`);
+                        field.loadImageToLayer(img);
+                        field.setDimOnCurrent([img.width, img.height]);
+                    };
+                    img.src = reader.result;
+                });
+            });
+            input.click();
+        }, "Load Image", 125, 35, 16);
+        this.loadProject = new GuiButton(() => {
+            const input = document.createElement('input');
+            input.type = "file";
+            input.addEventListener('change', (event) => {
+                const fileList = event.target.files;
+                const reader = new FileReader();
+                fileList[0].arrayBuffer().then((buffer) => {
+                    const binary = new Uint32Array(buffer);
+                    field.toolSelector.animationsGroupsSelector.buildFromBinary(binary);
+                });
+            });
+            input.click();
+        }, "Load Project", 125, 35, 16);
         this.gifName.setText("myFirst.gif");
         this.pngName.setText("myFirst.png");
         this.projectName.setText("myFirst.proj");
@@ -2666,7 +2699,8 @@ class FilesManagerTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("Save screen as grid\nto sprites:", 200, 16, GuiTextBox.bottom, 50));
         this.localLayout.addElement(this.tbXPartitions);
         this.localLayout.addElement(this.tbYPartitions);
-        this.localLayout.addElement(this.saveSprites);
+        this.localLayout.addElement(this.loadImage);
+        this.localLayout.addElement(this.loadProject);
     }
 }
 ;
@@ -6498,7 +6532,6 @@ async function main() {
             defGroup.spriteSelector.deleteSelectedSprite();
         }
     });
-    ;
     const fileSelector = document.getElementById('file-selector');
     if (fileSelector) {
         fileSelector.addEventListener('change', (event) => {
