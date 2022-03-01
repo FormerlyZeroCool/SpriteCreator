@@ -2593,7 +2593,7 @@ class ScreenTransformationTool extends ExtendedTool {
 ;
 class FilesManagerTool extends ExtendedTool {
     constructor(name, path, optionPanes, field) {
-        super(name, path, optionPanes, [200, 550], [2, 55]);
+        super(name, path, optionPanes, [200, 600], [2, 60]);
         this.savePng = new GuiButton(() => { field.saveToFile(this.pngName.text); }, "Save PNG", 85, 35, 16);
         this.pngName = new GuiTextBox(true, 200, this.savePng, 16, 35, GuiTextBox.bottom, (event) => {
             if (event.textbox.text.substring(event.textbox.text.length - 4, event.textbox.text.length) !== ".png") {
