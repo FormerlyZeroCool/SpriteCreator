@@ -3337,6 +3337,7 @@ class FilesManagerTool extends ExtendedTool {
         this.localLayout.addElement(this.tbXPartitions);
         this.localLayout.addElement(this.tbYPartitions);
         this.localLayout.addElement(this.saveSprites);
+        this.localLayout.addElement(new GuiSpacer([200, 20]));
         this.localLayout.addElement(this.loadImage);
         this.localLayout.addElement(this.loadProject);
     }
