@@ -3837,6 +3837,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 this.field.layer().cleanPixelPerfectBuffer();
                 this.field.state.pixelPerfectBuffer = [];
             }
+            field.state.drawCacheMap.clear();
             field.layer().updateLabelUndoRedoCount();
             field.layer().repaint = repaint;
         });
@@ -4101,8 +4102,10 @@ class DrawingScreenState {
     pasteRect:number[];
     selectionSelectionRect:number[];
     pixelPerfectBuffer:number[];
+    drawCacheMap:Set<number>;
 
     constructor(lineWidth:number) {
+        this.drawCacheMap = new Set<Pair<number, RGB>>();
         this.color = new RGB(0,0,0);
         this.allowDropOutsideSelection = false;
         this.bufferBitMask = [];
@@ -4364,8 +4367,11 @@ class DrawingScreen {
                     }
                     return false;
                 };
-                if(!existsInBuf(idata))
+                if(!this.state.drawCacheMap.has(idata.first)){
                     this.updatesStack.get(this.updatesStack.length() - 1).push(idata);
+                    this.state.drawCacheMap.add(idata.first);
+                }
+                
             }
         }
         this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - rollover);
