@@ -3668,13 +3668,14 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     angle = Math.PI / 32;
                     moveCountBeforeRotation = 2;
                 }
+                const startTouchPos:number[] = [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.width()) * field.width(),
+                (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.height()) * field.height()];
+                const transformed:number[] = [touchPos[0] - startTouchPos[0], (touchPos[0] - startTouchPos[1]) * -1];
                 if(e.moveCount % moveCountBeforeRotation === 0)
                     if(e.deltaY > 0)
-                        field.layer().rotateSelectedPixelGroup(angle, [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.layer().bounds.first) * field.layer().dimensions.first,
-                            (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
+                        field.layer().rotateSelectedPixelGroup(angle, startTouchPos);
                     else if(e.deltaY < 0)
-                        field.layer().rotateSelectedPixelGroup(-angle, [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.layer().bounds.first) * field.layer().dimensions.first,
-                            (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.layer().bounds.second) * field.layer().dimensions.second]);
+                        field.layer().rotateSelectedPixelGroup(-angle, startTouchPos);
                     
                     if(field.state.antiAliasRotation){
                         field.layer().dragData!.second;
@@ -4493,29 +4494,6 @@ class DrawingScreen {
             const startPixel:RGB = this.screenBuffer[startIndex];
             const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
             let i = 0;
-            while(i < this.screenBuffer.length - 4)
-            {
-                if(spc.compare(this.screenBuffer[i])){
-                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
-                    this.screenBuffer[i].copy(this.state.color);
-                }
-                i++;
-                if(spc.compare(this.screenBuffer[i])){
-                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
-                    this.screenBuffer[i].copy(this.state.color);
-                }
-                i++;
-                if(spc.compare(this.screenBuffer[i])){
-                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
-                    this.screenBuffer[i].copy(this.state.color);
-                }
-                i++;
-                if(spc.compare(this.screenBuffer[i])){
-                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
-                    this.screenBuffer[i].copy(this.state.color);
-                }
-                i++;
-            }
             while(i < this.screenBuffer.length)
             {
                 if(spc.compare(this.screenBuffer[i])){
@@ -4524,8 +4502,8 @@ class DrawingScreen {
                 }
                 i++;
             }
-            if(this.updatesStack.get(this.updatesStack.length()-1).length > 0)
-                this.updatesStack.push([]);
+            //if(this.updatesStack.get(this.updatesStack.length()-1).length > 0)
+              //  this.updatesStack.push([]);
             this.state.screenBufUnlocked = true;
         }
     }
