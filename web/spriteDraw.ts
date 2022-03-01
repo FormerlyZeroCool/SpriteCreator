@@ -4355,7 +4355,17 @@ class DrawingScreen {
             else
             {
                 idata.first = ix + iy * this.dimensions.first;
-                this.updatesStack.get(this.updatesStack.length() - 1).push(idata);
+                const existsInBuf:(val:Pair<number, RGB>) => boolean = (val:Pair<number, RGB>) => {
+                    for(let i = 0; i < this.updatesStack.get(this.updatesStack.length() - 1).length; i++)
+                    {
+                        const el:Pair<number, RGB> = this.updatesStack.get(this.updatesStack.length() - 1)[i];
+                        if(el.first === val.first && el.second.compare(val.second))
+                            return true;
+                    }
+                    return false;
+                };
+                if(!existsInBuf(idata))
+                    this.updatesStack.get(this.updatesStack.length() - 1).push(idata);
             }
         }
         this.state.pixelPerfectBuffer.splice(0, this.state.pixelPerfectBuffer.length - rollover);
