@@ -5272,8 +5272,8 @@ class DrawingScreen {
                     {
                         toCopy.color = this.screenBuffer[destIndex].color;
                         if(this.state.blendAlphaOnPaste){
-                            blendAlphaCopy(source, toCopy);
-                            spriteView[destIndex] = source.color;
+                            blendAlphaCopy(toCopy, source);
+                            spriteView[destIndex] = toCopy.color;
                         }
                         else
                             spriteView[destIndex] = source.color;
