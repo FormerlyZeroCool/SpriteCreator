@@ -6609,7 +6609,6 @@ class Pallette {
 };
 function buildSpriteFromBuffer(buffer:Uint32Array, index:number):Pair<Sprite, number>
 {
-    console.log(buffer[index - 2], buffer[index - 1]);
     const size:number = buffer[index++];
     const type:number = buffer[index++];
     const height:number = buffer[index] >> 16;
@@ -8015,38 +8014,6 @@ async function main()
             defGroup.spriteSelector.deleteSelectedSprite();
         }
     });
-    const fileSelector = document.getElementById('file-selector');
-    if(fileSelector)
-    {
-        fileSelector.addEventListener('change', (event) => {
-            const fileList:FileList = (<FilesHaver> <Object> event.target).files;
-            const reader = new FileReader();
-            reader.readAsDataURL(fileList[0]);
-            reader.onload = (() =>
-              {
-                  const img = new Image();
-                  img.onload = () => {
-                      toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`)
-                      field.loadImageToLayer(img);
-                      field.setDimOnCurrent([img.width, img.height]);
-                  };
-                  img.src = <string> reader.result;
-              });
-          });
-    }
-    const projectFileSelector = document.getElementById('project-file-selector');
-    if(projectFileSelector)
-    {
-        projectFileSelector.addEventListener('change', (event) => {
-            const fileList:FileList = (<FilesHaver> <Object> event.target).files;
-            const reader = new FileReader();
-            fileList[0].arrayBuffer().then((buffer) =>
-              {
-                  const binary:Uint32Array = new Uint32Array(buffer);
-                  animationGroupSelector.buildFromBinary(binary);
-              });
-          });
-    }
     canvas.onmousemove = (event:MouseEvent) => {
         toolSelector.drawingScreenListener.touchPos[0] = event.offsetX;
         toolSelector.drawingScreenListener.touchPos[1] = event.offsetY;

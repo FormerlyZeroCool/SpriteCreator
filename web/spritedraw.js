@@ -5405,7 +5405,6 @@ class Pallette {
 }
 ;
 function buildSpriteFromBuffer(buffer, index) {
-    console.log(buffer[index - 2], buffer[index - 1]);
     const size = buffer[index++];
     const type = buffer[index++];
     const height = buffer[index] >> 16;
@@ -6532,34 +6531,6 @@ async function main() {
             defGroup.spriteSelector.deleteSelectedSprite();
         }
     });
-    const fileSelector = document.getElementById('file-selector');
-    if (fileSelector) {
-        fileSelector.addEventListener('change', (event) => {
-            const fileList = event.target.files;
-            const reader = new FileReader();
-            reader.readAsDataURL(fileList[0]);
-            reader.onload = (() => {
-                const img = new Image();
-                img.onload = () => {
-                    toolSelector.layersTool.pushList(`l${toolSelector.layersTool.runningId++}`);
-                    field.loadImageToLayer(img);
-                    field.setDimOnCurrent([img.width, img.height]);
-                };
-                img.src = reader.result;
-            });
-        });
-    }
-    const projectFileSelector = document.getElementById('project-file-selector');
-    if (projectFileSelector) {
-        projectFileSelector.addEventListener('change', (event) => {
-            const fileList = event.target.files;
-            const reader = new FileReader();
-            fileList[0].arrayBuffer().then((buffer) => {
-                const binary = new Uint32Array(buffer);
-                animationGroupSelector.buildFromBinary(binary);
-            });
-        });
-    }
     canvas.onmousemove = (event) => {
         toolSelector.drawingScreenListener.touchPos[0] = event.offsetX;
         toolSelector.drawingScreenListener.touchPos[1] = event.offsetY;
