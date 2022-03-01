@@ -2663,6 +2663,7 @@ class ColorPickerTool extends ExtendedTool {
             else{
                 this.tbColor.setText(this.field.layer().palette.selectedPixelColor.htmlRBGA());
             }
+            this.setColorText()
         },
             "Update", 75, this.tbColor.height(), 16);
         this.tbColor.submissionButton = this.btUpdate;
@@ -3343,21 +3344,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     filesManagerTool:FilesManagerTool;
     selectionTool:SelectionTool;
     polygon:number[][];
-    transformEvent(e:any): void
-    {
-            const xScale:number = this.canvas.width / this.externalCanvas.width;
-            const yScale:number = this.canvas.height / this.externalCanvas.height;
-            e.touchPos[0] *= xScale;
-            e.touchPos[1] *= yScale;
-            e.translateEvent(e, -this.tool()!.getOptionPanel()!.x , -this.tool()!.getOptionPanel()!.y);
-    }
-    invScaleEvent(e:any): void
-    {
-        const xScale:number = 1 / this.canvas.width / this.externalCanvas.width;
-        const yScale:number = 1 / this.canvas.height / this.externalCanvas.height;
-        e.touchPos[0] *= xScale;
-        e.touchPos[1] *= yScale;
-    }
+
     constructor(pallette:Pallette, keyboardHandler:KeyboardHandler, drawingScreenListener:SingleTouchListener, imgWidth:number = 64, imgHeight:number = 64)
     {
         this.lastDrawTime = Date.now();
@@ -3498,12 +3485,12 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 if(!e.button) 
                 {
                     field.layer().state.color = pallette.selectedPixelColor; 
-                    field.layer().toolSelector.colorPickerTool.setColorText(); 
+                    field.layer().toolSelector.colorPickerTool._setColorText(); 
                 }
                 else
                 {
                     field.layer().state.color = (pallette.selectedBackColor); 
-                    field.layer().toolSelector.colorPickerTool.setColorText(); 
+                    field.layer().toolSelector.colorPickerTool._setColorText(); 
                 }
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
                 
@@ -3909,6 +3896,21 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.ctx.fillStyle = "#FFFFFF";
         this.repaint = true;
         this.lastDrawTime = Date.now();
+    }    
+    transformEvent(e:any): void
+    {
+            const xScale:number = this.canvas.width / this.externalCanvas.width;
+            const yScale:number = this.canvas.height / this.externalCanvas.height;
+            e.touchPos[0] *= xScale;
+            e.touchPos[1] *= yScale;
+            e.translateEvent(e, -this.tool()!.getOptionPanel()!.x , -this.tool()!.getOptionPanel()!.y);
+    }
+    invScaleEvent(e:any): void
+    {
+        const xScale:number = 1 / this.canvas.width / this.externalCanvas.width;
+        const yScale:number = 1 / this.canvas.height / this.externalCanvas.height;
+        e.touchPos[0] *= xScale;
+        e.touchPos[1] *= yScale;
     }
     setNormalInputValidation(): void {
         this.settingsTool.tbX.validationCallback = (event:TextBoxEvent) => {

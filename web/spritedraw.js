@@ -2142,6 +2142,7 @@ class ColorPickerTool extends ExtendedTool {
             else {
                 this.tbColor.setText(this.field.layer().palette.selectedPixelColor.htmlRBGA());
             }
+            this.setColorText();
         }, "Update", 75, this.tbColor.height(), 16);
         this.tbColor.submissionButton = this.btUpdate;
         const colorSlideEvent = (event) => {
@@ -2808,11 +2809,11 @@ class ToolSelector {
             this.drawingScreenListener.registerCallBack("touchstart", (e) => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, (e) => {
                 if (!e.button) {
                     field.layer().state.color = pallette.selectedPixelColor;
-                    field.layer().toolSelector.colorPickerTool.setColorText();
+                    field.layer().toolSelector.colorPickerTool._setColorText();
                 }
                 else {
                     field.layer().state.color = (pallette.selectedBackColor);
-                    field.layer().toolSelector.colorPickerTool.setColorText();
+                    field.layer().toolSelector.colorPickerTool._setColorText();
                 }
                 const touchPos = [this.field.zoom.invZoomX(e.touchPos[0]), this.field.zoom.invZoomY(e.touchPos[1])];
                 const gx = Math.floor((touchPos[0] - field.layer().offset.first) / field.layer().bounds.first * field.layer().dimensions.first);
