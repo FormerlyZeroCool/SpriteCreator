@@ -3669,8 +3669,6 @@ class DrawingScreen {
                 }
                 i++;
             }
-            //if(this.updatesStack.get(this.updatesStack.length()-1).length > 0)
-            //  this.updatesStack.push([]);
             this.state.screenBufUnlocked = true;
         }
     }
