@@ -2592,7 +2592,7 @@ class ScreenTransformationTool extends ExtendedTool {
 ;
 class FilesManagerTool extends ExtendedTool {
     constructor(name, path, optionPanes, field) {
-        super(name, path, optionPanes, [200, 450], [2, 50]);
+        super(name, path, optionPanes, [200, 500], [2, 50]);
         this.savePng = new GuiButton(() => { field.saveToFile(this.pngName.text); }, "Save PNG", 85, 35, 16);
         this.pngName = new GuiTextBox(true, 200, this.savePng, 16, 35, GuiTextBox.bottom, (event) => {
             if (event.textbox.text.substring(event.textbox.text.length - 4, event.textbox.text.length) !== ".png") {
@@ -2663,6 +2663,7 @@ class FilesManagerTool extends ExtendedTool {
         this.localLayout.addElement(new GuiLabel("Save project to a file:", 200, 16, GuiTextBox.bottom, 35));
         this.localLayout.addElement(this.projectName);
         this.localLayout.addElement(this.saveProject);
+        this.localLayout.addElement(new GuiLabel("Save screen as grid\nto sprites:", 200, 16, GuiTextBox.bottom, 50));
         this.localLayout.addElement(this.tbXPartitions);
         this.localLayout.addElement(this.tbYPartitions);
         this.localLayout.addElement(this.saveSprites);
@@ -3689,7 +3690,7 @@ class DrawingScreen {
                 }
                 i++;
             }
-            if (this.updatesStack.get(this.updatesStack.length() - 1).length)
+            if (this.updatesStack.get(this.updatesStack.length() - 1).length > 0)
                 this.updatesStack.push([]);
             this.state.screenBufUnlocked = true;
         }
