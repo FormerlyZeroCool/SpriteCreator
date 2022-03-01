@@ -3006,11 +3006,13 @@ class ToolSelector {
                             }
                             const startTouchPos = [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.width()) * field.width(),
                                 (this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1]) / field.height()) * field.height()];
-                            const transformed = [touchPos[0] - startTouchPos[0], (touchPos[0] - startTouchPos[1]) * -1];
+                            const transformed = [touchPos[0] - startTouchPos[0], (touchPos[1] - startTouchPos[1]) * -1];
+                            const multiplierY = -1 * +(transformed[0] < 0) + +(transformed[0] >= 0);
+                            const multiplierX = -1 * +(transformed[1] < 0) + +(transformed[1] >= 0);
                             if (e.moveCount % moveCountBeforeRotation === 0)
-                                if (e.deltaY > 0)
+                                if (e.deltaY * multiplierY > 0 || e.deltaX * multiplierX > 0)
                                     field.layer().rotateSelectedPixelGroup(angle, startTouchPos);
-                                else if (e.deltaY < 0)
+                                else if (e.deltaY * multiplierY < 0 || e.deltaX * multiplierX < 0)
                                     field.layer().rotateSelectedPixelGroup(-angle, startTouchPos);
                             if (field.state.antiAliasRotation) {
                                 field.layer().dragData.second;
