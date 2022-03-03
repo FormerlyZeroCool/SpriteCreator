@@ -2933,9 +2933,16 @@ class ToolSelector {
                         case ("copy"):
                         case ("line"):
                             field.state.selectionRect = [touchPos[0], touchPos[1], 0, 0];
+                            field.layer().setLineWidthPen();
+                            break;
                         case ("pen"):
                             {
                                 field.layer().setLineWidthPen();
+                                if (this.penTool.checkboxPixelPerfect.checked) {
+                                    field.layer().handleTapPixelPerfect(touchPos[0], touchPos[1]);
+                                }
+                                else
+                                    field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
                             }
                             break;
                         case ("paste"):
@@ -3089,9 +3096,6 @@ class ToolSelector {
                                 field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
                             break;
                         case ("pen"):
-                            if (deltaX === 0 && deltaY === 0) {
-                                field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
-                            }
                             break;
                         case ("eraser"):
                             if (deltaX === 0 && deltaY === 0 && this.eraserTool.checkboxPixelPerfect)
