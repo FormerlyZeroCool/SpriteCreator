@@ -6744,6 +6744,7 @@ async function main() {
     canvas.height = screen.height * 0.65;
     field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
     field.zoomToScreen();
+    canvas.style.cursor = "pointer";
     const fps = 35;
     const goalSleep = 1000 / fps;
     let counter = 0;
