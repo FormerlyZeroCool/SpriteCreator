@@ -2729,6 +2729,7 @@ class ToolSelector {
         field.toolSelector = this;
         field.addBlankLayer();
         this.field = field;
+        this.previewScreen = new DrawingScreen(document.createElement("canvas"), field.keyboardHandler, pallette, [0, 0], [128, 128], this, field.state, field.clipBoard);
         this.toolBar = new GuiToolBar([64, 64], []);
         this.toolBar.activate();
         this.toolBar.toolRenderDim[1] = imgHeight;
@@ -3059,6 +3060,8 @@ class ToolSelector {
                 field.layer().repaint = repaint;
             });
             this.drawingScreenListener.registerCallBack("touchend", (e) => this.layersTool.list.selectedItem() && this.layersTool.list.selectedItem().checkBox.checked, (e) => {
+                if (!this.field.layer().updatesStack.length())
+                    this.field.layer().updatesStack.push([]);
                 const deltaX = this.field.zoom.invJustZoomX(e.deltaX);
                 const deltaY = this.field.zoom.invJustZoomY(e.deltaY);
                 const touchPos = [this.field.zoom.invZoomX(e.touchPos[0]), this.field.zoom.invZoomY(e.touchPos[1])];
@@ -3321,12 +3324,143 @@ class ToolSelector {
             this.canvas.height = this.toolPixelDim[1] > this.tool().height() ? this.toolPixelDim[1] : this.tool().height();
             this.ctx = this.canvas.getContext("2d");
         }
+        if (this.previewScreen.dimensions.first !== this.field.width() || this.previewScreen.dimensions.second !== this.field.height()) {
+            this.previewScreen.clearScreenBuffer();
+            this.previewScreen.setDim(this.field.dim);
+        }
     }
     width() {
         return this.canvas.width;
     }
     height() {
         return this.canvas.height;
+    }
+    renderDrawingScreenPreview() {
+        const screen = this.previewScreen;
+        const ctx = this.drawingScreenListener.component.getContext("2d");
+        const oLineWidth = ctx.lineWidth;
+        if (this.previewScreen.state.lineWidth === 1 ||
+            (this.previewScreen.state.lineWidth <= 20 && screen.dimensions.first * screen.dimensions.second <= 128 * 128) ||
+            (this.previewScreen.state.lineWidth <= 10 && screen.dimensions.first * screen.dimensions.second <= 256 * 256) ||
+            (this.previewScreen.state.lineWidth <= 5 && screen.dimensions.first * screen.dimensions.second <= 1024 * 1024) ||
+            (screen.dimensions.first * screen.dimensions.second <= 256 * 256)) {
+            const oSlow = screen.state.slow;
+            const oColor = screen.state.color.color;
+            const pixelPerfect = (x, y) => screen.handleTapPixelPerfect(x, y);
+            const defa = (x, y) => screen.handleTapSprayPaint(x, y);
+            screen.state.slow = false;
+            while (screen.updatesStack.length()) {
+                screen.undoLast();
+            }
+            screen.updatesStack.push([]);
+            const touchPos = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]), this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
+            let touchStart = [this.field.state.selectionRect[0], this.field.state.selectionRect[1]];
+            if (this.drawingScreenListener && this.drawingScreenListener.registeredTouch && this.selectedToolName() === "line") {
+                if (this.penTool.checkboxPixelPerfect.checked) {
+                    screen.handleDraw(touchStart[0], touchPos[0], touchStart[1], touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                }
+                else
+                    screen.handleDraw(touchStart[0], touchPos[0], touchStart[1], touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.width() * this.field.zoom.zoomX, this.field.height() * this.field.zoom.zoomY);
+                screen.cleanPixelPerfectBuffer();
+                screen.state.drawCacheMap.clear();
+            }
+            else if (this.drawingScreenListener && this.drawingScreenListener.registeredTouch && screen.state.selectionRect[3] !== 0) {
+                const xr = Math.abs(screen.state.selectionRect[2] / 2);
+                const yr = Math.abs(screen.state.selectionRect[3] / 2);
+                if (this.selectedToolName() === "copy") {
+                    screen.state.color = new RGB(255, 255, 255, 255);
+                    screen.drawRect([screen.state.selectionRect[0] + 1, screen.state.selectionRect[1] + 1], [screen.state.selectionRect[0] + screen.state.selectionRect[2] - 1, screen.state.selectionRect[1] + screen.state.selectionRect[3] - 1], defa);
+                    screen.updatesStack.push([]);
+                    screen.state.color = new RGB(255, 0, 0, 255);
+                    screen.drawRect([screen.state.selectionRect[0], screen.state.selectionRect[1]], [screen.state.selectionRect[0] + screen.state.selectionRect[2], screen.state.selectionRect[1] + screen.state.selectionRect[3]], defa);
+                    screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.width() * this.field.zoom.zoomX, this.field.height() * this.field.zoom.zoomY);
+                }
+                else if (this.selectedToolName() !== "oval") {
+                    screen.state.color.color = oColor;
+                    if (this.penTool.checkboxPixelPerfect.checked)
+                        screen.drawRect([screen.state.selectionRect[0], screen.state.selectionRect[1]], [screen.state.selectionRect[0] + screen.state.selectionRect[2], screen.state.selectionRect[1] + screen.state.selectionRect[3]], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                    else
+                        screen.drawRect([screen.state.selectionRect[0], screen.state.selectionRect[1]], [screen.state.selectionRect[0] + screen.state.selectionRect[2], screen.state.selectionRect[1] + screen.state.selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                    screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.width() * this.field.zoom.zoomX, this.field.height() * this.field.zoom.zoomY);
+                    screen.cleanPixelPerfectBuffer();
+                    screen.state.drawCacheMap.clear();
+                }
+                else if (Math.abs(screen.state.selectionRect[3]) > 0) {
+                    const start_x = Math.min(touchStart[0], touchPos[0]);
+                    const end_x = Math.max(touchStart[0], touchPos[0]);
+                    const min_y = Math.min(touchStart[1], touchPos[1]);
+                    const max_y = Math.max(touchStart[1], touchPos[1]);
+                    //screen.state.selectionRect = [0,0,0,0];
+                    if (this.penTool.checkboxPixelPerfect.checked)
+                        screen.handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                    else
+                        screen.handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                    screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.width() * this.field.zoom.zoomX, this.field.height() * this.field.zoom.zoomY);
+                    screen.cleanPixelPerfectBuffer();
+                    screen.state.drawCacheMap.clear();
+                }
+            }
+            screen.state.slow = oSlow;
+            screen.state.color.color = oColor;
+        }
+        else {
+            screen.ctx.lineWidth = screen.state.lineWidth;
+            const xMult = this.field.zoom.zoomX;
+            const yMult = this.field.zoom.zoomY;
+            if (screen.toolSelector.drawingScreenListener && screen.toolSelector.drawingScreenListener.registeredTouch && screen.toolSelector.selectedToolName() === "line") {
+                let touchStart = [screen.state.selectionRect[0], screen.state.selectionRect[1]];
+                screen.ctx.beginPath();
+                screen.ctx.strokeStyle = screen.state.color.htmlRBGA();
+                screen.ctx.moveTo(touchStart[0], touchStart[1]);
+                screen.ctx.lineTo((screen.state.selectionRect[2] + touchStart[0]), (screen.state.selectionRect[3] + touchStart[1]));
+                screen.ctx.stroke();
+            }
+            else if (screen.toolSelector.drawingScreenListener && screen.toolSelector.drawingScreenListener.registeredTouch && screen.state.selectionRect[3] !== 0) {
+                const xr = Math.abs(screen.state.selectionRect[2] / 2);
+                const yr = Math.abs(screen.state.selectionRect[3] / 2);
+                if (screen.toolSelector.selectedToolName() === "copy") {
+                    screen.ctx.lineWidth = 1;
+                    screen.ctx.strokeStyle = "#FFFFFF";
+                    screen.ctx.strokeRect(screen.state.selectionRect[0] + 2, screen.state.selectionRect[1] + 2, screen.state.selectionRect[2] - 4, screen.state.selectionRect[3] - 4);
+                    screen.ctx.strokeStyle = "#FF0000";
+                    screen.ctx.strokeRect(screen.state.selectionRect[0], screen.state.selectionRect[1], screen.state.selectionRect[2], screen.state.selectionRect[3]);
+                }
+                else if (screen.toolSelector.selectedToolName() !== "oval") {
+                    screen.ctx.strokeStyle = "#FFFFFF";
+                    screen.ctx.strokeRect(screen.state.selectionRect[0] + 2, screen.state.selectionRect[1] + 2, screen.state.selectionRect[2] - 4, screen.state.selectionRect[3] - 4);
+                    screen.ctx.strokeStyle = screen.state.color.htmlRBG();
+                    screen.ctx.strokeRect(screen.state.selectionRect[0], screen.state.selectionRect[1], screen.state.selectionRect[2], screen.state.selectionRect[3]);
+                }
+                else if (screen.state.selectionRect[2] / 2 > 0 && screen.state.selectionRect[3] / 2 > 0) {
+                    screen.ctx.beginPath();
+                    screen.ctx.strokeStyle = screen.state.color.htmlRBG();
+                    screen.ctx.ellipse(screen.state.selectionRect[0] + xr, screen.state.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
+                    screen.ctx.stroke();
+                }
+                else if (screen.state.selectionRect[2] < 0 && screen.state.selectionRect[3] >= 0) {
+                    screen.ctx.beginPath();
+                    screen.ctx.strokeStyle = screen.state.color.htmlRBG();
+                    screen.ctx.ellipse(screen.state.selectionRect[0] - xr, screen.state.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
+                    screen.ctx.stroke();
+                }
+                else if (screen.state.selectionRect[2] < 0 && screen.state.selectionRect[3] < 0) {
+                    screen.ctx.beginPath();
+                    screen.ctx.strokeStyle = screen.state.color.htmlRBG();
+                    screen.ctx.ellipse(screen.state.selectionRect[0] - xr, screen.state.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
+                    screen.ctx.stroke();
+                }
+                else if (screen.state.selectionRect[2] != 0 && screen.state.selectionRect[3] != 0) {
+                    screen.ctx.beginPath();
+                    screen.ctx.strokeStyle = screen.state.color.htmlRBG();
+                    screen.ctx.ellipse(screen.state.selectionRect[0] + xr, screen.state.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
+                    screen.ctx.stroke();
+                }
+            }
+            ctx.drawImage(screen.canvas, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.zoom.zoomX * screen.dimensions.first, this.field.zoom.zoomY * screen.dimensions.second);
+            screen.ctx.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
+        }
+        ctx.lineWidth = oLineWidth;
     }
     draw() {
         const imgPerColumn = (this.toolPixelDim[1] / this.toolBar.toolRenderDim[1]);
@@ -3473,6 +3607,11 @@ class DrawingScreen {
         }
         const colorBackup = new RGB(this.noColor.red(), this.noColor.green(), this.noColor.blue(), this.noColor.alpha());
         this.state.color = new RGB(0, 0, 0, 255);
+    }
+    clearScreenBuffer() {
+        for (let i = 0; i < this.screenBuffer.length; i++) {
+            this.screenBuffer[i].color = this.noColor.color;
+        }
     }
     updateLabelUndoRedoCount() {
         this.toolSelector.undoTool.updateLabel(this.undoneUpdatesStack.length(), this.updatesStack.length());
@@ -3804,20 +3943,6 @@ class DrawingScreen {
         for (let i = 0; i < this.state.bufferBitMask.length; ++i) {
             if (this.state.bufferBitMask[i] && this.screenBuffer[i].alpha()) {
                 this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
-                /*const data:number[] = [];
-                //top left
-                data.push(i % this.dimensions.first);
-                data.push(Math.floor(i / this.dimensions.first));
-                //top right
-                data.push(i % this.dimensions.first + 1);
-                data.push(Math.floor(i / this.dimensions.first));
-                //bottom left
-                data.push(i % this.dimensions.first);
-                data.push(Math.floor(i / this.dimensions.first) + 1);
-                //bottom right
-                data.push(i % this.dimensions.first + 1);
-                data.push(Math.floor(i / this.dimensions.first) + 1);
-                data.push(this.screenBuffer[i].color);*/
                 const x = i % this.dimensions.first;
                 const y = Math.floor(i / this.dimensions.first);
                 selection.push(this.screenBuffer[i].color, x, y, x, y + 1, x + 1, y, x + 1, y + 1);
@@ -4429,56 +4554,6 @@ class DrawingScreen {
                 }
             }
             spriteScreenBuf.putPixels(ctx);
-            ctx.lineWidth = this.state.lineWidth;
-            if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.toolSelector.selectedToolName() === "line") {
-                let touchStart = [this.state.selectionRect[0], this.state.selectionRect[1]];
-                ctx.beginPath();
-                ctx.strokeStyle = this.state.color.htmlRBGA();
-                ctx.moveTo(touchStart[0], touchStart[1]);
-                ctx.lineTo(this.state.selectionRect[2] + touchStart[0], this.state.selectionRect[3] + touchStart[1]);
-                ctx.stroke();
-            }
-            else if (this.toolSelector.drawingScreenListener && this.toolSelector.drawingScreenListener.registeredTouch && this.state.selectionRect[3] !== 0) {
-                const xr = Math.abs(this.state.selectionRect[2] / 2);
-                const yr = Math.abs(this.state.selectionRect[3] / 2);
-                if (this.toolSelector.selectedToolName() === "copy") {
-                    ctx.lineWidth = 1;
-                    ctx.strokeStyle = "#FFFFFF";
-                    ctx.strokeRect(this.state.selectionRect[0] + 2, this.state.selectionRect[1] + 2, this.state.selectionRect[2] - 4, this.state.selectionRect[3] - 4);
-                    ctx.strokeStyle = "#FF0000";
-                    ctx.strokeRect(this.state.selectionRect[0], this.state.selectionRect[1], this.state.selectionRect[2], this.state.selectionRect[3]);
-                }
-                else if (this.toolSelector.selectedToolName() !== "oval") {
-                    ctx.strokeStyle = "#FFFFFF";
-                    ctx.strokeRect(this.state.selectionRect[0] + 2, this.state.selectionRect[1] + 2, this.state.selectionRect[2] - 4, this.state.selectionRect[3] - 4);
-                    ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.strokeRect(this.state.selectionRect[0], this.state.selectionRect[1], this.state.selectionRect[2], this.state.selectionRect[3]);
-                }
-                else if (this.state.selectionRect[2] / 2 > 0 && this.state.selectionRect[3] / 2 > 0) {
-                    ctx.beginPath();
-                    ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.state.selectionRect[0] + xr, this.state.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
-                    ctx.stroke();
-                }
-                else if (this.state.selectionRect[2] < 0 && this.state.selectionRect[3] >= 0) {
-                    ctx.beginPath();
-                    ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.state.selectionRect[0] - xr, this.state.selectionRect[1] + yr, xr, yr, 0, 0, 2 * Math.PI);
-                    ctx.stroke();
-                }
-                else if (this.state.selectionRect[2] < 0 && this.state.selectionRect[3] < 0) {
-                    ctx.beginPath();
-                    ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.state.selectionRect[0] - xr, this.state.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
-                    ctx.stroke();
-                }
-                else if (this.state.selectionRect[2] != 0 && this.state.selectionRect[3] != 0) {
-                    ctx.beginPath();
-                    ctx.strokeStyle = this.state.color.htmlRBG();
-                    ctx.ellipse(this.state.selectionRect[0] + xr, this.state.selectionRect[1] - yr, xr, yr, 0, 0, 2 * Math.PI);
-                    ctx.stroke();
-                }
-            }
         }
     }
     drawToContextAsSprite(ctx, x, y, width = this.dimensions.first, height = this.dimensions.second) {
@@ -5553,6 +5628,7 @@ class Sprite {
             canvas.height = this.height;
         }
         this.ctx = canvas.getContext('2d');
+        this.ctx.imageSmoothingEnabled = false;
         return this.ctx.createImageData(this.width, this.height);
     }
     copy(pixels, width, height) {
@@ -6664,11 +6740,12 @@ async function main() {
             canvas.width = getWidth() - toolCanvas.width - 30;
             counter = 0;
         }
-        toolSelector.draw();
         if (pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
+        toolSelector.draw();
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
+        toolSelector.renderDrawingScreenPreview();
         if (animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
         if (counter++ % 3 === 0)
