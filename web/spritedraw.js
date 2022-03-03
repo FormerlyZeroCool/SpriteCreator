@@ -3324,6 +3324,9 @@ class ToolSelector {
             this.canvas.height = this.toolPixelDim[1] > this.tool().height() ? this.toolPixelDim[1] : this.tool().height();
             this.ctx = this.canvas.getContext("2d");
         }
+        this.resizePreviewScreen();
+    }
+    resizePreviewScreen() {
         if (this.previewScreen.dimensions.first !== this.field.width() || this.previewScreen.dimensions.second !== this.field.height()) {
             this.previewScreen.clearScreenBuffer();
             this.previewScreen.setDim(this.field.dim);
@@ -3335,7 +3338,12 @@ class ToolSelector {
     height() {
         return this.canvas.height;
     }
+    drawableTool() {
+        const toolName = this.selectedToolName();
+        return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
+    }
     renderDrawingScreenPreview() {
+        this.resizePreviewScreen();
         const screen = this.previewScreen;
         const ctx = this.drawingScreenListener.component.getContext("2d");
         const oLineWidth = ctx.lineWidth;
@@ -3459,6 +3467,14 @@ class ToolSelector {
             }
             ctx.drawImage(screen.canvas, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.zoom.zoomX * screen.dimensions.first, this.field.zoom.zoomY * screen.dimensions.second);
             screen.ctx.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
+        }
+        if (this.drawingScreenListener.registeredTouch === false && this.drawingScreenListener.mouseOverElement) {
+            if (this.drawableTool()) {
+                const touchPos = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]), this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
+                screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
+                screen.updatesStack.push([]);
+                screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, screen.dimensions.first * this.field.zoom.zoomX, screen.dimensions.second * this.field.zoom.zoomY);
+            }
         }
         ctx.lineWidth = oLineWidth;
     }

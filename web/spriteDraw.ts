@@ -4065,6 +4065,10 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             this.canvas.height = this.toolPixelDim[1] > this.tool()!.height() ? this.toolPixelDim[1] : this.tool()!.height();
             this.ctx = this.canvas.getContext("2d")!;
         }
+        this.resizePreviewScreen();
+    }
+    resizePreviewScreen(): void
+    {
         if(this.previewScreen.dimensions.first !== this.field.width() || this.previewScreen.dimensions.second !== this.field.height())
         {
             this.previewScreen.clearScreenBuffer();
@@ -4079,8 +4083,14 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     {
         return this.canvas.height;
     }
+    drawableTool(): boolean
+    {
+        const toolName:string = this.selectedToolName();
+        return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
+    }
     renderDrawingScreenPreview(): void
     {
+        this.resizePreviewScreen();
         const screen:DrawingScreen = this.previewScreen;
         const ctx = (<HTMLCanvasElement> this.drawingScreenListener.component).getContext("2d")!;
         const oLineWidth:number = ctx.lineWidth;
@@ -4102,6 +4112,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             screen.updatesStack.push([]);
             const touchPos:number[] = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]),this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
             let touchStart = [this.field.state.selectionRect[0], this.field.state.selectionRect[1]];
+            
             if(this.drawingScreenListener && this.drawingScreenListener.registeredTouch && this.selectedToolName() === "line")
             {
                 
@@ -4162,6 +4173,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     screen.state.drawCacheMap.clear();
                 }
             }
+            
             screen.state.slow = oSlow;
             screen.state.color.color = oColor;
         }
@@ -4231,6 +4243,16 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             }
             ctx.drawImage(screen.canvas, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.zoom.zoomX * screen.dimensions.first, this.field.zoom.zoomY * screen.dimensions.second);
             screen.ctx.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
+        }
+        if(this.drawingScreenListener.registeredTouch === false && this.drawingScreenListener.mouseOverElement)
+        {
+            if(this.drawableTool())
+            {
+                const touchPos:number[] = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]),this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
+                screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
+                screen.updatesStack.push([]);
+                screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, screen.dimensions.first * this.field.zoom.zoomX, screen.dimensions.second * this.field.zoom.zoomY);
+            }
         }
         ctx.lineWidth = oLineWidth;
     }
