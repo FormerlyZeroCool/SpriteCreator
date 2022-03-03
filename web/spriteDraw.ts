@@ -4251,6 +4251,15 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 const touchPos:number[] = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]),this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
                 screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                 screen.updatesStack.push([]);
+                if(this.penTool.tbProbability.state !== 1)
+                {
+                    for(let i = 0; i < screen.state.lineWidth / 2; i++)
+                    {
+                        screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
+                        screen.updatesStack.push([]);
+                    }
+                }
+                screen.updatesStack.push([]);
                 screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, screen.dimensions.first * this.field.zoom.zoomX, screen.dimensions.second * this.field.zoom.zoomY);
             }
         }
