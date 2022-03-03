@@ -4244,7 +4244,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             ctx.drawImage(screen.canvas, this.field.zoom.zoomedX, this.field.zoom.zoomedY, this.field.zoom.zoomX * screen.dimensions.first, this.field.zoom.zoomY * screen.dimensions.second);
             screen.ctx.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
         }
-        if(this.drawingScreenListener.registeredTouch === false && this.drawingScreenListener.mouseOverElement)
+        if(screen.dimensions.first * screen.dimensions.second < (1400*1400) && this.drawingScreenListener.registeredTouch === false && this.drawingScreenListener.mouseOverElement)
         {
             if(this.drawableTool())
             {
