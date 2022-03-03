@@ -2568,7 +2568,8 @@ class LayerManagerTool extends Tool {
 ;
 class ScreenTransformationTool extends ExtendedTool {
     constructor(toolName, toolImagePath, optionPanes, field) {
-        super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60]);
+        super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60], [1, 40]);
+        this.getOptionPanel().pixelDim[1] += 50;
         this.localLayout.addElement(new GuiLabel("Zoom:", 100));
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio = 1;
@@ -2584,10 +2585,14 @@ class ScreenTransformationTool extends ExtendedTool {
         }, "Auto Zoom", 95, 40, 16);
         this.textBoxZoom = new GuiTextBox(true, 70, this.buttonUpdateZoom, 16, 32);
         this.textBoxZoom.setText(field.zoom.zoomX.toString());
+        this.buttonFlipHorizonally = new GuiButton(() => {
+            field.layer().flipHorizontally();
+        }, "Flip Y Axis", 95, 40, 16);
         this.localLayout.addElement(this.textBoxZoom);
         this.localLayout.addElement(this.buttonUpdateZoom);
         this.localLayout.addElement(this.buttonZoomToScreen);
         this.localLayout.addElement(new GuiButton(() => { field.zoom.offsetX = 0; field.zoom.offsetY = 0; }, "Center Screen", 140, 40, 16));
+        this.getOptionPanel().addElement(this.buttonFlipHorizonally);
     }
 }
 ;
@@ -3351,6 +3356,10 @@ class ToolSelector {
         const screen = this.previewScreen;
         const ctx = this.drawingScreenListener.component.getContext("2d");
         const oLineWidth = ctx.lineWidth;
+        while (screen.updatesStack.length()) {
+            screen.undoLast();
+        }
+        screen.updatesStack.push([]);
         if (this.previewScreen.state.lineWidth === 1 ||
             (this.previewScreen.state.lineWidth <= 20 && screen.dimensions.first * screen.dimensions.second <= 128 * 128) ||
             (this.previewScreen.state.lineWidth <= 10 && screen.dimensions.first * screen.dimensions.second <= 256 * 256) ||
@@ -3361,10 +3370,6 @@ class ToolSelector {
             const pixelPerfect = (x, y) => screen.handleTapPixelPerfect(x, y);
             const defa = (x, y) => screen.handleTapSprayPaint(x, y);
             screen.state.slow = false;
-            while (screen.updatesStack.length()) {
-                screen.undoLast();
-            }
-            screen.updatesStack.push([]);
             const touchPos = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]), this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
             let touchStart = [this.field.state.selectionRect[0], this.field.state.selectionRect[1]];
             if (this.drawingScreenListener && this.drawingScreenListener.registeredTouch && this.selectedToolName() === "line") {
@@ -3476,15 +3481,15 @@ class ToolSelector {
             if (this.drawableTool()) {
                 const touchPos = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]), this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
                 screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
-                screen.updatesStack.push([]);
                 if (this.penTool.tbProbability.state !== 1) {
                     for (let i = 0; i < screen.state.lineWidth / 2; i++) {
-                        screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                         screen.updatesStack.push([]);
+                        screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                     }
                 }
                 screen.updatesStack.push([]);
                 screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, screen.dimensions.first * this.field.zoom.zoomX, screen.dimensions.second * this.field.zoom.zoomY);
+                screen.ctx.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
             }
         }
         ctx.lineWidth = oLineWidth;
@@ -3650,6 +3655,22 @@ class DrawingScreen {
         const pen = this.toolSelector.penTool;
         this.state.lineWidth = pen.penSize();
         pen.tbSize.setText(String(this.state.lineWidth));
+    }
+    flipHorizontally() {
+        let left = new RGB(0, 0, 0, 0);
+        let right = new RGB(0, 0, 0, 0);
+        for (let y = 0; y < this.dimensions.second; y++) {
+            for (let x = 0; x < this.dimensions.first << 1; x++) {
+                const key = x + y * this.dimensions.first;
+                left = this.screenBuffer[key];
+                right = this.screenBuffer[key + this.dimensions.first - 2 * x];
+                if (left && right) {
+                    const temp = left.color;
+                    left.copy(right);
+                    right.color = temp;
+                }
+            }
+        }
     }
     maskToSprite() {
         let minY = this.dimensions.second;

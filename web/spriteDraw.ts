@@ -3178,9 +3178,11 @@ class ScreenTransformationTool extends ExtendedTool {
     textBoxZoom:GuiTextBox;
     buttonUpdateZoom:GuiButton;
     buttonZoomToScreen:GuiButton;
+    buttonFlipHorizonally:GuiButton;
     constructor(toolName:string, toolImagePath:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
-        super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60]);
+        super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60], [1, 40]);
+        this.getOptionPanel().pixelDim[1] += 50;
         this.localLayout.addElement(new GuiLabel("Zoom:", 100));
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio:number = 1;
@@ -3196,10 +3198,15 @@ class ScreenTransformationTool extends ExtendedTool {
         }, "Auto Zoom", 95, 40, 16);
         this.textBoxZoom = new GuiTextBox(true, 70, this.buttonUpdateZoom, 16, 32);
         this.textBoxZoom.setText(field.zoom.zoomX.toString());
+
+        this.buttonFlipHorizonally = new GuiButton(() => {
+            field.layer().flipHorizontally();
+        }, "Flip Y Axis", 95, 40, 16);
         this.localLayout.addElement(this.textBoxZoom);
         this.localLayout.addElement(this.buttonUpdateZoom);
         this.localLayout.addElement(this.buttonZoomToScreen);
         this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
+        this.getOptionPanel().addElement(this.buttonFlipHorizonally);
     }
 };
 class FilesManagerTool extends ExtendedTool {
@@ -4100,6 +4107,11 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         const screen:DrawingScreen = this.previewScreen;
         const ctx = (<HTMLCanvasElement> this.drawingScreenListener.component).getContext("2d")!;
         const oLineWidth:number = ctx.lineWidth;
+        while(screen.updatesStack.length())
+        {
+            screen.undoLast();
+        }
+        screen.updatesStack.push([]);
         if(this.previewScreen.state.lineWidth === 1 || 
             (this.previewScreen.state.lineWidth <= 20 && screen.dimensions.first * screen.dimensions.second <= 128*128) ||
             (this.previewScreen.state.lineWidth <= 10 && screen.dimensions.first * screen.dimensions.second <= 256*256) ||
@@ -4111,11 +4123,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             const pixelPerfect = (x:number, y:number) => screen.handleTapPixelPerfect(x, y);
             const defa = (x:number, y:number) => screen.handleTapSprayPaint(x, y);
             screen.state.slow = false;
-            while(screen.updatesStack.length())
-            {
-                screen.undoLast();
-            }
-            screen.updatesStack.push([]);
             const touchPos:number[] = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]),this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
             let touchStart = [this.field.state.selectionRect[0], this.field.state.selectionRect[1]];
             
@@ -4256,17 +4263,17 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             {
                 const touchPos:number[] = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]),this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
                 screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
-                screen.updatesStack.push([]);
                 if(this.penTool.tbProbability.state !== 1)
                 {
                     for(let i = 0; i < screen.state.lineWidth / 2; i++)
                     {
-                        screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                         screen.updatesStack.push([]);
+                        screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                     }
                 }
                 screen.updatesStack.push([]);
                 screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, screen.dimensions.first * this.field.zoom.zoomX, screen.dimensions.second * this.field.zoom.zoomY);
+                screen.ctx.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
             }
         }
         ctx.lineWidth = oLineWidth;
@@ -4499,6 +4506,28 @@ class DrawingScreen {
         const pen:PenTool = this.toolSelector.penTool;
         this.state.lineWidth = pen.penSize();
         pen.tbSize.setText(String(this.state.lineWidth));
+    }
+    flipHorizontally(): void
+    {
+        let left:RGB = new RGB(0,0,0,0);
+        let right:RGB = new RGB(0,0,0,0);
+        for(let y = 0; y < this.dimensions.second; y++)
+        {
+            for(let x = 0; x < this.dimensions.first << 1; x++)
+            {
+                const key:number = x + y * this.dimensions.first;
+                left = this.screenBuffer[key];
+                right = this.screenBuffer[key + this.dimensions.first - 2 * x];
+                if(left && right)
+                {
+
+                    const temp:number = left.color;
+                    left.copy(right);
+                
+                    right.color = temp;
+                }
+            }
+        }
     }
     maskToSprite():Sprite {
         let minY:number = this.dimensions.second;
