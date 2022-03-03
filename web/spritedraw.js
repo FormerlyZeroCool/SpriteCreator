@@ -3356,7 +3356,8 @@ class ToolSelector {
         const screen = this.previewScreen;
         const ctx = this.drawingScreenListener.component.getContext("2d");
         const oLineWidth = ctx.lineWidth;
-        while (screen.updatesStack.length()) {
+        let i = screen.updatesStack.length();
+        while (i--) {
             screen.undoLast();
         }
         screen.updatesStack.push([]);
@@ -3487,7 +3488,6 @@ class ToolSelector {
                         screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                     }
                 }
-                screen.updatesStack.push([]);
                 screen.drawToContextAsSprite(ctx, this.field.zoom.zoomedX, this.field.zoom.zoomedY, screen.dimensions.first * this.field.zoom.zoomX, screen.dimensions.second * this.field.zoom.zoomY);
                 screen.ctx.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
             }
