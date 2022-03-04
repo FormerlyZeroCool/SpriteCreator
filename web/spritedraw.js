@@ -3190,7 +3190,7 @@ class ToolSelector {
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
         const sprayCallBack = (tbprob) => {
-            const state = tbprob.state === 1 ? 1 : tbprob.state / this.field.state.lineWidth;
+            const state = tbprob.state === 1 ? 1 : tbprob.state / 10;
             this.field.layer().state.sprayProbability = state;
             this.field.layer().state.lineWidth = this.penTool.tbSize.asNumber.get() ? this.penTool.tbSize.asNumber.get() : this.field.layer().state.lineWidth;
         };
@@ -3483,7 +3483,7 @@ class ToolSelector {
                 const touchPos = [this.field.zoom.invZoomX(this.drawingScreenListener.touchPos[0]), this.field.zoom.invZoomY(this.drawingScreenListener.touchPos[1])];
                 screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                 if (this.penTool.tbProbability.state !== 1) {
-                    for (let i = 0; i < screen.state.lineWidth / 2; i++) {
+                    for (let i = 0; i < 10; i++) {
                         screen.updatesStack.push([]);
                         screen.handleTapSprayPaint(touchPos[0], touchPos[1]);
                     }
@@ -6785,9 +6785,9 @@ async function main() {
         const start = Date.now();
         if (canvas.width != getWidth() - (toolCanvas.width + 30) || toolCanvas.width !== Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height)) {
             if (!touchScreen)
-                canvas.height = screen.height * 0.65;
+                canvas.height = window.screen.height * 0.65;
             else
-                canvas.height = screen.height;
+                canvas.height = window.screen.height;
             toolCanvas.height = pallette.canvas.height + canvas.height;
             toolCanvas.width = Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height);
             toolSelector.repaint = true;
