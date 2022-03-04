@@ -6794,7 +6794,7 @@ async function main() {
         toolSelector.draw();
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
-        toolSelector.renderDrawingScreenPreview();
+        await toolSelector.renderDrawingScreenPreview();
         if (animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
         if (counter++ % 3 === 0)
