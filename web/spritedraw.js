@@ -3657,19 +3657,24 @@ class DrawingScreen {
         pen.tbSize.setText(String(this.state.lineWidth));
     }
     flipHorizontally() {
-        let left = new RGB(0, 0, 0, 0);
-        let right = new RGB(0, 0, 0, 0);
-        for (let y = 0; y < this.dimensions.second; y++) {
-            for (let x = 0; x < this.dimensions.first << 1; x++) {
-                const key = x + y * this.dimensions.first;
-                left = this.screenBuffer[key];
-                right = this.screenBuffer[key + this.dimensions.first - 2 * x];
-                if (left && right) {
-                    const temp = left.color;
-                    left.copy(right);
-                    right.color = temp;
+        if (this.state.screenBufUnlocked) {
+            this.state.screenBufUnlocked = false;
+            let left = new RGB(0, 0, 0, 0);
+            let right = new RGB(0, 0, 0, 0);
+            for (let y = 0; y < this.dimensions.second; y++) {
+                for (let x = 0; x < this.dimensions.first << 1; x++) {
+                    const key = x + y * this.dimensions.first;
+                    left = this.screenBuffer[key];
+                    right = this.screenBuffer[key + this.dimensions.first - 2 * x];
+                    if (left && right) {
+                        const temp = left.color;
+                        left.copy(right);
+                        right.color = temp;
+                    }
                 }
             }
+            this.repaint = true;
+            this.state.screenBufUnlocked = true;
         }
     }
     maskToSprite() {

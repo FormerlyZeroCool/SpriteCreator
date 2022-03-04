@@ -4509,24 +4509,30 @@ class DrawingScreen {
     }
     flipHorizontally(): void
     {
-        let left:RGB = new RGB(0,0,0,0);
-        let right:RGB = new RGB(0,0,0,0);
-        for(let y = 0; y < this.dimensions.second; y++)
+        if(this.state.screenBufUnlocked)
         {
-            for(let x = 0; x < this.dimensions.first << 1; x++)
+            this.state.screenBufUnlocked = false;
+            let left:RGB = new RGB(0,0,0,0);
+            let right:RGB = new RGB(0,0,0,0);
+            for(let y = 0; y < this.dimensions.second; y++)
             {
-                const key:number = x + y * this.dimensions.first;
-                left = this.screenBuffer[key];
-                right = this.screenBuffer[key + this.dimensions.first - 2 * x];
-                if(left && right)
+                for(let x = 0; x < this.dimensions.first << 1; x++)
                 {
+                    const key:number = x + y * this.dimensions.first;
+                    left = this.screenBuffer[key];
+                    right = this.screenBuffer[key + this.dimensions.first - 2 * x];
+                    if(left && right)
+                    {
 
-                    const temp:number = left.color;
-                    left.copy(right);
-                
-                    right.color = temp;
+                        const temp:number = left.color;
+                        left.copy(right);
+                    
+                        right.color = temp;
+                    }
                 }
             }
+            this.repaint = true;
+            this.state.screenBufUnlocked = true;
         }
     }
     maskToSprite():Sprite {
