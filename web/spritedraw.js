@@ -3351,14 +3351,14 @@ class ToolSelector {
         const toolName = this.selectedToolName();
         return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
     }
-    renderDrawingScreenPreview() {
+    async renderDrawingScreenPreview() {
         this.resizePreviewScreen();
         const screen = this.previewScreen;
         const ctx = this.drawingScreenListener.component.getContext("2d");
         const oLineWidth = ctx.lineWidth;
         let i = screen.updatesStack.length();
         while (i--) {
-            screen.undoLast();
+            await screen.undoLast();
         }
         screen.updatesStack.push([]);
         if (this.previewScreen.state.lineWidth === 1 ||

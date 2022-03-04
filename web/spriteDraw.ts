@@ -4101,7 +4101,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         const toolName:string = this.selectedToolName();
         return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
     }
-    renderDrawingScreenPreview(): void
+    async renderDrawingScreenPreview(): void
     {
         this.resizePreviewScreen();
         const screen:DrawingScreen = this.previewScreen;
@@ -4110,7 +4110,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         let i = screen.updatesStack.length();
         while(i--)
         {
-            screen.undoLast();
+            await screen.undoLast();
         }
         screen.updatesStack.push([]);
         if(this.previewScreen.state.lineWidth === 1 || 
