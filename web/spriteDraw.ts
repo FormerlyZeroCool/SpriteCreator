@@ -3179,6 +3179,7 @@ class ScreenTransformationTool extends ExtendedTool {
     buttonUpdateZoom:GuiButton;
     buttonZoomToScreen:GuiButton;
     buttonFlipHorizonally:GuiButton;
+    buttonFlipVertically:GuiButton;
     constructor(toolName:string, toolImagePath:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
         super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60], [1, 40]);
@@ -3201,12 +3202,16 @@ class ScreenTransformationTool extends ExtendedTool {
 
         this.buttonFlipHorizonally = new GuiButton(() => {
             field.layer().flipHorizontally();
-        }, "Flip Y Axis", 95, 40, 16);
+        }, "Flip Around Y Axis", 150, 40, 16);
+        this.buttonFlipVertically = new GuiButton(() => {
+            field.layer().flipVertically();
+        }, "Flip Around X Axis", 150, 40, 16);
         this.localLayout.addElement(this.textBoxZoom);
         this.localLayout.addElement(this.buttonUpdateZoom);
         this.localLayout.addElement(this.buttonZoomToScreen);
         this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
         this.getOptionPanel().addElement(this.buttonFlipHorizonally);
+        this.getOptionPanel().addElement(this.buttonFlipVertically);
     }
 };
 class FilesManagerTool extends ExtendedTool {
@@ -3918,7 +3923,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.dragTool = new DragTool("drag", ["images/ThePixelSlime1Icons/dragSprite.png", "images/dragSprite.png"], () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,
         () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "settings",["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [ this.transformTool.getOptionPanel()! ]);
+        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "settings",["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [ this.transformTool.localLayout ]);
         this.copyTool = new CopyPasteTool("copy", ["images/ThePixelSlime1Icons/copySprite.png", "images/copySprite.png"], [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
@@ -4528,6 +4533,32 @@ class DrawingScreen {
                         left.copy(right);
                     
                         right.color = temp;
+                    }
+                }
+            }
+            this.repaint = true;
+            this.state.screenBufUnlocked = true;
+        }
+    }
+    flipVertically(): void
+    {
+        if(this.state.screenBufUnlocked)
+        {
+            this.state.screenBufUnlocked = false;
+            let top:RGB = new RGB(0,0,0,0);
+            let bottom:RGB = new RGB(0,0,0,0);
+            for(let y = 0; y < this.dimensions.second >> 1; y++)
+            {
+                for(let x = 0; x < this.dimensions.first; x++)
+                {
+                    const key:number = x + y * this.dimensions.first;
+                    top = this.screenBuffer[key];
+                    bottom = this.screenBuffer[x + (this.dimensions.second - 1 - y) * this.dimensions.first];
+                    if(top && bottom)
+                    {
+                        const temp:number = bottom.color;
+                        bottom.copy(top);
+                        top.color = temp;
                     }
                 }
             }

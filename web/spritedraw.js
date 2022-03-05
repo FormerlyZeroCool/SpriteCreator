@@ -2587,12 +2587,16 @@ class ScreenTransformationTool extends ExtendedTool {
         this.textBoxZoom.setText(field.zoom.zoomX.toString());
         this.buttonFlipHorizonally = new GuiButton(() => {
             field.layer().flipHorizontally();
-        }, "Flip Y Axis", 95, 40, 16);
+        }, "Flip Around Y Axis", 150, 40, 16);
+        this.buttonFlipVertically = new GuiButton(() => {
+            field.layer().flipVertically();
+        }, "Flip Around X Axis", 150, 40, 16);
         this.localLayout.addElement(this.textBoxZoom);
         this.localLayout.addElement(this.buttonUpdateZoom);
         this.localLayout.addElement(this.buttonZoomToScreen);
         this.localLayout.addElement(new GuiButton(() => { field.zoom.offsetX = 0; field.zoom.offsetY = 0; }, "Center Screen", 140, 40, 16));
         this.getOptionPanel().addElement(this.buttonFlipHorizonally);
+        this.getOptionPanel().addElement(this.buttonFlipVertically);
     }
 }
 ;
@@ -3185,7 +3189,7 @@ class ToolSelector {
         this.outLineTool = new OutlineTool("outline", ["images/ThePixelSlime1Icons/outlineSprite.png", "images/outlineSprite.png"], this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
         this.rotateTool = new RotateTool("rotate", ["images/ThePixelSlime1Icons/rotateSprite.png", "images/rotateSprite.png"], () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.dragTool = new DragTool("drag", ["images/ThePixelSlime1Icons/dragSprite.png", "images/dragSprite.png"], () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked, () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
-        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "settings", ["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [this.transformTool.getOptionPanel()]);
+        this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "settings", ["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [this.transformTool.localLayout]);
         this.copyTool = new CopyPasteTool("copy", ["images/ThePixelSlime1Icons/copySprite.png", "images/copySprite.png"], [this.transformTool.localLayout], field.layer().clipBoard, () => field.state.blendAlphaOnPaste = this.copyTool.blendAlpha.checked, this);
         PenTool.checkDrawCircular.checked = true;
         PenTool.checkDrawCircular.refresh();
@@ -3670,6 +3674,27 @@ class DrawingScreen {
                         const temp = left.color;
                         left.copy(right);
                         right.color = temp;
+                    }
+                }
+            }
+            this.repaint = true;
+            this.state.screenBufUnlocked = true;
+        }
+    }
+    flipVertically() {
+        if (this.state.screenBufUnlocked) {
+            this.state.screenBufUnlocked = false;
+            let top = new RGB(0, 0, 0, 0);
+            let bottom = new RGB(0, 0, 0, 0);
+            for (let y = 0; y < this.dimensions.second >> 1; y++) {
+                for (let x = 0; x < this.dimensions.first; x++) {
+                    const key = x + y * this.dimensions.first;
+                    top = this.screenBuffer[key];
+                    bottom = this.screenBuffer[x + (this.dimensions.second - 1 - y) * this.dimensions.first];
+                    if (top && bottom) {
+                        const temp = bottom.color;
+                        bottom.copy(top);
+                        top.color = temp;
                     }
                 }
             }
