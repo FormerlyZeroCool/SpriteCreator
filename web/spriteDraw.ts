@@ -2984,7 +2984,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(this.btUpdate);
         this.localLayout.addElement(new GuiLabel("Show grid?", 100, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.checkboxPixelGrid);
-        this.localLayout.addElement(new GuiLabel("Background options:", 200, 16, GuiTextBox.default));
+        this.localLayout.addElement(new GuiLabel("Background options:", 200, 16, GuiTextBox.bottom));
         this.localLayout.addElement(this.backgroundOptions);
 
     }
