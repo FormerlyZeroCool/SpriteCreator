@@ -848,8 +848,8 @@ class ScrollingGridLayoutManager extends SimpleGridLayoutManager {
 class GuiListItem extends SimpleGridLayoutManager {
     textBox:GuiTextBox;
     checkBox:GuiCheckBox;
-    slider:GuiSlider;
-    sliderX:number;
+    slider:GuiSlider | null;
+    sliderX:number | null;
     callBackType:string;
     callBack:((e:any) => void) | null;
     constructor(text:string, state:boolean, pixelDim:number[], fontSize:number = 16, callBack:((e:any) => void) | null = () => {}, genericCallBack:((e:any) => void) | null = null, slideMoved:((event:SlideEvent) => void) | null = null, flags:number = GuiTextBox.bottom, genericTouchType:string = "touchend")
@@ -857,17 +857,23 @@ class GuiListItem extends SimpleGridLayoutManager {
         super([20, 1], pixelDim);
         this.callBackType = genericTouchType;
         this.callBack = genericCallBack;
-        this.checkBox = new GuiCheckBox(callBack, pixelDim[1], pixelDim[1]);
-        const width:number = (pixelDim[0] - fontSize * 2 - 10) >> 1;
+        this.checkBox = new GuiCheckBox(callBack, pixelDim[1], pixelDim[1], state);
+        const width:number = (pixelDim[0] - fontSize * 2 - 10) >> (slideMoved ? 1: 0);
         this.textBox = new GuiTextBox(false, width, null, fontSize, pixelDim[1], flags);
-        this.sliderX = width + pixelDim[1];
-        this.slider = new GuiSlider(1, [width, pixelDim[1]], slideMoved);
         this.textBox.setText(text);
-        this.checkBox.checked = state;
-        this.checkBox.refresh();
         this.addElement(this.checkBox);
         this.addElement(this.textBox);
-        this.addElement(this.slider);
+        if(slideMoved)
+        {
+            this.slider = new GuiSlider(1, [width, pixelDim[1]], slideMoved);
+            this.sliderX = width + pixelDim[1];
+            this.addElement(this.slider);
+        }
+        else
+        {
+            this.slider = null;
+            this.sliderX = -1;
+        }
     }
     handleTouchEvents(type: string, e: any): void {
         super.handleTouchEvents(type, e);
@@ -900,11 +906,13 @@ class GuiCheckList implements GuiElement {
     layoutManager:SimpleGridLayoutManager;
     fontSize:number;
     focused:boolean;
+    uniqueSelection:boolean;
     swapElementsInParallelArray:((x1:number, x2:number) => void) | null;
     slideMoved:((event:SlideEvent) => void) | null;
-    constructor(matrixDim:number[], pixelDim:number[], fontSize:number, swap:((x1:number, x2:number) => void) | null = null, slideMoved:((event:SlideEvent) => void) | null)
+    constructor(matrixDim:number[], pixelDim:number[], fontSize:number, uniqueSelection:boolean, swap:((x1:number, x2:number) => void) | null = null, slideMoved:((event:SlideEvent) => void) | null = null)
     {
         this.focused = true;
+        this.uniqueSelection = uniqueSelection;
         this.fontSize = fontSize;
         this.layoutManager = new SimpleGridLayoutManager ([1,matrixDim[1]], pixelDim);
         this.list = [];
@@ -1009,7 +1017,29 @@ class GuiCheckList implements GuiElement {
     }
     handleTouchEvents(type:string, e:any):void
     {
-        this.layoutManager.handleTouchEvents(type, e);
+        let checkedIndex:number = -1;
+        if(this.uniqueSelection)
+        {
+            for(let i = 0; i < this.list.length; i++) {
+                if(this.list[i].checkBox.checked)
+                {
+                    checkedIndex = i;
+                }
+            };
+            this.layoutManager.handleTouchEvents(type, e);
+            for(let i = 0; i < this.list.length; i++)
+            {
+                if(this.list[i].checkBox.checked && i !== checkedIndex)
+                {
+                    this.list[checkedIndex].checkBox.checked = false;
+                    this.list[checkedIndex].checkBox.refresh();
+                    break;
+                }     
+            }
+        }
+        else {
+            this.layoutManager.handleTouchEvents(type, e);
+        }
         const clicked:number = Math.floor((e.touchPos[1] / this.height()) * this.layoutManager.matrixDim[1]);
         this.layoutManager.lastTouched = clicked > this.list.length ? this.list.length - 1 : clicked;
         switch(type)
@@ -2047,6 +2077,53 @@ class GuiLabel extends GuiTextBox {
         return false;
     }
 };
+class GuiRadioGroup implements GuiElement {
+    layout:SimpleGridLayoutManager;
+    constructor(pixelDim:number[], matrixDim:number[])
+    {
+        this.layout = new SimpleGridLayoutManager(matrixDim, pixelDim, 0, 0);
+    }
+    active():boolean
+    {
+        return this.layout.active();
+    }
+    deactivate():void
+    {
+        this.layout.deactivate();
+    }
+    activate():void
+    {
+        this.layout.activate();
+    }
+    width():number
+    {
+        this.layout.width();
+    }
+    height():number
+    {
+        this.layout.height();
+    }
+    refresh():void
+    {
+        this.layout.refresh()
+    }
+    draw(ctx:CanvasRenderingContext2D, x:number, y:number, offsetX:number, offsetY:number): void
+    {
+        this.layout.draw(ctx, x, y, offsetX, offsetY);
+    }
+    handleKeyBoardEvents(type:string, e:any):void
+    {
+        this.layout.handleKeyBoardEvents(type, e);
+    }
+    handleTouchEvents(type:string, e:any):void
+    {
+        this.layout.handleTouchEvents(type, e);
+    }
+    isLayoutManager():boolean
+    {
+        return false;
+    }
+}
 GuiTextBox.initGlobalText();
 GuiTextBox.initGlobalNumbers();
 GuiTextBox.initGlobalSpecialChars();
@@ -2582,7 +2659,7 @@ class SprayCanTool extends PenTool {
         this.localLayout.addElement(this.tbProbability);
     }
 };
-class CustomBackgroundSlider extends GuiSlider{
+class CustomBackgroundSlider extends GuiSlider {
     backgroundCanvas:HTMLCanvasElement;
     backctx:CanvasRenderingContext2D;
     refreshBackground:(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number) => void;
@@ -2823,9 +2900,10 @@ class DrawingScreenSettingsTool extends ExtendedTool {
     field:LayeredDrawingScreen;
     textboxPaletteSize:GuiTextBox;
     checkboxPixelGrid:GuiCheckBox;
+    backgroundOptions:GuiCheckList;
     constructor(dim:number[] = [524, 524], field:LayeredDrawingScreen, toolName:string, pathToImage:string[], optionPanes:SimpleGridLayoutManager[])
     {
-        super(toolName, pathToImage, optionPanes, [200, 300], [4, 50]);
+        super(toolName, pathToImage, optionPanes, [200, 430], [4, 75]);
         this.dim = dim;
         this.field = field;
         this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
@@ -2876,6 +2954,20 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.tbX.submissionButton = this.btUpdate;
         this.tbY.submissionButton = this.btUpdate;
         this.checkboxPixelGrid = new GuiCheckBox((e:any) => {field.layer().repaint = true}, 40, 40);
+        this.backgroundOptions = new GuiCheckList([1, 3], [200, 100], 16, true, null, null);
+        this.backgroundOptions.push("Default", true, (event:any) => {
+            field.backgroundState = LayeredDrawingScreen.default_background;
+            field.refreshBackgroundCanvas();
+        }, () => {});
+        this.backgroundOptions.push("White", false, (event:any) => {
+            field.backgroundState = LayeredDrawingScreen.white_background;
+            field.refreshBackgroundCanvas();
+        }, () => {});
+        this.backgroundOptions.push("Black", false, (event:any) => {
+            field.backgroundState = LayeredDrawingScreen.black_background;
+            field.refreshBackgroundCanvas();
+        }, () => {});
+        this.backgroundOptions.refresh();
         this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.top, 20));
         this.localLayout.addElement(new GuiLabel("Width:", 90, 16));
         this.localLayout.addElement(new GuiLabel("Height:", 90, 16));
@@ -2892,6 +2984,8 @@ class DrawingScreenSettingsTool extends ExtendedTool {
         this.localLayout.addElement(this.btUpdate);
         this.localLayout.addElement(new GuiLabel("Show grid?", 100, 16, GuiTextBox.bottom, 40));
         this.localLayout.addElement(this.checkboxPixelGrid);
+        this.localLayout.addElement(new GuiLabel("Background options:", 200, 16, GuiTextBox.default));
+        this.localLayout.addElement(this.backgroundOptions);
 
     }
     setDim(dim:number[]):void
@@ -3091,7 +3185,7 @@ class LayerManagerTool extends Tool {
         this.field = field;
         this.layersLimit = isTouchSupported()?limit - Math.floor(limit / 4) : limit;
         this.layoutManager = new SimpleGridLayoutManager([2, 24], [200, 640]);
-        this.list = new GuiCheckList([1, this.layersLimit], [200, 520], 20, (x1, x2) => {
+        this.list = new GuiCheckList([1, this.layersLimit], [200, 520], 20, false, (x1, x2) => {
             if(this.field.layers[x1] && this.field.layers[x2])
             {
                 this.field.swapLayers(x1, x2);
@@ -5742,7 +5836,11 @@ class LayeredDrawingScreen {
     selected:number;
     clipBoard:ClipBoard;
     canvas:HTMLCanvasElement;
-    canvasTransparency:HTMLCanvasElement;
+    canvasBackground:HTMLCanvasElement;
+    backgroundState:number;
+    static default_background:number = 0;
+    static white_background:number = 1;
+    static black_background:number = 2;
     canvasPixelGrid:HTMLCanvasElement;
     spriteTest:Sprite;
     dim:number[];
@@ -5761,6 +5859,7 @@ class LayeredDrawingScreen {
     miniMapAlpha:number;
     constructor(keyboardHandler:KeyboardHandler, pallette:Pallette) {
         this.state = new DrawingScreenState(3);
+        this.backgroundState = LayeredDrawingScreen.default_background;
         this.miniMapAlpha = 1;
         this.toolSelector = <any> null;
         this.redraw = false;
@@ -5768,7 +5867,7 @@ class LayeredDrawingScreen {
         this.scheduledMaskOperation = [];
         this.canvas = document.createElement("canvas");
         this.offscreenCanvas = document.createElement("canvas");
-        this.canvasTransparency = document.createElement("canvas");
+        this.canvasBackground = document.createElement("canvas");
         this.canvasPixelGrid = document.createElement("canvas");
         this.selectionCanvas = document.createElement("canvas");
         this.maskWorkers = [];
@@ -5960,8 +6059,8 @@ class LayeredDrawingScreen {
             this.selectionCanvas.width = bounds[0];
             this.selectionCanvas.height = bounds[1];
             this.ctx = this.canvas.getContext("2d")!;
-            this.resizeTransparencyCanvas(bounds, bounds[0] / this.layers[0].dimensions.first * 8);
-            this.resizePixelGridCanvas(bounds, bounds[0] / this.layers[0].dimensions.first);
+            this.resizeBackgroundCanvas(bounds, 8);
+            this.resizePixelGridCanvas(bounds, 1);
         }
     }
     
@@ -5989,28 +6088,50 @@ class LayeredDrawingScreen {
                 i++;
             }
     }
-    resizeTransparencyCanvas(bounds:number[], dim:number):void
+    refreshBackgroundCanvas(): void
     {
-        if((this.canvasTransparency.width !== bounds[0] || this.canvasTransparency.height !== bounds[1]))
+        this.resizeBackgroundCanvas(this.dim, 8);
+        this.redraw = true;
+    }
+    resizeBackgroundCanvas(bounds:number[], dim:number):void
+    {
+        if((this.canvasBackground.width !== bounds[0] || this.canvasBackground.height !== bounds[1]))
         {
-            this.canvasTransparency.width = bounds[0];
-            this.canvasTransparency.height = bounds[1];
+            this.canvasBackground.width = bounds[0];
+            this.canvasBackground.height = bounds[1];
         }
-            const ctx:CanvasRenderingContext2D = this.canvasTransparency.getContext("2d")!;
-            ctx.fillStyle = "#DCDCDF";
-            ctx.globalAlpha = 0.7;
-            ctx.clearRect(0, 0, bounds[0], bounds[1]);
-            ctx.fillRect(0, 0, bounds[0], bounds[1]);
-            let i = 0;
-            const squareSize:number = dim;
-            for(let y = 0; y < bounds[1] + 100; y += squareSize)
+            const ctx:CanvasRenderingContext2D = this.canvasBackground.getContext("2d")!;
+            switch(this.backgroundState)
             {
-                let offset = +(i % 2 === 0);
-                for(let x = offset*squareSize ; x < bounds[0] + 200; x += squareSize*2)
+                case(LayeredDrawingScreen.default_background):
+                ctx.fillStyle = "#DCDCDF";
+                ctx.globalAlpha = 0.7;
+                ctx.clearRect(0, 0, bounds[0], bounds[1]);
+                ctx.fillRect(0, 0, bounds[0], bounds[1]);
+                let i = 0;
+                const squareSize:number = dim;
+                for(let y = 0; y < bounds[1] + 100; y += squareSize)
                 {
-                    ctx.clearRect(x,  y, squareSize, squareSize);
+                    let offset = +(i % 2 === 0);
+                    for(let x = offset*squareSize ; x < bounds[0] + 200; x += squareSize*2)
+                    {
+                        ctx.clearRect(x,  y, squareSize, squareSize);
+                    }
+                    i++;
                 }
-                i++;
+                break;
+
+                case(LayeredDrawingScreen.white_background):
+                ctx.fillStyle = "#FFFFFF";
+                ctx.globalAlpha = 1;
+                ctx.fillRect(0, 0, bounds[0], bounds[1]);
+                break;
+
+                case(LayeredDrawingScreen.black_background):
+                ctx.fillStyle = "#000000";
+                ctx.globalAlpha = 1;
+                ctx.fillRect(0, 0, bounds[0], bounds[1]);
+                break;
             }
     }
     swapLayers(x1:number, x2:number):void
@@ -6214,7 +6335,7 @@ class LayeredDrawingScreen {
             this.redraw = false;
             this.ctx.imageSmoothingEnabled = false;
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.drawImage(this.canvasTransparency, 0, 0);
+            this.ctx.drawImage(this.canvasBackground, 0, 0);
             if(this.toolSelector.settingsTool.checkboxPixelGrid.checked)
                 this.ctx.drawImage(this.canvasPixelGrid, 0, 0, this.canvas.width, this.canvas.height);
             for(let i = 0; i < this.layers.length; i++)
