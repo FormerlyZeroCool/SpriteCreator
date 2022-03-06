@@ -2968,7 +2968,7 @@ class DrawingScreenSettingsTool extends ExtendedTool {
             field.refreshBackgroundCanvas();
         }, () => {});
         this.backgroundOptions.refresh();
-        this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.top, 20));
+        this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.bottom, 20));
         this.localLayout.addElement(new GuiLabel("Width:", 90, 16));
         this.localLayout.addElement(new GuiLabel("Height:", 90, 16));
         this.localLayout.addElement(this.tbX);
@@ -6348,7 +6348,14 @@ class LayeredDrawingScreen {
             }
         }
         {
-
+            if(this.backgroundState === LayeredDrawingScreen.black_background)
+            {
+                ctx.fillStyle = "#FFFFFF";
+            }
+            else
+            {
+                ctx.fillStyle = "#000000";
+            }
             ctx.fillRect(0,0,this.zoom.zoomedX, height);
             ctx.fillRect(0,0,width, this.zoom.zoomedY);
             ctx.fillRect(this.zoom.zoomedX + zoomedWidth, 0, width, height);
