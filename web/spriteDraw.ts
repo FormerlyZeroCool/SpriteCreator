@@ -2097,11 +2097,11 @@ class GuiRadioGroup implements GuiElement {
     }
     width():number
     {
-        this.layout.width();
+        return this.layout.width();
     }
     height():number
     {
-        this.layout.height();
+        return this.layout.height();
     }
     refresh():void
     {
@@ -2703,6 +2703,7 @@ class ColorPickerTool extends ExtendedTool {
     saturationSlider:CustomBackgroundSlider;
     lightnessSlider:CustomBackgroundSlider;
     alphaSlider:CustomBackgroundSlider;
+    buttonInvertColors:GuiButton;
 
     constructor(field:LayeredDrawingScreen, toolName:string = "color picker", pathToImage:string[] = ["images/colorPickerSprite.png"], optionPanes:SimpleGridLayoutManager[] = [])
     {
@@ -2830,6 +2831,15 @@ class ColorPickerTool extends ExtendedTool {
                     }
                 }
         });
+        this.buttonInvertColors = new GuiButton(() => {
+            const selected:RGB = field.pallette.selectedPixelColor;
+            const back:RGB = field.pallette.selectedBackColor;
+            field.swapColors(selected, back);
+            const temp:number = selected.color;
+            selected.color = back.color;
+            back.color = temp;
+            field.redraw = true;
+        }, "Invert Colors/Flash", 175, 40, 16);
         this.localLayout.addElement(new GuiLabel("Color:", 100, 16));
         this.localLayout.addElement(this.chosenColor);
         this.localLayout.addElement(this.tbColor);
@@ -2845,6 +2855,7 @@ class ColorPickerTool extends ExtendedTool {
         slidersLayout.addElement(new GuiLabel("ap", 50, 16, GuiTextBox.bottom, 25));
         slidersLayout.addElement(this.alphaSlider);
         this.localLayout.addElement(slidersLayout);
+        this.getOptionPanel()!.addElement(this.buttonInvertColors);
         this.setColorText();
         
     }
@@ -3277,7 +3288,7 @@ class ScreenTransformationTool extends ExtendedTool {
     constructor(toolName:string, toolImagePath:string[], optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
         super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60], [1, 40]);
-        this.getOptionPanel().pixelDim[1] += 50;
+        this.getOptionPanel()!.pixelDim[1] += 50;
         this.localLayout.addElement(new GuiLabel("Zoom:", 100));
         this.buttonUpdateZoom = new GuiButton(() => {
             let ratio:number = 1;
@@ -3304,8 +3315,8 @@ class ScreenTransformationTool extends ExtendedTool {
         this.localLayout.addElement(this.buttonUpdateZoom);
         this.localLayout.addElement(this.buttonZoomToScreen);
         this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
-        this.getOptionPanel().addElement(this.buttonFlipHorizonally);
-        this.getOptionPanel().addElement(this.buttonFlipVertically);
+        this.getOptionPanel()!.addElement(this.buttonFlipHorizonally);
+        this.getOptionPanel()!.addElement(this.buttonFlipVertically);
     }
 };
 class FilesManagerTool extends ExtendedTool {
@@ -4197,10 +4208,14 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
     }
     drawableTool(): boolean
     {
-        const toolName:string = this.selectedToolName();
-        return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
+        if(this.selectedToolName())
+        {
+            const toolName:string = this.selectedToolName()!;
+            return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
+        }
+        return false;
     }
-    async renderDrawingScreenPreview(): void
+    async renderDrawingScreenPreview(): Promise<void>
     {
         this.resizePreviewScreen();
         const screen:DrawingScreen = this.previewScreen;
@@ -4590,6 +4605,21 @@ class DrawingScreen {
         for(let i = 0; i < this.screenBuffer.length; i++)
         {
             this.screenBuffer[i].color = this.noColor.color;
+        }
+    }
+    swapColorsOnScreen(c1:RGB, c2:RGB): void
+    {
+        for(let i = 0; i < this.screenBuffer.length; i++)
+        {
+            const color:RGB = this.screenBuffer[i];
+            if(color.compare(c1))
+            {
+                color.copy(c2);
+            }
+            else if(color.compare(c2))
+            {
+                color.copy(c1);
+            }
         }
     }
     updateLabelUndoRedoCount(): void 
@@ -6025,6 +6055,10 @@ class LayeredDrawingScreen {
             repaint = this.layers[i].repaint;
         }
         return repaint;
+    }
+    swapColors(c1:RGB, c2:RGB): void
+    {
+        this.layers.forEach((layer:DrawingScreen) => {layer.swapColorsOnScreen(c1, c2); layer.repaint = true;});
     }
     zoomToScreen():void
     {

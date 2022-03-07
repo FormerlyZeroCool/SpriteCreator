@@ -1670,10 +1670,10 @@ class GuiRadioGroup {
         this.layout.activate();
     }
     width() {
-        this.layout.width();
+        return this.layout.width();
     }
     height() {
-        this.layout.height();
+        return this.layout.height();
     }
     refresh() {
         this.layout.refresh();
@@ -2273,6 +2273,15 @@ class ColorPickerTool extends ExtendedTool {
                 }
             }
         });
+        this.buttonInvertColors = new GuiButton(() => {
+            const selected = field.pallette.selectedPixelColor;
+            const back = field.pallette.selectedBackColor;
+            field.swapColors(selected, back);
+            const temp = selected.color;
+            selected.color = back.color;
+            back.color = temp;
+            field.redraw = true;
+        }, "Invert Colors/Flash", 175, 40, 16);
         this.localLayout.addElement(new GuiLabel("Color:", 100, 16));
         this.localLayout.addElement(this.chosenColor);
         this.localLayout.addElement(this.tbColor);
@@ -2287,6 +2296,7 @@ class ColorPickerTool extends ExtendedTool {
         slidersLayout.addElement(new GuiLabel("ap", 50, 16, GuiTextBox.bottom, 25));
         slidersLayout.addElement(this.alphaSlider);
         this.localLayout.addElement(slidersLayout);
+        this.getOptionPanel().addElement(this.buttonInvertColors);
         this.setColorText();
     }
     color() {
@@ -3427,8 +3437,11 @@ class ToolSelector {
         return this.canvas.height;
     }
     drawableTool() {
-        const toolName = this.selectedToolName();
-        return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
+        if (this.selectedToolName()) {
+            const toolName = this.selectedToolName();
+            return toolName == "line" || toolName == "pen" || toolName == "rect" || toolName == "oval";
+        }
+        return false;
     }
     async renderDrawingScreenPreview() {
         this.resizePreviewScreen();
@@ -3722,6 +3735,17 @@ class DrawingScreen {
     clearScreenBuffer() {
         for (let i = 0; i < this.screenBuffer.length; i++) {
             this.screenBuffer[i].color = this.noColor.color;
+        }
+    }
+    swapColorsOnScreen(c1, c2) {
+        for (let i = 0; i < this.screenBuffer.length; i++) {
+            const color = this.screenBuffer[i];
+            if (color.compare(c1)) {
+                color.copy(c2);
+            }
+            else if (color.compare(c2)) {
+                color.copy(c1);
+            }
         }
     }
     updateLabelUndoRedoCount() {
@@ -4911,6 +4935,9 @@ class LayeredDrawingScreen {
             repaint = this.layers[i].repaint;
         }
         return repaint;
+    }
+    swapColors(c1, c2) {
+        this.layers.forEach((layer) => { layer.swapColorsOnScreen(c1, c2); layer.repaint = true; });
     }
     zoomToScreen() {
         if (this.zoom) {
