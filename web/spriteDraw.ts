@@ -4455,7 +4455,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
 class DrawingScreenState {
     color:RGB;
     lineWidth:number;
-    screenBufUnlocked:boolean;
     drawCircular:boolean;
     dragOnlyOneColor:boolean;
     rotateOnlyOneColor:boolean;
@@ -4480,7 +4479,6 @@ class DrawingScreenState {
         this.bufferBitMask = [];
         this.sprayProbability = 1;
         this.antiAliasRotation = true;
-        this.screenBufUnlocked = true;
         this.blendAlphaOnPutSelectedPixels = true;
         this.dragOnlyOneColor = false;
         this.rotateOnlyOneColor = false;
@@ -4548,6 +4546,7 @@ class DetailedPixelsGroup {
 }
 class DrawingScreen {
     offset:Pair<number>;
+    screenBufUnlocked:boolean;
     bounds:Pair<number>;
     dimensions:Pair<number>;
     canvas:HTMLCanvasElement;
@@ -4569,6 +4568,7 @@ class DrawingScreen {
     constructor(canvas:HTMLCanvasElement, keyboardHandler:KeyboardHandler, palette:Pallette, offset:Array<number>, dimensions:Array<number>, toolSelector:ToolSelector, state:DrawingScreenState, clipBoard:ClipBoard)
     {
         const bounds:Array<number> = [dim[0], dim[1]];
+        this.screenBufUnlocked = true;
         this.dragDataMaxPoint = -1;
         this.dragDataMinPoint = -1;
         this.clipBoard = clipBoard;
@@ -4638,9 +4638,9 @@ class DrawingScreen {
     }
     flipHorizontally(): void
     {
-        if(this.state.screenBufUnlocked)
+        if(this.screenBufUnlocked)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             let left:RGB = new RGB(0,0,0,0);
             let right:RGB = new RGB(0,0,0,0);
             for(let y = 0; y < this.dimensions.second; y++)
@@ -4659,14 +4659,14 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     flipVertically(): void
     {
-        if(this.state.screenBufUnlocked)
+        if(this.screenBufUnlocked)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             let top:RGB = new RGB(0,0,0,0);
             let bottom:RGB = new RGB(0,0,0,0);
             for(let y = 0; y < this.dimensions.second >> 1; y++)
@@ -4686,7 +4686,7 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     maskToSprite():Sprite {
@@ -4767,9 +4767,9 @@ class DrawingScreen {
     }
     paste():void
     {
-        if(this.state.screenBufUnlocked)
+        if(this.screenBufUnlocked)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const dest_x:number = Math.floor(((this.getTouchPosX() - this.clipBoard.sprite.width/2)-this.offset.first)/this.bounds.first*this.dimensions.first);
             const dest_y:number = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height/2)-this.offset.second)/this.bounds.second*this.dimensions.second);
             const width:number = this.clipBoard.sprite.width;
@@ -4804,7 +4804,7 @@ class DrawingScreen {
                     }
                 }
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     horizontalsAdjacent(x:number, y:number):boolean
@@ -4877,9 +4877,9 @@ class DrawingScreen {
         const gx:number = Math.floor((px-this.offset.first)/this.bounds.first*this.dimensions.first);
         const gy:number = Math.floor((py-this.offset.second)/this.bounds.second*this.dimensions.second);
         const pixelColor:RGB = this.screenBuffer[gx + gy * this.dimensions.first];
-        if(gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && pixelColor && !this.state.color.compare(pixelColor)) 
+        if(gx < this.dimensions.first && gy < this.dimensions.second && this.screenBufUnlocked && pixelColor && !this.state.color.compare(pixelColor)) 
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             if(this.state.bufferBitMask[gx + gy * this.dimensions.first] && gx >= 0 && gy >= 0 && gx <= this.dimensions.first && gy < this.dimensions.second)
             {
                 this.state.pixelPerfectBuffer.push((gx << 16) | gy);
@@ -4890,16 +4890,16 @@ class DrawingScreen {
             {
                 this.cleanPixelPerfectBuffer(bufLen - 6);
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     handleTap(px:number, py:number):void
     {
         const gx:number = Math.floor((px-this.offset.first)/this.bounds.first*this.dimensions.first);
         const gy:number = Math.floor((py-this.offset.second)/this.bounds.second*this.dimensions.second);
-        if(gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked) 
+        if(gx < this.dimensions.first && gy < this.dimensions.second && this.screenBufUnlocked) 
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const radius:number = this.state.lineWidth * 0.5;
             const offset:number = this.state.lineWidth > 1 ? 0.5 : 0;
             if(this.state.drawCircular)
@@ -4941,15 +4941,15 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     handleTapSprayPaint(px:number, py:number):void
     {
         const gx:number = Math.floor((px-this.offset.first)/this.bounds.first*this.dimensions.first);
         const gy:number = Math.floor((py-this.offset.second)/this.bounds.second*this.dimensions.second);
-        if(gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked){
-            this.state.screenBufUnlocked = false;
+        if(gx < this.dimensions.first && gy < this.dimensions.second && this.screenBufUnlocked){
+            this.screenBufUnlocked = false;
             const radius:number = this.state.lineWidth * 0.5;
             if(this.state.drawCircular)
             {
@@ -4991,16 +4991,16 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     fillNonContiguous(startCoordinate:Pair<number>): void
     {
-        if(this.state.screenBufUnlocked && 
+        if(this.screenBufUnlocked && 
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const startIndex:number = startCoordinate.first + startCoordinate.second*this.dimensions.first;
             const startPixel:RGB = this.screenBuffer[startIndex];
             const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
@@ -5013,16 +5013,16 @@ class DrawingScreen {
                 }
                 i++;
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     fillArea(startCoordinate:Pair<number>):void
     {
-        if(this.state.screenBufUnlocked && 
+        if(this.screenBufUnlocked && 
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
         
             let stack:any;
             if(this.state.slow)//possibly more visiually appealling algo (bfs), 
@@ -5056,7 +5056,7 @@ class DrawingScreen {
                     stack.push(cur+1);
                 }
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
             this.repaint = true;
         }
     }
@@ -5085,11 +5085,11 @@ class DrawingScreen {
     getSelectedPixelGroupAuto(startCoordinate:Pair<number>, countColor:boolean):DetailedPixelsGroup
     {
         const selection:DetailedPixelsGroup = new DetailedPixelsGroup();
-        if(this.state.screenBufUnlocked && 
+        if(this.screenBufUnlocked && 
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const stack:number[] = [];
             const defaultColor = this.noColor;
             const checkedMap:Array<boolean> = new Array<boolean>(this.dimensions.first * this.dimensions.second).fill(false);
@@ -5155,18 +5155,18 @@ class DrawingScreen {
                 }
             }
             this.updatesStack.push([]);
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
         return selection;
     }
     //Pair<offset point>, Map of colors encoded as numbers by location>
     autoOutline(startCoordinate:Pair<number>, countColor:boolean):void
     {
-        if(this.state.screenBufUnlocked && 
+        if(this.screenBufUnlocked && 
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const stack:number[] = [];
             const defaultColor = this.noColor;
             const checkedMap:Array<boolean> = new Array<boolean>(this.dimensions.first * this.dimensions.second).fill(false);
@@ -5208,7 +5208,7 @@ class DrawingScreen {
                     pixelColor.copy(this.state.color);
                 }
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     
@@ -5329,9 +5329,9 @@ class DrawingScreen {
     }
     async undoLast(slow:boolean = false)
     {
-        if(this.updatesStack.length() && this.state.screenBufUnlocked)
+        if(this.updatesStack.length() && this.screenBufUnlocked)
         {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const data:Pair<number, RGB>[] = this.updatesStack.pop()!;
             try{
                 const backedUpFrame = [];
@@ -5359,12 +5359,12 @@ class DrawingScreen {
                 }
                 this.undoneUpdatesStack.push(backedUpFrame);
                 this.repaint = true;
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
             }
             catch(error:any)
             {
                 this.repaint = true;
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
                 console.log(error);
             }
         }
@@ -5375,10 +5375,10 @@ class DrawingScreen {
     }
     async redoLast(slow:boolean = false)
     {
-        if(this.undoneUpdatesStack.length() && this.state.screenBufUnlocked)
+        if(this.undoneUpdatesStack.length() && this.screenBufUnlocked)
         {
             try {
-                this.state.screenBufUnlocked = false;
+                this.screenBufUnlocked = false;
                 const data = this.undoneUpdatesStack.pop()!;
                 const backedUpFrame = [];
                 const divisor:number =  60*10;
@@ -5404,13 +5404,13 @@ class DrawingScreen {
                 }
                 this.repaint = true;
                 this.updatesStack.push(backedUpFrame);
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
 
             }
             catch(error:any)
             {
                 this.repaint = true;
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
                 console.log(error);
             }
         }

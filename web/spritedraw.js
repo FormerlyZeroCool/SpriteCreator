@@ -3646,7 +3646,6 @@ class DrawingScreenState {
         this.bufferBitMask = [];
         this.sprayProbability = 1;
         this.antiAliasRotation = true;
-        this.screenBufUnlocked = true;
         this.blendAlphaOnPutSelectedPixels = true;
         this.dragOnlyOneColor = false;
         this.rotateOnlyOneColor = false;
@@ -3704,6 +3703,7 @@ class DetailedPixelsGroup {
 class DrawingScreen {
     constructor(canvas, keyboardHandler, palette, offset, dimensions, toolSelector, state, clipBoard) {
         const bounds = [dim[0], dim[1]];
+        this.screenBufUnlocked = true;
         this.dragDataMaxPoint = -1;
         this.dragDataMinPoint = -1;
         this.clipBoard = clipBoard;
@@ -3760,8 +3760,8 @@ class DrawingScreen {
         pen.tbSize.setText(String(this.state.lineWidth));
     }
     flipHorizontally() {
-        if (this.state.screenBufUnlocked) {
-            this.state.screenBufUnlocked = false;
+        if (this.screenBufUnlocked) {
+            this.screenBufUnlocked = false;
             let left = new RGB(0, 0, 0, 0);
             let right = new RGB(0, 0, 0, 0);
             for (let y = 0; y < this.dimensions.second; y++) {
@@ -3777,12 +3777,12 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     flipVertically() {
-        if (this.state.screenBufUnlocked) {
-            this.state.screenBufUnlocked = false;
+        if (this.screenBufUnlocked) {
+            this.screenBufUnlocked = false;
             let top = new RGB(0, 0, 0, 0);
             let bottom = new RGB(0, 0, 0, 0);
             for (let y = 0; y < this.dimensions.second >> 1; y++) {
@@ -3800,7 +3800,7 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     maskToSprite() {
@@ -3868,8 +3868,8 @@ class DrawingScreen {
         return asSprite;
     }
     paste() {
-        if (this.state.screenBufUnlocked) {
-            this.state.screenBufUnlocked = false;
+        if (this.screenBufUnlocked) {
+            this.screenBufUnlocked = false;
             const dest_x = Math.floor(((this.getTouchPosX() - this.clipBoard.sprite.width / 2) - this.offset.first) / this.bounds.first * this.dimensions.first);
             const dest_y = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height / 2) - this.offset.second) / this.bounds.second * this.dimensions.second);
             const width = this.clipBoard.sprite.width;
@@ -3900,7 +3900,7 @@ class DrawingScreen {
                     }
                 }
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     horizontalsAdjacent(x, y) {
@@ -3962,8 +3962,8 @@ class DrawingScreen {
         const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
         const gy = Math.floor((py - this.offset.second) / this.bounds.second * this.dimensions.second);
         const pixelColor = this.screenBuffer[gx + gy * this.dimensions.first];
-        if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked && pixelColor && !this.state.color.compare(pixelColor)) {
-            this.state.screenBufUnlocked = false;
+        if (gx < this.dimensions.first && gy < this.dimensions.second && this.screenBufUnlocked && pixelColor && !this.state.color.compare(pixelColor)) {
+            this.screenBufUnlocked = false;
             if (this.state.bufferBitMask[gx + gy * this.dimensions.first] && gx >= 0 && gy >= 0 && gx <= this.dimensions.first && gy < this.dimensions.second) {
                 this.state.pixelPerfectBuffer.push((gx << 16) | gy);
                 this.state.pixelPerfectBuffer.push(pixelColor.color);
@@ -3972,14 +3972,14 @@ class DrawingScreen {
             if (this.state.pixelPerfectBuffer.length > bufLen) {
                 this.cleanPixelPerfectBuffer(bufLen - 6);
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     handleTap(px, py) {
         const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
         const gy = Math.floor((py - this.offset.second) / this.bounds.second * this.dimensions.second);
-        if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked) {
-            this.state.screenBufUnlocked = false;
+        if (gx < this.dimensions.first && gy < this.dimensions.second && this.screenBufUnlocked) {
+            this.screenBufUnlocked = false;
             const radius = this.state.lineWidth * 0.5;
             const offset = this.state.lineWidth > 1 ? 0.5 : 0;
             if (this.state.drawCircular) {
@@ -4015,14 +4015,14 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     handleTapSprayPaint(px, py) {
         const gx = Math.floor((px - this.offset.first) / this.bounds.first * this.dimensions.first);
         const gy = Math.floor((py - this.offset.second) / this.bounds.second * this.dimensions.second);
-        if (gx < this.dimensions.first && gy < this.dimensions.second && this.state.screenBufUnlocked) {
-            this.state.screenBufUnlocked = false;
+        if (gx < this.dimensions.first && gy < this.dimensions.second && this.screenBufUnlocked) {
+            this.screenBufUnlocked = false;
             const radius = this.state.lineWidth * 0.5;
             if (this.state.drawCircular) {
                 const offset = this.state.lineWidth > 1 ? 0.5 : 0;
@@ -4058,14 +4058,14 @@ class DrawingScreen {
                 }
             }
             this.repaint = true;
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     fillNonContiguous(startCoordinate) {
-        if (this.state.screenBufUnlocked &&
+        if (this.screenBufUnlocked &&
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second) {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const startIndex = startCoordinate.first + startCoordinate.second * this.dimensions.first;
             const startPixel = this.screenBuffer[startIndex];
             const spc = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
@@ -4077,14 +4077,14 @@ class DrawingScreen {
                 }
                 i++;
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     fillArea(startCoordinate) {
-        if (this.state.screenBufUnlocked &&
+        if (this.screenBufUnlocked &&
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second) {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             let stack;
             if (this.state.slow) //possibly more visiually appealling algo (bfs), 
                 //but slower because it makes much worse use of the cache with very high random access
@@ -4113,7 +4113,7 @@ class DrawingScreen {
                     stack.push(cur + 1);
                 }
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
             this.repaint = true;
         }
     }
@@ -4134,10 +4134,10 @@ class DrawingScreen {
     //Pair<offset point>, Map of colors encoded as numbers by location>
     getSelectedPixelGroupAuto(startCoordinate, countColor) {
         const selection = new DetailedPixelsGroup();
-        if (this.state.screenBufUnlocked &&
+        if (this.screenBufUnlocked &&
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second) {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const stack = [];
             const defaultColor = this.noColor;
             const checkedMap = new Array(this.dimensions.first * this.dimensions.second).fill(false);
@@ -4194,16 +4194,16 @@ class DrawingScreen {
                 }
             }
             this.updatesStack.push([]);
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
         return selection;
     }
     //Pair<offset point>, Map of colors encoded as numbers by location>
     autoOutline(startCoordinate, countColor) {
-        if (this.state.screenBufUnlocked &&
+        if (this.screenBufUnlocked &&
             startCoordinate.first > 0 && startCoordinate.first < this.dimensions.first &&
             startCoordinate.second > 0 && startCoordinate.second < this.dimensions.second) {
-            this.state.screenBufUnlocked = false;
+            this.screenBufUnlocked = false;
             const stack = [];
             const defaultColor = this.noColor;
             const checkedMap = new Array(this.dimensions.first * this.dimensions.second).fill(false);
@@ -4240,7 +4240,7 @@ class DrawingScreen {
                     pixelColor.copy(this.state.color);
                 }
             }
-            this.state.screenBufUnlocked = true;
+            this.screenBufUnlocked = true;
         }
     }
     rotateSelectedPixelGroup(theta, centerPoint) {
@@ -4346,8 +4346,8 @@ class DrawingScreen {
         }
     }
     async undoLast(slow = false) {
-        if (this.updatesStack.length() && this.state.screenBufUnlocked) {
-            this.state.screenBufUnlocked = false;
+        if (this.updatesStack.length() && this.screenBufUnlocked) {
+            this.screenBufUnlocked = false;
             const data = this.updatesStack.pop();
             try {
                 const backedUpFrame = [];
@@ -4370,11 +4370,11 @@ class DrawingScreen {
                 }
                 this.undoneUpdatesStack.push(backedUpFrame);
                 this.repaint = true;
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
             }
             catch (error) {
                 this.repaint = true;
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
                 console.log(error);
             }
         }
@@ -4383,9 +4383,9 @@ class DrawingScreen {
         }
     }
     async redoLast(slow = false) {
-        if (this.undoneUpdatesStack.length() && this.state.screenBufUnlocked) {
+        if (this.undoneUpdatesStack.length() && this.screenBufUnlocked) {
             try {
-                this.state.screenBufUnlocked = false;
+                this.screenBufUnlocked = false;
                 const data = this.undoneUpdatesStack.pop();
                 const backedUpFrame = [];
                 const divisor = 60 * 10;
@@ -4407,11 +4407,11 @@ class DrawingScreen {
                 }
                 this.repaint = true;
                 this.updatesStack.push(backedUpFrame);
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
             }
             catch (error) {
                 this.repaint = true;
-                this.state.screenBufUnlocked = true;
+                this.screenBufUnlocked = true;
                 console.log(error);
             }
         }
