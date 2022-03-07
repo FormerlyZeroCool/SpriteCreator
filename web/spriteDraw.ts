@@ -3540,11 +3540,11 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.layer().paste();
                 break;
                 case('KeyU'):
-                field.layer().undoLast().then(() =>
+                field.layer().undoLast(field.state.slow).then(() =>
                 field.layer().updateLabelUndoRedoCount());
                 break;
                 case('KeyR'):
-                field.layer().redoLast().then(() =>
+                field.layer().redoLast(field.state.slow).then(() =>
                 field.layer().updateLabelUndoRedoCount());
                 break;
                 case("Space"):
@@ -3611,13 +3611,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             }
             if(this.selectedToolName() === "undo")
             {
-                field.layer().undoLast().then(() =>
+                field.layer().undoLast(field.state.slow).then(() =>
                 this.undoTool.updateLabel(field.layer().undoneUpdatesStack.length(), field.layer().updatesStack.length()));
                 this.toolBar.selected = previousTool;
             }
             else if(this.selectedToolName() === "redo")
             {
-                field.layer().redoLast().then(() =>
+                field.layer().redoLast(field.state.slow).then(() =>
                 this.undoTool.updateLabel(field.layer().undoneUpdatesStack.length(), field.layer().updatesStack.length()));
                 this.toolBar.selected = previousTool;
             }
@@ -4645,17 +4645,15 @@ class DrawingScreen {
             let right:RGB = new RGB(0,0,0,0);
             for(let y = 0; y < this.dimensions.second; y++)
             {
+                const yOffset:number = y * this.dimensions.first;
                 for(let x = 0; x < this.dimensions.first << 1; x++)
                 {
-                    const key:number = x + y * this.dimensions.first;
-                    left = this.screenBuffer[key];
-                    right = this.screenBuffer[key + this.dimensions.first - 2 * x];
+                    left = this.screenBuffer[x + yOffset];
+                    right = this.screenBuffer[yOffset + (this.dimensions.first - 1) - x];
                     if(left && right)
                     {
-
                         const temp:number = left.color;
                         left.copy(right);
-                    
                         right.color = temp;
                     }
                 }
@@ -4673,12 +4671,13 @@ class DrawingScreen {
             let bottom:RGB = new RGB(0,0,0,0);
             for(let y = 0; y < this.dimensions.second >> 1; y++)
             {
+                const upperYOffset:number = y * this.dimensions.first;
+                const lowerYOffset:number = (this.dimensions.second - 1 - y) * this.dimensions.first;
                 for(let x = 0; x < this.dimensions.first; x++)
                 {
-                    const key:number = x + y * this.dimensions.first;
-                    top = this.screenBuffer[key];
-                    bottom = this.screenBuffer[x + (this.dimensions.second - 1 - y) * this.dimensions.first];
-                    if(top && bottom)
+                    top = this.screenBuffer[x + upperYOffset];
+                    bottom = this.screenBuffer[x + lowerYOffset];
+                    //if(top && bottom)
                     {
                         const temp:number = bottom.color;
                         bottom.copy(top);
@@ -5328,7 +5327,7 @@ class DrawingScreen {
             last = cur;
         }
     }
-    async undoLast()
+    async undoLast(slow:boolean = false)
     {
         if(this.updatesStack.length() && this.state.screenBufUnlocked)
         {
@@ -5351,7 +5350,7 @@ class DrawingScreen {
                         el.second.color = color;
                     }
                     
-                    if(intervalCounter % interval === 0 && this.state.slow)
+                    if(intervalCounter % interval === 0 && slow)
                     {
                         await sleep(1);
                         this.repaint = true;
@@ -5374,7 +5373,7 @@ class DrawingScreen {
         }
             
     }
-    async redoLast()
+    async redoLast(slow:boolean = false)
     {
         if(this.undoneUpdatesStack.length() && this.state.screenBufUnlocked)
         {
@@ -5397,7 +5396,7 @@ class DrawingScreen {
                         el.second.color = color;
                     }
                     
-                    if(intervalCounter % interval === 0 && this.state.slow)
+                    if(intervalCounter % interval === 0 && slow)
                     {
                         await sleep(1);
                         this.repaint = true;

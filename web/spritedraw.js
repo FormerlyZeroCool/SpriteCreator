@@ -2846,10 +2846,10 @@ class ToolSelector {
                     field.layer().paste();
                     break;
                 case ('KeyU'):
-                    field.layer().undoLast().then(() => field.layer().updateLabelUndoRedoCount());
+                    field.layer().undoLast(field.state.slow).then(() => field.layer().updateLabelUndoRedoCount());
                     break;
                 case ('KeyR'):
-                    field.layer().redoLast().then(() => field.layer().updateLabelUndoRedoCount());
+                    field.layer().redoLast(field.state.slow).then(() => field.layer().updateLabelUndoRedoCount());
                     break;
                 case ("Space"):
                     event.preventDefault();
@@ -2909,11 +2909,11 @@ class ToolSelector {
                 this.toolBar.handleTouchEvents("touchstart", e);
             }
             if (this.selectedToolName() === "undo") {
-                field.layer().undoLast().then(() => this.undoTool.updateLabel(field.layer().undoneUpdatesStack.length(), field.layer().updatesStack.length()));
+                field.layer().undoLast(field.state.slow).then(() => this.undoTool.updateLabel(field.layer().undoneUpdatesStack.length(), field.layer().updatesStack.length()));
                 this.toolBar.selected = previousTool;
             }
             else if (this.selectedToolName() === "redo") {
-                field.layer().redoLast().then(() => this.undoTool.updateLabel(field.layer().undoneUpdatesStack.length(), field.layer().updatesStack.length()));
+                field.layer().redoLast(field.state.slow).then(() => this.undoTool.updateLabel(field.layer().undoneUpdatesStack.length(), field.layer().updatesStack.length()));
                 this.toolBar.selected = previousTool;
             }
             if (this.tool()) {
@@ -3765,10 +3765,10 @@ class DrawingScreen {
             let left = new RGB(0, 0, 0, 0);
             let right = new RGB(0, 0, 0, 0);
             for (let y = 0; y < this.dimensions.second; y++) {
+                const yOffset = y * this.dimensions.first;
                 for (let x = 0; x < this.dimensions.first << 1; x++) {
-                    const key = x + y * this.dimensions.first;
-                    left = this.screenBuffer[key];
-                    right = this.screenBuffer[key + this.dimensions.first - 2 * x];
+                    left = this.screenBuffer[x + yOffset];
+                    right = this.screenBuffer[yOffset + (this.dimensions.first - 1) - x];
                     if (left && right) {
                         const temp = left.color;
                         left.copy(right);
@@ -3786,11 +3786,13 @@ class DrawingScreen {
             let top = new RGB(0, 0, 0, 0);
             let bottom = new RGB(0, 0, 0, 0);
             for (let y = 0; y < this.dimensions.second >> 1; y++) {
+                const upperYOffset = y * this.dimensions.first;
+                const lowerYOffset = (this.dimensions.second - 1 - y) * this.dimensions.first;
                 for (let x = 0; x < this.dimensions.first; x++) {
-                    const key = x + y * this.dimensions.first;
-                    top = this.screenBuffer[key];
-                    bottom = this.screenBuffer[x + (this.dimensions.second - 1 - y) * this.dimensions.first];
-                    if (top && bottom) {
+                    top = this.screenBuffer[x + upperYOffset];
+                    bottom = this.screenBuffer[x + lowerYOffset];
+                    //if(top && bottom)
+                    {
                         const temp = bottom.color;
                         bottom.copy(top);
                         top.color = temp;
@@ -4343,7 +4345,7 @@ class DrawingScreen {
             last = cur;
         }
     }
-    async undoLast() {
+    async undoLast(slow = false) {
         if (this.updatesStack.length() && this.state.screenBufUnlocked) {
             this.state.screenBufUnlocked = false;
             const data = this.updatesStack.pop();
@@ -4361,7 +4363,7 @@ class DrawingScreen {
                         this.screenBuffer[el.first].copy(el.second);
                         el.second.color = color;
                     }
-                    if (intervalCounter % interval === 0 && this.state.slow) {
+                    if (intervalCounter % interval === 0 && slow) {
                         await sleep(1);
                         this.repaint = true;
                     }
@@ -4380,7 +4382,7 @@ class DrawingScreen {
             console.log("Error, nothing to undo");
         }
     }
-    async redoLast() {
+    async redoLast(slow = false) {
         if (this.undoneUpdatesStack.length() && this.state.screenBufUnlocked) {
             try {
                 this.state.screenBufUnlocked = false;
@@ -4398,7 +4400,7 @@ class DrawingScreen {
                         this.screenBuffer[el.first].copy(el.second);
                         el.second.color = color;
                     }
-                    if (intervalCounter % interval === 0 && this.state.slow) {
+                    if (intervalCounter % interval === 0 && slow) {
                         await sleep(1);
                         this.repaint = true;
                     }
