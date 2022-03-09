@@ -4070,7 +4070,11 @@ class DrawingScreen {
             const startPixel = this.screenBuffer[startIndex];
             const spc = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
             let i = 0;
+            console.log(spc.color);
             while (i < this.screenBuffer.length) {
+                if (this.screenBuffer[i].color) {
+                    console.log(i);
+                }
                 if (spc.compare(this.screenBuffer[i])) {
                     this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
                     this.screenBuffer[i].copy(this.state.color);

@@ -4597,7 +4597,6 @@ class DrawingScreen {
         }
         const colorBackup:RGB = new RGB(this.noColor.red(), this.noColor.green(), this.noColor.blue(), this.noColor.alpha());
 
-        
         this.state.color = new RGB(0,0,0,255);
     }
     clearScreenBuffer(): void
@@ -5005,8 +5004,13 @@ class DrawingScreen {
             const startPixel:RGB = this.screenBuffer[startIndex];
             const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
             let i = 0;
+            console.log(spc.color);
             while(i < this.screenBuffer.length)
             {
+                if(this.screenBuffer[i].color)
+                {
+                    console.log(i)
+                }
                 if(spc.compare(this.screenBuffer[i])){
                     this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
                     this.screenBuffer[i].copy(this.state.color);
@@ -8546,9 +8550,11 @@ async function main()
         if(pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
     
-        toolSelector.draw();
+        if(toolSelector.repaint)
+            toolSelector.draw();
         field.update();
-        field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
+        if(field.repaint())
+            field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
         await toolSelector.renderDrawingScreenPreview();
         if(animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
