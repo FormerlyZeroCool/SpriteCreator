@@ -8555,7 +8555,8 @@ async function main()
         field.update();
         if(field.repaint())
             field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
-        await toolSelector.renderDrawingScreenPreview();
+        if(toolSelector.drawingScreenListener.mouseOverElement)
+            await toolSelector.renderDrawingScreenPreview();
         if(animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
         if(counter++ % 3 === 0)
