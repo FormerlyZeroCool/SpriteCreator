@@ -4103,7 +4103,6 @@ class DrawingScreen {
             while (stack.length > 0) {
                 const cur = stack.pop();
                 const pixelColor = this.screenBuffer[cur];
-                console.log(pixelColor.color, spc.color);
                 if (cur >= 0 && cur < length &&
                     spc.compare(pixelColor) && !checkedMap[cur] && this.state.bufferBitMask[cur]) {
                     checkedMap[cur] = true;
