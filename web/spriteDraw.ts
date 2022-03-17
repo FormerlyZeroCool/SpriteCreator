@@ -3737,7 +3737,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 }
                 else
                 {
-                    if(field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                    if(field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
                         field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), true);
                     else
                         field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), false);
@@ -5077,17 +5077,20 @@ class DrawingScreen {
         const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
         for(let i = 0; i < this.state.bufferBitMask.length; ++i)
         {
-            if(this.state.bufferBitMask[i] && this.screenBuffer[i].alpha() && (countColor || this.screenBuffer[i].compare(spc)))
+            if(this.state.bufferBitMask[i] && this.screenBuffer[i].alpha())
             {
-                    this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
-                    const x:number = i % this.dimensions.first;
-                    const y:number = Math.floor(i / this.dimensions.first);
-                    selection.push(this.screenBuffer[i].color, 
-                        x, y, 
-                        x, y + 1, 
-                        x+1, y,  
-                        x + 1, y + 1);
-                    this.screenBuffer[i].copy(this.noColor);
+                if(this.screenBuffer[i].compare(spc) || !countColor)
+                {
+                        this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
+                        const x:number = i % this.dimensions.first;
+                        const y:number = Math.floor(i / this.dimensions.first);
+                        selection.push(this.screenBuffer[i].color, 
+                            x, y, 
+                            x, y + 1, 
+                            x+1, y,  
+                            x + 1, y + 1);
+                        this.screenBuffer[i].copy(this.noColor);
+                }
             }
         }
         this.updatesStack.push([]);
