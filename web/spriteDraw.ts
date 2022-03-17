@@ -2252,18 +2252,18 @@ interface RenderablePalette {
 class RGB24BitPalette implements RenderablePalette {
     canvas:HTMLCanvasElement;
     ctx:CanvasRenderingContext2D;
-    colorData:Uint32Array;
+    colorData:Int32Array;
     constructor()
     {
         this.canvas = document.createElement("canvas");
         this.ctx = this.canvas.getContext("2d")!;
-        this.colorData = <Uint32Array> <any> null;
+        this.colorData = <Int32Array> <any> null;
         this.refresh();
     }
     refresh():void 
     {
 
-        this.colorData = new Uint32Array(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer);
+        this.colorData = new Int32Array(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer);
     }
     getColorAt(x:number, y:number):RGB 
     {
@@ -3432,7 +3432,7 @@ class FilesManagerTool extends ExtendedTool {
                 const reader = new FileReader();
                 fileList[0].arrayBuffer().then((buffer) =>
                   {
-                      const binary:Uint32Array = new Uint32Array(buffer);
+                      const binary:Int32Array = new Int32Array(buffer);
                       field.toolSelector.animationsGroupsSelector.buildFromBinary(binary);
                   });
               });
@@ -5038,15 +5038,15 @@ class DrawingScreen {
             const startIndex:number = startCoordinate.first + startCoordinate.second*this.dimensions.first;
             const startPixel:RGB = this.screenBuffer[startIndex];
             const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
-
             stack.push(startIndex);
             const length:number = this.screenBuffer.length;
             while(stack.length > 0)
             {
                 const cur:number = <number> stack.pop();
                 const pixelColor:RGB = this.screenBuffer[cur];
+                console.log(pixelColor.color, spc.color);
                 if(cur >= 0 && cur < length && 
-                    pixelColor.compare(spc) && !checkedMap[cur] && this.state.bufferBitMask[cur])
+                    spc.compare(pixelColor) && !checkedMap[cur] && this.state.bufferBitMask[cur])
                 {
                     checkedMap[cur] = true;
                     if(!pixelColor.compare(this.state.color))
@@ -5624,7 +5624,7 @@ class DrawingScreen {
     }
     renderToBuffer(spriteBuffer:Sprite):void
     {
-        const view:Uint32Array = new Uint32Array(spriteBuffer.pixels.buffer);
+        const view:Int32Array = new Int32Array(spriteBuffer.pixels.buffer);
         if(this.dimensions.first === this.canvas.width && this.dimensions.second === this.canvas.height)
         {//if drawing screen dimensions, and canvas dimensions are the same just update per pixel
             let index = 0
@@ -5740,7 +5740,7 @@ class DrawingScreen {
                 const dragDataPoints:number[] = this.dragData.topLeftPoints;
                 const dragDataOffsetX:number = Math.floor(this.dragData.x);
                 const dragDataOffsetY:number = Math.floor(this.dragData.y);
-                const view:Uint32Array = new Uint32Array(spriteScreenBuf.pixels.buffer);
+                const view:Int32Array = new Int32Array(spriteScreenBuf.pixels.buffer);
                 for(let i:number = 0, j = 0; i < dragDataPoints.length; i += 2, j++){
                     const bx:number = Math.floor(dragDataPoints[i] + dragDataOffsetX);
                     const by:number = Math.floor(dragDataPoints[i+1] + dragDataOffsetY);
@@ -5761,8 +5761,8 @@ class DrawingScreen {
                 const dest_y:number = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height/2)-this.offset.second)/this.bounds.second*this.dimensions.second);
                 const width:number = this.clipBoard.sprite.width;
                 const initialIndex:number = dest_x + dest_y*this.dimensions.first;
-                const clipboardView:Uint32Array = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
-                const spriteView:Uint32Array = new Uint32Array(spriteScreenBuf.pixels.buffer);
+                const clipboardView:Int32Array = new Int32Array(this.clipBoard.sprite.pixels.buffer);
+                const spriteView:Int32Array = new Int32Array(spriteScreenBuf.pixels.buffer);
                 for(let i = 0; i < clipboardView.length; i++)
                 {
                     const copyAreaX:number = i%width;
@@ -7052,7 +7052,7 @@ class Pallette {
         }
     }
 };
-function buildSpriteFromBuffer(buffer:Uint32Array, index:number):Pair<Sprite, number>
+function buildSpriteFromBuffer(buffer:Int32Array, index:number):Pair<Sprite, number>
 {
     const size:number = buffer[index++];
     const type:number = buffer[index++];
@@ -7064,7 +7064,7 @@ function buildSpriteFromBuffer(buffer:Uint32Array, index:number):Pair<Sprite, nu
     if(width * height !== size - 3)
         throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() +","+ height.toString() + "), but size is: " + size.toString());
     const limit:number = width * height;
-    const view:Uint32Array = new Uint32Array(sprite.pixels.buffer);
+    const view:Int32Array = new Int32Array(sprite.pixels.buffer);
     for(let i = 0; i < limit; i++)
     {
         view[i] = buffer[index];
@@ -7073,7 +7073,7 @@ function buildSpriteFromBuffer(buffer:Uint32Array, index:number):Pair<Sprite, nu
     sprite.refreshImage();
     return new Pair(sprite, size);
 }
-function buildSpriteAnimationFromBuffer(buffer:Uint32Array, index:number):Pair<SpriteAnimation, number>
+function buildSpriteAnimationFromBuffer(buffer:Int32Array, index:number):Pair<SpriteAnimation, number>
 {
     const size:number = buffer[index++];
     const type:number = buffer[index++];
@@ -7097,7 +7097,7 @@ function buildSpriteAnimationFromBuffer(buffer:Uint32Array, index:number):Pair<S
         throw new Error("Error invalid group size: " + size.toString() + " should be: " + size.toString());
     return new Pair(animation, size);
 }
-function buildAnimationGroupFromBuffer(buffer:Uint32Array, index:number, groupsSelector:AnimationGroupsSelector): number
+function buildAnimationGroupFromBuffer(buffer:Int32Array, index:number, groupsSelector:AnimationGroupsSelector): number
 {
     const size:number = buffer[index++];
     const type:number = buffer[index++];
@@ -7115,7 +7115,7 @@ function buildAnimationGroupFromBuffer(buffer:Uint32Array, index:number, groupsS
     }
     return size;
 }
-function buildGroupsFromBuffer(buffer:Uint32Array, groupsSelector:AnimationGroupsSelector):number
+function buildGroupsFromBuffer(buffer:Int32Array, groupsSelector:AnimationGroupsSelector):number
 {
     let index:number = 0;
     groupsSelector.animationGroups = [];
@@ -7180,7 +7180,7 @@ class Sprite {
                 this.imageData = this.createImageData();
                 this.pixels = this.imageData.data;
             }
-            const view:Uint32Array = new Uint32Array(this.pixels.buffer)
+            const view:Int32Array = new Int32Array(this.pixels.buffer)
             for(let i = 0; i < pixels.length; i++)
             {
                 view[i] = pixels[i].color;
@@ -7193,7 +7193,7 @@ class Sprite {
     {
         ctx.putImageData(this.imageData, 0, 0);
     }
-    fillRect(color:RGB, x:number, y:number, width:number, height:number, view:Uint32Array = new Uint32Array(this.pixels.buffer))
+    fillRect(color:RGB, x:number, y:number, width:number, height:number, view:Int32Array = new Int32Array(this.pixels.buffer))
     {
         for(let yi = y; yi < y+height; yi++)
         {
@@ -7205,7 +7205,7 @@ class Sprite {
             }
         }
     }
-    fillRectAlphaBlend(source:RGB, color:RGB, x:number, y:number, width:number, height:number, view:Uint32Array = new Uint32Array(this.pixels.buffer))
+    fillRectAlphaBlend(source:RGB, color:RGB, x:number, y:number, width:number, height:number, view:Int32Array = new Int32Array(this.pixels.buffer))
     {
         for(let yi = y; yi < y+height; yi++)
         {
@@ -7218,7 +7218,7 @@ class Sprite {
             }
         }
     }
-    copyToBuffer(buf:Array<RGB>, width:number, height:number, view:Uint32Array = new Uint32Array(this.pixels.buffer))
+    copyToBuffer(buf:Array<RGB>, width:number, height:number, view:Int32Array = new Int32Array(this.pixels.buffer))
     {
         if(width * height !== buf.length)
         {
@@ -7239,7 +7239,7 @@ class Sprite {
     {
         return 3 + this.width * this.height;
     }
-    saveToUint32Buffer(buf:Uint32Array, index:number, view:Uint32Array = new Uint32Array(this.pixels.buffer)):number
+    saveToUint32Buffer(buf:Int32Array, index:number, view:Int32Array = new Int32Array(this.pixels.buffer)):number
     {
         buf[index++] = this.binaryFileSize();
         buf[index++] = 3;
@@ -7362,7 +7362,7 @@ class SpriteAnimation {
           
           gif.render();
     }
-    saveToUint32Buffer(buf:Uint32Array, index:number):number
+    saveToUint32Buffer(buf:Int32Array, index:number):number
     {
         buf[index++] = this.binaryFileSize();
         buf[index++] = 2;
@@ -7744,7 +7744,7 @@ class AnimationGroup {
         this.animations.forEach(animation => size += animation.binaryFileSize());
         return size;
     }
-    buildFromBinary(binary:Uint32Array):AnimationGroup[]
+    buildFromBinary(binary:Int32Array):AnimationGroup[]
     {
         let i = 1;
         const groupSize:number = binary[i];
@@ -7795,7 +7795,7 @@ class AnimationGroup {
         }
         return groups;
     }
-    toBinary(buffer:Uint32Array, index:number):number
+    toBinary(buffer:Int32Array, index:number):number
     {
         const size:number = this.binaryFileSize();
         buffer[index++] = size;
@@ -8006,7 +8006,7 @@ class AnimationGroupsSelector {
             );
         return size;
     }
-    buildFromBinary(binary:Uint32Array):void
+    buildFromBinary(binary:Int32Array):void
     {
         /*const groups:AnimationGroup[] = this.animationGroup().buildFromBinary(binary);
         this.animationGroups = [];
@@ -8016,9 +8016,9 @@ class AnimationGroupsSelector {
         })*/
         buildGroupsFromBuffer(binary, this);
     }
-    toBinary():Uint32Array {
+    toBinary():Int32Array {
         const size:number = this.binaryFileSize();
-        const data:Uint32Array = new Uint32Array(size);
+        const data:Int32Array = new Int32Array(size);
         let index = 0;
         data[index++] = size;
         data[index++] = 0;
@@ -8546,15 +8546,14 @@ async function main()
             toolSelector.repaint = true;
             canvas.width = getWidth() - toolCanvas.width - 30;
             counter = 0;
+            field.redraw = true;
         }
         if(pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
     
-        if(toolSelector.repaint)
-            toolSelector.draw();
+        toolSelector.draw();
         field.update();
-        if(field.repaint())
-            field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
+        field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
         if(toolSelector.drawingScreenListener.mouseOverElement)
             await toolSelector.renderDrawingScreenPreview();
         if(animationGroupSelector.animationGroup())

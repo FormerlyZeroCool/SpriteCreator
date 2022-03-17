@@ -1,4 +1,3 @@
-"use strict";
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1804,7 +1803,7 @@ class RGB24BitPalette {
         this.refresh();
     }
     refresh() {
-        this.colorData = new Uint32Array(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer);
+        this.colorData = new Int32Array(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer);
     }
     getColorAt(x, y) {
     }
@@ -2772,7 +2771,7 @@ class FilesManagerTool extends ExtendedTool {
                 const fileList = event.target.files;
                 const reader = new FileReader();
                 fileList[0].arrayBuffer().then((buffer) => {
-                    const binary = new Uint32Array(buffer);
+                    const binary = new Int32Array(buffer);
                     field.toolSelector.animationsGroupsSelector.buildFromBinary(binary);
                 });
             });
@@ -4104,8 +4103,9 @@ class DrawingScreen {
             while (stack.length > 0) {
                 const cur = stack.pop();
                 const pixelColor = this.screenBuffer[cur];
+                console.log(pixelColor.color, spc.color);
                 if (cur >= 0 && cur < length &&
-                    pixelColor.compare(spc) && !checkedMap[cur] && this.state.bufferBitMask[cur]) {
+                    spc.compare(pixelColor) && !checkedMap[cur] && this.state.bufferBitMask[cur]) {
                     checkedMap[cur] = true;
                     if (!pixelColor.compare(this.state.color)) {
                         this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(cur, new RGB(pixelColor.red(), pixelColor.green(), pixelColor.blue(), pixelColor.alpha())));
@@ -4595,7 +4595,7 @@ class DrawingScreen {
         return this.toolSelector.field.zoom.invZoomY(this.toolSelector.drawingScreenListener.touchPos[1]);
     }
     renderToBuffer(spriteBuffer) {
-        const view = new Uint32Array(spriteBuffer.pixels.buffer);
+        const view = new Int32Array(spriteBuffer.pixels.buffer);
         if (this.dimensions.first === this.canvas.width && this.dimensions.second === this.canvas.height) { //if drawing screen dimensions, and canvas dimensions are the same just update per pixel
             let index = 0;
             const limit = view.length === this.screenBuffer.length ? view.length - 8 : this.screenBuffer.length - 8;
@@ -4697,7 +4697,7 @@ class DrawingScreen {
                 const dragDataPoints = this.dragData.topLeftPoints;
                 const dragDataOffsetX = Math.floor(this.dragData.x);
                 const dragDataOffsetY = Math.floor(this.dragData.y);
-                const view = new Uint32Array(spriteScreenBuf.pixels.buffer);
+                const view = new Int32Array(spriteScreenBuf.pixels.buffer);
                 for (let i = 0, j = 0; i < dragDataPoints.length; i += 2, j++) {
                     const bx = Math.floor(dragDataPoints[i] + dragDataOffsetX);
                     const by = Math.floor(dragDataPoints[i + 1] + dragDataOffsetY);
@@ -4716,8 +4716,8 @@ class DrawingScreen {
                 const dest_y = Math.floor(((this.getTouchPosY() - this.clipBoard.sprite.height / 2) - this.offset.second) / this.bounds.second * this.dimensions.second);
                 const width = this.clipBoard.sprite.width;
                 const initialIndex = dest_x + dest_y * this.dimensions.first;
-                const clipboardView = new Uint32Array(this.clipBoard.sprite.pixels.buffer);
-                const spriteView = new Uint32Array(spriteScreenBuf.pixels.buffer);
+                const clipboardView = new Int32Array(this.clipBoard.sprite.pixels.buffer);
+                const spriteView = new Int32Array(spriteScreenBuf.pixels.buffer);
                 for (let i = 0; i < clipboardView.length; i++) {
                     const copyAreaX = i % width;
                     const copyAreaY = Math.floor(i / width);
@@ -5762,7 +5762,7 @@ function buildSpriteFromBuffer(buffer, index) {
     if (width * height !== size - 3)
         throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() + "," + height.toString() + "), but size is: " + size.toString());
     const limit = width * height;
-    const view = new Uint32Array(sprite.pixels.buffer);
+    const view = new Int32Array(sprite.pixels.buffer);
     for (let i = 0; i < limit; i++) {
         view[i] = buffer[index];
         index++;
@@ -5853,7 +5853,7 @@ class Sprite {
                 this.imageData = this.createImageData();
                 this.pixels = this.imageData.data;
             }
-            const view = new Uint32Array(this.pixels.buffer);
+            const view = new Int32Array(this.pixels.buffer);
             for (let i = 0; i < pixels.length; i++) {
                 view[i] = pixels[i].color;
             }
@@ -5864,7 +5864,7 @@ class Sprite {
     putPixels(ctx) {
         ctx.putImageData(this.imageData, 0, 0);
     }
-    fillRect(color, x, y, width, height, view = new Uint32Array(this.pixels.buffer)) {
+    fillRect(color, x, y, width, height, view = new Int32Array(this.pixels.buffer)) {
         for (let yi = y; yi < y + height; yi++) {
             const yiIndex = (yi * this.width);
             const rowLimit = x + width + yiIndex;
@@ -5873,7 +5873,7 @@ class Sprite {
             }
         }
     }
-    fillRectAlphaBlend(source, color, x, y, width, height, view = new Uint32Array(this.pixels.buffer)) {
+    fillRectAlphaBlend(source, color, x, y, width, height, view = new Int32Array(this.pixels.buffer)) {
         for (let yi = y; yi < y + height; yi++) {
             for (let xi = x; xi < x + width; xi++) {
                 let index = (xi) + (yi * this.width);
@@ -5883,7 +5883,7 @@ class Sprite {
             }
         }
     }
-    copyToBuffer(buf, width, height, view = new Uint32Array(this.pixels.buffer)) {
+    copyToBuffer(buf, width, height, view = new Int32Array(this.pixels.buffer)) {
         if (width * height !== buf.length) {
             console.log("error invalid dimensions supplied");
             return;
@@ -5899,7 +5899,7 @@ class Sprite {
     binaryFileSize() {
         return 3 + this.width * this.height;
     }
-    saveToUint32Buffer(buf, index, view = new Uint32Array(this.pixels.buffer)) {
+    saveToUint32Buffer(buf, index, view = new Int32Array(this.pixels.buffer)) {
         buf[index++] = this.binaryFileSize();
         buf[index++] = 3;
         buf[index] |= this.height << 16;
@@ -6508,7 +6508,7 @@ class AnimationGroupsSelector {
     }
     toBinary() {
         const size = this.binaryFileSize();
-        const data = new Uint32Array(size);
+        const data = new Int32Array(size);
         let index = 0;
         data[index++] = size;
         data[index++] = 0;
@@ -6954,13 +6954,15 @@ async function main() {
             toolSelector.repaint = true;
             canvas.width = getWidth() - toolCanvas.width - 30;
             counter = 0;
+            field.redraw = true;
         }
         if (pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
         toolSelector.draw();
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
-        await toolSelector.renderDrawingScreenPreview();
+        if (toolSelector.drawingScreenListener.mouseOverElement)
+            await toolSelector.renderDrawingScreenPreview();
         if (animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
         if (counter++ % 3 === 0)
