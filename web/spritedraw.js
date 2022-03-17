@@ -2999,7 +2999,10 @@ class ToolSelector {
                                     field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), false);
                             }
                             else {
-                                field.layer().dragData = field.layer().getSelectedPixelGroupBitMask();
+                                if (field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair(gx, gy), true);
+                                else
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair(gx, gy), false);
                             }
                             break;
                         case ("drag"):
@@ -3011,7 +3014,10 @@ class ToolSelector {
                                     field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair(gx, gy), false);
                             }
                             else {
-                                field.layer().dragData = field.layer().getSelectedPixelGroupBitMask();
+                                if (field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair(gx, gy), true);
+                                else
+                                    field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair(gx, gy), false);
                             }
                             break;
                         case ("selection"):
@@ -4120,10 +4126,13 @@ class DrawingScreen {
             this.repaint = true;
         }
     }
-    getSelectedPixelGroupBitMask() {
+    getSelectedPixelGroupBitMask(startCoordinate, countColor) {
         const selection = new DetailedPixelsGroup();
+        const startIndex = startCoordinate.first + startCoordinate.second * this.dimensions.first;
+        const startPixel = this.screenBuffer[startIndex];
+        const spc = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
         for (let i = 0; i < this.state.bufferBitMask.length; ++i) {
-            if (this.state.bufferBitMask[i] && this.screenBuffer[i].alpha()) {
+            if (this.state.bufferBitMask[i] && this.screenBuffer[i].alpha() && (countColor || this.screenBuffer[i].compare(spc))) {
                 this.updatesStack.get(this.updatesStack.length() - 1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
                 const x = i % this.dimensions.first;
                 const y = Math.floor(i / this.dimensions.first);

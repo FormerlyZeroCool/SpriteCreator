@@ -3720,7 +3720,10 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 }
                 else
                 {
-                    field.layer().dragData = field.layer().getSelectedPixelGroupBitMask();
+                    if(field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                        field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), true);
+                    else
+                        field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), false);
                 }
                 break;
                 case("drag"):
@@ -3734,7 +3737,10 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 }
                 else
                 {
-                    field.layer().dragData = field.layer().getSelectedPixelGroupBitMask();
+                    if(field.layer().state.rotateOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
+                        field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), true);
+                    else
+                        field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), false);
                 }
                 break;
                 case("selection"):
@@ -5063,12 +5069,15 @@ class DrawingScreen {
             this.repaint = true;
         }
     }
-    getSelectedPixelGroupBitMask():DetailedPixelsGroup
+    getSelectedPixelGroupBitMask(startCoordinate:Pair<number>, countColor:boolean):DetailedPixelsGroup
     {
         const selection:DetailedPixelsGroup = new DetailedPixelsGroup();
+        const startIndex:number = startCoordinate.first + startCoordinate.second*this.dimensions.first;
+        const startPixel:RGB = this.screenBuffer[startIndex];
+        const spc:RGB = new RGB(startPixel.red(), startPixel.green(), startPixel.blue(), startPixel.alpha());
         for(let i = 0; i < this.state.bufferBitMask.length; ++i)
         {
-            if(this.state.bufferBitMask[i] && this.screenBuffer[i].alpha())
+            if(this.state.bufferBitMask[i] && this.screenBuffer[i].alpha() && (countColor || this.screenBuffer[i].compare(spc)))
             {
                     this.updatesStack.get(this.updatesStack.length()-1).push(new Pair(i, new RGB(this.screenBuffer[i].red(), this.screenBuffer[i].green(), this.screenBuffer[i].blue(), this.screenBuffer[i].alpha())));
                     const x:number = i % this.dimensions.first;
