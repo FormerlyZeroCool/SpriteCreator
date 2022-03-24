@@ -5792,11 +5792,12 @@ function findLeastUsedDoubleWord(buffer) {
         else
             useCount.set(buffer[i], 1);
     }
-    let minValue = Math.min(...useCount.values());
+    let minValue = useCount.values().next().value;
     let minUsedKey = useCount.keys().next().value;
     for (const [key, value] of useCount.entries()) {
-        if (value == minValue) {
+        if (value < minValue) {
             minUsedKey = key;
+            minValue = value;
             break;
         }
     }

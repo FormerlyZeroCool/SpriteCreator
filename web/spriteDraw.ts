@@ -7102,13 +7102,14 @@ function findLeastUsedDoubleWord(buffer:Int32Array): number
         else
             useCount.set(buffer[i], 1);
     }
-    let minValue:number = Math.min(...useCount.values());
+    let minValue:number = useCount.values().next().value;
     let minUsedKey:number = useCount.keys().next().value;
     for(const [key, value] of useCount.entries())
     {
-        if(value == minValue)
+        if(value < minValue)
         {
             minUsedKey = key;
+            minValue = value;
             break;
         }
     }
