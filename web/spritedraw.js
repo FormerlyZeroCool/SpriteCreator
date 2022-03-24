@@ -5758,6 +5758,99 @@ class Pallette {
     }
 }
 ;
+class DynamicInt32Array {
+    constructor(size = 4096) {
+        this.data = new Int32Array(size);
+        this.len = 0;
+    }
+    length() {
+        return this.len;
+    }
+    push(value) {
+        if (this.data.length <= this.length()) {
+            const temp = new Int32Array(this.data.length * 2);
+            for (let i = 0; i < this.data.length; i++) {
+                temp[i] = this.data[i];
+            }
+            this.data = temp;
+        }
+        this.data[this.len++] = value;
+    }
+    trimmed() {
+        const data = new Int32Array(this.length());
+        for (let i = 0; i < data.length; i++)
+            data[i] = this.data[i];
+        return data;
+    }
+}
+;
+function findLeastUsedDoubleWord(buffer) {
+    const useCount = new Map();
+    for (let i = 0; i < buffer.length; i++) {
+        if (useCount.get(buffer[i]))
+            useCount.set(buffer[i], useCount.get(buffer[i]) + 1);
+        else
+            useCount.set(buffer[i], 1);
+    }
+    let minValue = Math.min(...useCount.values());
+    let minUsedKey = useCount.keys().next().value;
+    for (const [key, value] of useCount.entries()) {
+        if (value == minValue) {
+            minUsedKey = key;
+            break;
+        }
+    }
+    let random = Math.random() * 1000000000;
+    for (let i = 0; i < 1000; i++) {
+        if (!useCount.get(random))
+            break;
+        const newRandom = random * Math.random() * (1 + 10 * (i % 2));
+        if (useCount.get(newRandom) < useCount.get(random))
+            random = newRandom;
+    }
+    if (!useCount.get(random) || useCount.get(random) < useCount.get(minUsedKey))
+        return random;
+    else
+        return minUsedKey;
+}
+function rleEncode(buffer) {
+    const flag = findLeastUsedDoubleWord(buffer);
+    const data = new DynamicInt32Array();
+    data.push(flag);
+    for (let i = 0; i < buffer.length;) {
+        const value = buffer[i];
+        let currentCount = 1;
+        while (buffer[i + currentCount] === value)
+            currentCount++;
+        if (currentCount > 2 || value === flag) {
+            data.push(flag);
+            data.push(value);
+            data.push(currentCount);
+            i += currentCount;
+        }
+        else {
+            data.push(value);
+            i++;
+        }
+    }
+    return data.trimmed();
+}
+function rleDecode(encodedBuffer) {
+    const data = new DynamicInt32Array();
+    const flag = encodedBuffer[0];
+    for (let i = 1; i < encodedBuffer.length;) {
+        if (encodedBuffer[i] !== flag)
+            data.push(encodedBuffer[i]);
+        else {
+            const value = encodedBuffer[++i];
+            const count = encodedBuffer[++i];
+            for (let j = 0; j < count; j++)
+                data.push(value);
+        }
+        i++;
+    }
+    return data.trimmed();
+}
 function buildSpriteFromBuffer(buffer, index) {
     const size = buffer[index++];
     const type = buffer[index++];
@@ -6511,7 +6604,7 @@ class AnimationGroupsSelector {
         groups.forEach(el => {
             this.animationGroups.push(new Pair(el, new Pair(0,0)));
         })*/
-        buildGroupsFromBuffer(binary, this);
+        buildGroupsFromBuffer(rleDecode(binary), this);
     }
     toBinary() {
         const size = this.binaryFileSize();
@@ -6525,7 +6618,7 @@ class AnimationGroupsSelector {
         return data;
     }
     saveAs(name) {
-        saveBlob(new Blob([this.toBinary()], { type: "application/octet-stream" }), name);
+        saveBlob(new Blob([rleEncode(this.toBinary())], { type: "application/octet-stream" }), name);
     }
     autoResizeCanvas() {
         if (this.animationGroup()) {
