@@ -7119,7 +7119,6 @@ function findLeastUsedDoubleWord(buffer:Int32Array): number
         {
             minUsedKey = key;
             minValue = value;
-            break;
         }
     }
     let random:number = Math.random() * 1000000000;

@@ -5805,7 +5805,6 @@ function findLeastUsedDoubleWord(buffer) {
         if (value < minValue) {
             minUsedKey = key;
             minValue = value;
-            break;
         }
     }
     let random = Math.random() * 1000000000;
