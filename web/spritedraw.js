@@ -5784,6 +5784,13 @@ class DynamicInt32Array {
     }
 }
 ;
+function toInt32Array(data) {
+    const newData = new Int32Array(data.length);
+    for (let i = 0; i < data.length; i++) {
+        newData[i] = data[i];
+    }
+    return newData;
+}
 function findLeastUsedDoubleWord(buffer) {
     const useCount = new Map();
     for (let i = 0; i < buffer.length; i++) {
@@ -5816,7 +5823,7 @@ function findLeastUsedDoubleWord(buffer) {
 }
 function rleEncode(buffer) {
     const flag = findLeastUsedDoubleWord(buffer);
-    const data = new DynamicInt32Array();
+    const data = [];
     data.push(flag);
     for (let i = 0; i < buffer.length;) {
         const value = buffer[i];
@@ -5834,10 +5841,10 @@ function rleEncode(buffer) {
             i++;
         }
     }
-    return data.trimmed();
+    return toInt32Array(data);
 }
 function rleDecode(encodedBuffer) {
-    const data = new DynamicInt32Array();
+    const data = [];
     const flag = encodedBuffer[0];
     for (let i = 1; i < encodedBuffer.length;) {
         if (encodedBuffer[i] !== flag)
@@ -5850,7 +5857,7 @@ function rleDecode(encodedBuffer) {
         }
         i++;
     }
-    return data.trimmed();
+    return toInt32Array(data);
 }
 function buildSpriteFromBuffer(buffer, index) {
     const size = buffer[index++];

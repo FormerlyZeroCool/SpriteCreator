@@ -7092,6 +7092,15 @@ class DynamicInt32Array {
         return data;
     }
 };
+function toInt32Array(data:number[]): Int32Array
+{
+    const newData:Int32Array = new Int32Array(data.length);
+    for(let i = 0; i < data.length; i++)
+    {
+        newData[i] = data[i];
+    }
+    return newData;
+}
 function findLeastUsedDoubleWord(buffer:Int32Array): number
 {
     const useCount:Map<number, number> = new Map();
@@ -7130,7 +7139,7 @@ function findLeastUsedDoubleWord(buffer:Int32Array): number
 function rleEncode(buffer:Int32Array):Int32Array 
 {
     const flag:number = findLeastUsedDoubleWord(buffer);
-    const data:DynamicInt32Array = new DynamicInt32Array();
+    const data:number[] = [];
     data.push(flag);
     for(let i = 0; i < buffer.length;)
     {
@@ -7152,11 +7161,11 @@ function rleEncode(buffer:Int32Array):Int32Array
             i++;
         }
     }
-    return data.trimmed();
+    return toInt32Array(data);
 }
 function rleDecode(encodedBuffer:Int32Array): Int32Array
 {
-    const data:DynamicInt32Array = new DynamicInt32Array();
+    const data:number[] = [];
     const flag:number = encodedBuffer[0];
     for(let i = 1; i < encodedBuffer.length;)
     {
@@ -7172,7 +7181,7 @@ function rleDecode(encodedBuffer:Int32Array): Int32Array
         i++;
         
     }
-    return data.trimmed();
+    return toInt32Array(data);
 }
 function buildSpriteFromBuffer(buffer:Int32Array, index:number):Pair<Sprite, number>
 {
