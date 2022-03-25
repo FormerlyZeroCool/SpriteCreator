@@ -5807,11 +5807,11 @@ function findLeastUsedDoubleWord(buffer) {
             minValue = value;
         }
     }
-    let random = Math.random() * 1000000000;
+    let random = Math.floor(Math.random() * 1000000000);
     for (let i = 0; i < 1000; i++) {
         if (!useCount.get(random))
             break;
-        const newRandom = random * Math.random() * (1 + 10 * (i % 2));
+        const newRandom = Math.floor(random * Math.random() * (1 + 10 * (i % 2)));
         if (useCount.get(newRandom) < useCount.get(random))
             random = newRandom;
     }
