@@ -3787,10 +3787,13 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             const deltaX:number = this.field.zoom.invJustZoomX(e.deltaX);
             const deltaY:number = this.field.zoom.invJustZoomY(e.deltaY);
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
+            const startTouchPos:number[] = [this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]),this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1])];
             const x1:number = touchPos[0] - deltaX;
             const y1:number = touchPos[1] - deltaY;
             const gx:number = Math.floor((touchPos[0])/field.layer().bounds.first*field.layer().dimensions.first);
             const gy:number = Math.floor((touchPos[1])/field.layer().bounds.second*field.layer().dimensions.second);
+            const gStartX:number = Math.floor((startTouchPos[0])/field.layer().bounds.first*field.layer().dimensions.first);
+            const gStartY:number = Math.floor((startTouchPos[1])/field.layer().bounds.second*field.layer().dimensions.second);
             let repaint:boolean = true;
             if(keyboardHandler.keysHeld["Space"])
             {
@@ -3809,7 +3812,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             switch (field.toolSelector.selectedToolName())
             {
                 case("outline"):
-                field.layer().autoOutline(new Pair<number>(gx, gy), false);
+                field.layer().autoOutline(new Pair<number>(gStartX, gStartY), false);
                 break;
                 case("settings"):
                 case("save"):

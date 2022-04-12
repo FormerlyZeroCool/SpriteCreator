@@ -3058,10 +3058,13 @@ class ToolSelector {
                 const deltaX = this.field.zoom.invJustZoomX(e.deltaX);
                 const deltaY = this.field.zoom.invJustZoomY(e.deltaY);
                 const touchPos = [this.field.zoom.invZoomX(e.touchPos[0]), this.field.zoom.invZoomY(e.touchPos[1])];
+                const startTouchPos = [this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]), this.field.zoom.invZoomY(this.drawingScreenListener.startTouchPos[1])];
                 const x1 = touchPos[0] - deltaX;
                 const y1 = touchPos[1] - deltaY;
                 const gx = Math.floor((touchPos[0]) / field.layer().bounds.first * field.layer().dimensions.first);
                 const gy = Math.floor((touchPos[1]) / field.layer().bounds.second * field.layer().dimensions.second);
+                const gStartX = Math.floor((startTouchPos[0]) / field.layer().bounds.first * field.layer().dimensions.first);
+                const gStartY = Math.floor((startTouchPos[1]) / field.layer().bounds.second * field.layer().dimensions.second);
                 let repaint = true;
                 if (keyboardHandler.keysHeld["Space"]) {
                     field.zoom.offsetX -= e.deltaX;
@@ -3076,7 +3079,7 @@ class ToolSelector {
                 else
                     switch (field.toolSelector.selectedToolName()) {
                         case ("outline"):
-                            field.layer().autoOutline(new Pair(gx, gy), false);
+                            field.layer().autoOutline(new Pair(gStartX, gStartY), false);
                             break;
                         case ("settings"):
                         case ("save"):
