@@ -7075,6 +7075,8 @@ async function main() {
         }
         if (pallette.canvas.width !== canvas.width)
             pallette.canvas.width = canvas.width;
+        if (toolSelector.touchListener.mouseOverElement)
+            toolSelector.repaint = true;
         toolSelector.draw();
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
