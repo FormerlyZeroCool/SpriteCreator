@@ -2655,20 +2655,20 @@ class ScreenTransformationTool extends ExtendedTool {
         super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60], [1, 40]);
         this.getOptionPanel().pixelDim[1] += 50;
         this.localLayout.addElement(new GuiLabel("Zoom:", 100));
-        this.buttonUpdateZoom = new GuiButton(() => {
+        const updateZoom = () => {
+            const bias = 0.1;
             let ratio = 1;
-            if (this.textBoxZoom.asNumber.get()) {
-                ratio = this.textBoxZoom.asNumber.get() / field.zoom.zoomX;
-                field.zoom.zoomX = this.textBoxZoom.asNumber.get();
-                field.zoom.zoomY = field.zoom.zoomY * ratio;
-            }
-        }, "Set Zoom", 100, 40, 16);
+            ratio = (this.textBoxZoom.state * 50 + bias) / field.zoom.zoomX;
+            field.zoom.zoomX = this.textBoxZoom.state * 50 + bias;
+            field.zoom.zoomY = field.zoom.zoomY * ratio;
+        };
+        this.buttonUpdateZoom = new GuiButton(updateZoom, "Set Zoom", 100, 40, 16);
         this.buttonZoomToScreen = new GuiButton(() => {
             field.zoomToScreen();
-            this.textBoxZoom.setText((Math.round(field.zoom.zoomX * 100) / 100).toString());
+            this.textBoxZoom.setState(field.zoom.zoomX / 50);
         }, "Auto Zoom", 95, 40, 16);
-        this.textBoxZoom = new GuiTextBox(true, 70, this.buttonUpdateZoom, 16, 32);
-        this.textBoxZoom.setText(field.zoom.zoomX.toString());
+        this.textBoxZoom = new GuiSlider(25 / 50, [100, 30], updateZoom);
+        //this.textBoxZoom.setText(field.zoom.zoomX.toString());
         this.buttonFlipHorizonally = new GuiButton(() => {
             field.layer().flipHorizontally();
         }, "Flip Around Y Axis", 150, 40, 16);
@@ -6831,8 +6831,7 @@ async function main() {
                 delta = 0;
             field.zoom.zoomY += delta * (field.zoom.zoomY / field.zoom.zoomX);
             field.zoom.zoomX += delta;
-            const text = (Math.round(field.zoom.zoomX * 100) / 100).toString();
-            toolSelector.transformTool.textBoxZoom.setText(text);
+            toolSelector.transformTool.textBoxZoom.setState(Math.round(field.zoom.zoomX * 100) / 100);
             const touchPos = [field.zoom.invZoomX(toolSelector.drawingScreenListener.touchPos[0]),
                 field.zoom.invZoomY(toolSelector.drawingScreenListener.touchPos[1])];
             const centerX = (field.width() / 2);
@@ -6864,8 +6863,7 @@ async function main() {
                 field.zoom.zoomY -= delta * (field.zoom.zoomY / field.zoom.zoomX);
                 field.zoom.zoomX -= delta;
             }
-            const text = (Math.round(field.zoom.zoomX * 100) / 100).toString();
-            toolSelector.transformTool.textBoxZoom.setText(text);
+            toolSelector.transformTool.textBoxZoom.setState(Math.round(field.zoom.zoomX * 100) / 100);
             const touchPos = [field.zoom.invZoomX(toolSelector.drawingScreenListener.touchPos[0]),
                 field.zoom.invZoomY(toolSelector.drawingScreenListener.touchPos[1])];
             const centerX = (field.width() / 2);
@@ -7022,8 +7020,7 @@ async function main() {
                 field.zoom.zoomY -= delta * (field.zoom.zoomY / field.zoom.zoomX);
                 field.zoom.zoomX -= delta;
             }
-            const text = (Math.round(field.zoom.zoomX * 100) / 100).toString();
-            toolSelector.transformTool.textBoxZoom.setText(text);
+            toolSelector.transformTool.textBoxZoom.setState(Math.round(field.zoom.zoomX * 100) / 100);
             const touchPos = [field.zoom.invZoomX(toolSelector.drawingScreenListener.touchPos[0]),
                 field.zoom.invZoomY(toolSelector.drawingScreenListener.touchPos[1])];
             const centerX = (field.width() / 2);
