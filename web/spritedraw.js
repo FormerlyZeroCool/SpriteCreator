@@ -2844,6 +2844,8 @@ class ToolSelector {
         this.externalCanvas = document.getElementById("tool_selector_screen");
         this.keyboardHandler = keyboardHandler;
         this.keyboardHandler.registerCallBack("keydown", (e) => true, event => {
+            if (event.code == "Space")
+                event.preventDefault();
             if (this.keyboardHandler.keysHeld["ControlLeft"] || this.keyboardHandler.keysHeld["ControlRight"] ||
                 this.keyboardHandler.keysHeld["MetaLeft"] || this.keyboardHandler.keysHeld["MetaRight"]) {
                 switch (event.code) {
