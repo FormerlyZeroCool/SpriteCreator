@@ -3559,6 +3559,10 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 field.layer().redoLast(field.state.slow).then(() =>
                 field.layer().updateLabelUndoRedoCount());
                 break;
+                case('KeyD'):
+                field.clearBitMask();
+                this.polygon = [];
+                break;
                 case("Space"):
                 event.preventDefault();
             }
