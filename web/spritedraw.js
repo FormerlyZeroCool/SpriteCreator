@@ -2844,28 +2844,35 @@ class ToolSelector {
         this.externalCanvas = document.getElementById("tool_selector_screen");
         this.keyboardHandler = keyboardHandler;
         this.keyboardHandler.registerCallBack("keydown", (e) => true, event => {
-            switch (event.code) {
-                case ('KeyC'):
-                    if (this.keyboardHandler.keysHeld["KeyC"] === 1) {
-                        field.state.selectionRect = [0, 0, 0, 0];
-                        field.state.pasteRect = [0, 0, 0, 0];
-                    }
-                    break;
-                case ('KeyV'):
-                    field.layer().paste();
-                    break;
-                case ('KeyU'):
-                    field.layer().undoLast(field.state.slow).then(() => field.layer().updateLabelUndoRedoCount());
-                    break;
-                case ('KeyR'):
-                    field.layer().redoLast(field.state.slow).then(() => field.layer().updateLabelUndoRedoCount());
-                    break;
-                case ('KeyD'):
-                    field.clearBitMask();
-                    this.polygon = [];
-                    break;
-                case ("Space"):
-                    event.preventDefault();
+            if (this.keyboardHandler.keysHeld["ControlLeft"] || this.keyboardHandler.keysHeld["ControlRight"] ||
+                this.keyboardHandler.keysHeld["MetaLeft"] || this.keyboardHandler.keysHeld["MetaRight"]) {
+                switch (event.code) {
+                    case ('KeyC'):
+                        if (this.keyboardHandler.keysHeld["KeyC"] === 1) {
+                            field.state.selectionRect = [0, 0, 0, 0];
+                            field.state.pasteRect = [0, 0, 0, 0];
+                        }
+                        break;
+                    case ('KeyV'):
+                        field.layer().paste();
+                        break;
+                    case ('KeyZ'):
+                        if (this.keyboardHandler.keysHeld["ShiftLeft"] || this.keyboardHandler.keysHeld["ShiftRight"]) {
+                            field.layer().redoLast(field.state.slow).then(() => field.layer().updateLabelUndoRedoCount());
+                            break;
+                        }
+                        field.layer().undoLast(field.state.slow).then(() => field.layer().updateLabelUndoRedoCount());
+                        break;
+                    case ('KeyY'):
+                        field.layer().redoLast(field.state.slow).then(() => field.layer().updateLabelUndoRedoCount());
+                        break;
+                    case ('KeyD'):
+                        field.clearBitMask();
+                        this.polygon = [];
+                        break;
+                    case ("Space"):
+                        event.preventDefault();
+                }
             }
         });
         this.keyboardHandler.registerCallBack("keydown", (e) => this.tool().getOptionPanel(), (e) => { this.tool().getOptionPanel().handleKeyBoardEvents("keydown", e); this.repaint = true; });

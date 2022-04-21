@@ -3541,7 +3541,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.externalCanvas = <HTMLCanvasElement> document.getElementById("tool_selector_screen");
         this.keyboardHandler = keyboardHandler;
         this.keyboardHandler.registerCallBack("keydown", (e:any) => true, event => {
-            switch(event.code) {
+            if(this.keyboardHandler.keysHeld["ControlLeft"] || this.keyboardHandler.keysHeld["ControlRight"] ||
+                this.keyboardHandler.keysHeld["MetaLeft"] || this.keyboardHandler.keysHeld["MetaRight"]){
+                switch(event.code) {
                 case('KeyC'):
                 if(this.keyboardHandler.keysHeld["KeyC"] === 1) {
                     field.state.selectionRect = [0,0,0,0];
@@ -3551,11 +3553,17 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 case('KeyV'):
                 field.layer().paste();
                 break;
-                case('KeyU'):
+                case('KeyZ'):
+                if(this.keyboardHandler.keysHeld["ShiftLeft"] || this.keyboardHandler.keysHeld["ShiftRight"])
+                {
+                    field.layer().redoLast(field.state.slow).then(() =>
+                    field.layer().updateLabelUndoRedoCount());
+                    break;
+                }
                 field.layer().undoLast(field.state.slow).then(() =>
                 field.layer().updateLabelUndoRedoCount());
                 break;
-                case('KeyR'):
+                case('KeyY'):
                 field.layer().redoLast(field.state.slow).then(() =>
                 field.layer().updateLabelUndoRedoCount());
                 break;
@@ -3565,6 +3573,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 break;
                 case("Space"):
                 event.preventDefault();
+                }
             }
         });
         this.keyboardHandler.registerCallBack("keydown", (e:any) => <boolean> <any> this.tool()!.getOptionPanel(), (e:any) => {this.tool()!.getOptionPanel()!.handleKeyBoardEvents("keydown", e); this.repaint = true;});
