@@ -3872,7 +3872,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 let angle:number = Math.PI / 2;
                 let moveCountBeforeRotation:number = 10;
                 if(field.state.antiAliasRotation){
-                    angle = Math.PI / 32;
+                    angle = (Math.PI / 32) * (e.mag / 3);
                     moveCountBeforeRotation = 2;
                 }
                 const startTouchPos:number[] = [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.width()) * field.width(),

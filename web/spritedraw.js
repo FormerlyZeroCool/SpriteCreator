@@ -3133,7 +3133,7 @@ class ToolSelector {
                             let angle = Math.PI / 2;
                             let moveCountBeforeRotation = 10;
                             if (field.state.antiAliasRotation) {
-                                angle = Math.PI / 32;
+                                angle = (Math.PI / 32) * (e.mag / 3);
                                 moveCountBeforeRotation = 2;
                             }
                             const startTouchPos = [(this.field.zoom.invZoomX(this.drawingScreenListener.startTouchPos[0]) / field.width()) * field.width(),
