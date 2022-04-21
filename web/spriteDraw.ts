@@ -4046,7 +4046,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.selectionTool = new SelectionTool("selection", ["images/ThePixelSlime1Icons/selectionSprite.png","images/selectionSprite.png"], [this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.outLineTool = new OutlineTool("outline", ["images/ThePixelSlime1Icons/outlineSprite.png", "images/outlineSprite.png"], this, [this.colorPickerTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout]);
         this.rotateTool = new RotateTool("rotate", ["images/ThePixelSlime1Icons/rotateSprite.png", "images/rotateSprite.png"], () => field.state.rotateOnlyOneColor = this.rotateTool.checkBox.checked, 
-            () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.undoTool.localLayout, this.transformTool.localLayout, this.undoTool.localLayout], this);
+            () => field.state.antiAliasRotation = this.rotateTool.checkBoxAntiAlias.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.dragTool = new DragTool("drag", ["images/ThePixelSlime1Icons/dragSprite.png", "images/dragSprite.png"], () => field.state.dragOnlyOneColor = this.dragTool.checkBox.checked,
         () => field.state.blendAlphaOnPutSelectedPixels = this.dragTool.checkBoxBlendAlpha.checked, [this.transformTool.localLayout, this.undoTool.localLayout], this);
         this.settingsTool = new DrawingScreenSettingsTool([524, 524], field, "settings",["images/ThePixelSlime1Icons/settingsSprite.png", "images/settingsSprite.png"], [ this.transformTool.localLayout ]);
