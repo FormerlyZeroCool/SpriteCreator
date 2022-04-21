@@ -7053,14 +7053,14 @@ async function main() {
     field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
     field.zoomToScreen();
     canvas.style.cursor = "pointer";
-    const fps = 35;
+    const fps = 60;
     const goalSleep = 1000 / fps;
     let counter = 0;
     const touchScreen = isTouchSupported();
     const toolCanvas = document.getElementById("tool_selector_screen");
     let toolCtx = toolCanvas.getContext("2d");
-    while (true) {
-        const start = Date.now();
+    let start = Date.now();
+    const drawLoop = async () => {
         if (canvas.width != getWidth() - (toolCanvas.width + 30) || toolCanvas.width !== Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height)) {
             if (!touchScreen)
                 canvas.height = window.screen.height * 0.65;
@@ -7085,12 +7085,15 @@ async function main() {
         if (counter++ % 3 === 0)
             pallette.draw();
         const adjustment = Date.now() - start < 30 ? Date.now() - start : 30;
-        await sleep(goalSleep - adjustment);
-        if (1000 / (Date.now() - start) < fps - 5) {
-            console.log("avgfps:", Math.floor(1000 / (Date.now() - start)));
-            if (1000 / (Date.now() - start) < 1)
-                console.log("frame time:", (Date.now() - start) / 1000);
-        }
-    }
+        //await sleep(goalSleep - adjustment);
+        /*if(1000/(Date.now() - start) < fps - 5){
+            console.log("avgfps:",Math.floor(1000/(Date.now() - start)))
+            if(1000/(Date.now() - start) < 1)
+                console.log("frame time:",(Date.now() - start) / 1000);
+        }*/
+        requestAnimationFrame(drawLoop);
+        start = Date.now();
+    };
+    drawLoop();
 }
 main();

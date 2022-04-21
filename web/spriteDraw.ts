@@ -8668,15 +8668,15 @@ async function main()
     field.zoomToScreen();
 
     canvas.style.cursor = "pointer";
-    const fps = 35;
+    const fps = 60;
     const goalSleep = 1000/fps;
     let counter = 0;
     const touchScreen:boolean = isTouchSupported();
     const toolCanvas:HTMLCanvasElement = <HTMLCanvasElement> document.getElementById("tool_selector_screen");
     let toolCtx:CanvasRenderingContext2D = toolCanvas.getContext("2d")!;
-    while(true)
+    let start:number = Date.now();
+    const drawLoop = async () => 
     {
-        const start:number = Date.now();
         if(canvas.width != getWidth() - (toolCanvas.width + 30) || toolCanvas.width !== Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height))
         {
             if(!touchScreen)
@@ -8704,12 +8704,16 @@ async function main()
             pallette.draw();
         
         const adjustment:number = Date.now() - start < 30 ? Date.now() - start : 30;
-        await sleep(goalSleep - adjustment);
-        if(1000/(Date.now() - start) < fps - 5){
+        //await sleep(goalSleep - adjustment);
+        /*if(1000/(Date.now() - start) < fps - 5){
             console.log("avgfps:",Math.floor(1000/(Date.now() - start)))
             if(1000/(Date.now() - start) < 1)
                 console.log("frame time:",(Date.now() - start) / 1000);
-        }
+        }*/
+        requestAnimationFrame(drawLoop);
+        start = Date.now();
     }
+    drawLoop();
+
 }
 main();
