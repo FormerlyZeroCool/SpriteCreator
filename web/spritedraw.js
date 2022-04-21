@@ -2336,8 +2336,8 @@ class ColorPickerTool extends ExtendedTool {
 }
 ;
 class DrawingScreenSettingsTool extends ExtendedTool {
-    constructor(dim = [524, 524], field, toolName, pathToImage, optionPanes) {
-        super(toolName, pathToImage, optionPanes, [200, 430], [4, 75]);
+    constructor(dim = [524, 520], field, toolName, pathToImage, optionPanes) {
+        super(toolName, pathToImage, optionPanes, [200, 490], [4, 75]);
         this.dim = dim;
         this.field = field;
         this.checkBoxResizeImage = new GuiCheckBox(() => field.state.resizeSprite = this.checkBoxResizeImage.checked, 40, 40);
@@ -2396,15 +2396,18 @@ class DrawingScreenSettingsTool extends ExtendedTool {
             field.refreshBackgroundCanvas();
         }, () => { });
         this.backgroundOptions.refresh();
+        this.checkboxAlwaysShowMiniMap = new GuiCheckBox(() => { }, 40, 40);
         this.localLayout.addElement(new GuiLabel("Sprite Resolution:", 200, 16, GuiTextBox.bottom, 20));
         this.localLayout.addElement(new GuiLabel("Width:", 90, 16));
         this.localLayout.addElement(new GuiLabel("Height:", 90, 16));
         this.localLayout.addElement(this.tbX);
         this.localLayout.addElement(this.tbY);
         //this.localLayout.addElement(new GuiSpacer([85, 10]));
-        this.localLayout.addElement(new GuiLabel("Resize\nsprite:", 80, 16, GuiTextBox.bottom, this.btUpdate.height()));
+        this.localLayout.addElement(new GuiLabel("Resize\nsprite:", 130, 16, GuiTextBox.bottom, this.btUpdate.height()));
         this.localLayout.addElement(this.checkBoxResizeImage);
         //this.localLayout.addElement(new GuiSpacer([100, 40]));
+        this.localLayout.addElement(new GuiLabel("Always\nshow map:", 130, 16, GuiTextBox.bottom, 40));
+        this.localLayout.addElement(this.checkboxAlwaysShowMiniMap);
         this.localLayout.addElement(new GuiLabel("map\nalpha:", 100, 16));
         this.localLayout.addElement(this.sliderMiniMapTransparency);
         this.localLayout.addElement(new GuiLabel("palette\nsize:", 100, 16, GuiTextBox.bottom, 40));
@@ -5296,7 +5299,7 @@ class LayeredDrawingScreen {
                 ctx.strokeStyle = "#000000";
             }
             ctx.strokeRect(this.zoom.zoomedX, this.zoom.zoomedY, zoomedWidth, zoomedHeight);
-            if (zoomedHeight > canvas.height || zoomedWidth > canvas.width) {
+            if ((zoomedHeight > canvas.height || zoomedWidth > canvas.width) || this.toolSelector.settingsTool.checkboxAlwaysShowMiniMap.checked) {
                 this.zoom.miniMapRect[0] = canvas.width - this.zoom.miniMapRect[2];
                 this.zoom.miniMapRect[1] = canvas.height - this.zoom.miniMapRect[3];
                 this.renderMiniMap(canvas, ctx, this.zoom.miniMapRect[0], this.zoom.miniMapRect[1], this.zoom.miniMapRect[2], this.zoom.miniMapRect[3]);
