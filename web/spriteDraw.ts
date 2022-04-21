@@ -3281,7 +3281,6 @@ class LayerManagerTool extends Tool {
 };
 class ScreenTransformationTool extends ExtendedTool {
     textBoxZoom:GuiSlider;
-    buttonUpdateZoom:GuiButton;
     buttonZoomToScreen:GuiButton;
     buttonFlipHorizonally:GuiButton;
     buttonFlipVertically:GuiButton;
@@ -3302,6 +3301,7 @@ class ScreenTransformationTool extends ExtendedTool {
         this.field = field;
         this.maxZoom = 50
         this.getOptionPanel()!.pixelDim[1] += 50;
+        this.localLayout.addElement(new GuiLabel("Screen view:", 150, 16));
         this.localLayout.addElement(new GuiLabel("Zoom:", 100));
         const updateZoom = () => {
             const bias = 0.1;
@@ -3310,11 +3310,10 @@ class ScreenTransformationTool extends ExtendedTool {
             field.zoom.zoomX = this.textBoxZoom.state * this.maxZoom + bias;
             field.zoom.zoomY = field.zoom.zoomY * ratio;
         };
-        this.buttonUpdateZoom = new GuiButton(updateZoom, "Set Zoom", 100, 40, 16);
         this.buttonZoomToScreen = new GuiButton(() => {
             field.zoomToScreen();
             this.setZoom(field.zoom.zoomX);
-        }, "Auto Zoom", 95, 40, 16);
+        }, "Auto", 60, 35, 16);
         this.textBoxZoom = new GuiSlider(25 / 50, [100, 30], updateZoom);
         //this.textBoxZoom.setText(field.zoom.zoomX.toString());
 
@@ -3325,9 +3324,9 @@ class ScreenTransformationTool extends ExtendedTool {
             field.layer().flipVertically();
         }, "Flip Around X Axis", 150, 40, 16);
         this.localLayout.addElement(this.textBoxZoom);
-        this.localLayout.addElement(this.buttonUpdateZoom);
         this.localLayout.addElement(this.buttonZoomToScreen);
-        this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center Screen", 140, 40, 16));
+        this.localLayout.addElement(new GuiSpacer([10,30]));
+        this.localLayout.addElement(new GuiButton(() => {field.zoom.offsetX = 0;field.zoom.offsetY = 0;}, "Center", 90, 35, 16));
         this.getOptionPanel()!.addElement(this.buttonFlipHorizonally);
         this.getOptionPanel()!.addElement(this.buttonFlipVertically);
     }
