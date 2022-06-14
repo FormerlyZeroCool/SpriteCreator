@@ -2647,7 +2647,8 @@ class SprayCanTool extends PenTool {
     constructor(strokeWidth:number, toolName:string, pathToImage:string[], callBack:(tbProbability:GuiSlider)=>void, optionPanes:SimpleGridLayoutManager[], field:LayeredDrawingScreen)
     {
         super(strokeWidth, toolName, pathToImage, optionPanes, field, [200, 155]);
-        this.tbProbability = new GuiSlider(1, [100, 40], (event:SlideEvent) => {
+        this.localLayout.matrixDim = [8, 5];
+        this.tbProbability = new GuiSlider(1, [125, 40], (event:SlideEvent) => {
             callBack(this.tbProbability);
         });
         this.btUpdate.callback = () => { 
@@ -2655,7 +2656,7 @@ class SprayCanTool extends PenTool {
             this.tbSize.setText(String(this.lineWidth));
             callBack(this.tbProbability);
         };
-        this.localLayout.addElement(new GuiLabel("Spray\nprob:", 99, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
+        this.localLayout.addElement(new GuiLabel("Spray\nprob:", 70, 16, GuiTextBox.bottom | GuiTextBox.left, 40));
         this.localLayout.addElement(this.tbProbability);
     }
 };
@@ -3303,10 +3304,10 @@ class ScreenTransformationTool extends ExtendedTool {
     {
         super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60], [1, 40]);
         this.field = field;
-        this.maxZoom = 50
+        this.maxZoom = 60;
         this.getOptionPanel()!.pixelDim[1] += 50;
         this.localLayout.addElement(new GuiLabel("Screen view:", 150, 16));
-        this.localLayout.addElement(new GuiLabel("Zoom:", 100));
+        this.localLayout.addElement(new GuiLabel("Zoom:", 70));
         const updateZoom = () => {
             const bias = 0.1;
             let ratio:number = 1;
@@ -3318,7 +3319,7 @@ class ScreenTransformationTool extends ExtendedTool {
             field.zoomToScreen();
             this.setZoom(field.zoom.zoomX);
         }, "Auto", 60, 35, 16);
-        this.textBoxZoom = new GuiSlider(25 / 50, [100, 30], updateZoom);
+        this.textBoxZoom = new GuiSlider(25 / 50, [130, 30], updateZoom);
         //this.textBoxZoom.setText(field.zoom.zoomX.toString());
 
         this.buttonFlipHorizonally = new GuiButton(() => {
@@ -8698,11 +8699,14 @@ async function main()
     {
         if(canvas.width != getWidth() - (toolCanvas.width + 30) || toolCanvas.width !== Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height))
         {
-            if(!touchScreen)
+            if(!touchScreen){
                 canvas.height = window.screen.height * 0.65;
-            else
+                toolCanvas.height = pallette.canvas.height + canvas.height;
+            }
+            else {
                 canvas.height = window.screen.height;
-            toolCanvas.height = pallette.canvas.height + canvas.height;
+                toolCanvas.height = pallette.canvas.height + canvas.height * (canvas.height > canvas.width? 6 / 8:1);
+            }
             toolCanvas.width = Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height);
             toolSelector.repaint = true;
             canvas.width = getWidth() - toolCanvas.width - 30;
