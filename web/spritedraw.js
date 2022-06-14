@@ -7085,7 +7085,7 @@ async function main() {
             }
             else {
                 canvas.height = window.screen.height;
-                toolCanvas.height = pallette.canvas.height + canvas.height * (canvas.height > canvas.width ? 6 / 8 : 1);
+                toolCanvas.height = pallette.canvas.height + canvas.height * (canvas.height / canvas.width > 1 ? (canvas.height / canvas.width > 0.5 ? 6 / 8 : 1 / 2) : 1);
             }
             toolCanvas.width = Math.floor(toolSelector.width() / toolSelector.height() * toolCanvas.height);
             toolSelector.repaint = true;
