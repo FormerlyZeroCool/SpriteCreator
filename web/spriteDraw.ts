@@ -3827,6 +3827,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             const gStartX:number = Math.floor((startTouchPos[0])/field.layer().bounds.first*field.layer().dimensions.first);
             const gStartY:number = Math.floor((startTouchPos[1])/field.layer().bounds.second*field.layer().dimensions.second);
             let repaint:boolean = true;
+
             if(keyboardHandler.keysHeld["Space"])
             {
 
@@ -4268,6 +4269,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             await screen.undoLast();
         }
         screen.updatesStack.push([]);
+
         if(this.previewScreen.state.lineWidth === 1 || 
             (this.previewScreen.state.lineWidth <= 20 && screen.dimensions.first * screen.dimensions.second <= 128*128) ||
             (this.previewScreen.state.lineWidth <= 10 && screen.dimensions.first * screen.dimensions.second <= 256*256) ||
@@ -8722,7 +8724,7 @@ async function main()
         toolSelector.draw();
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
-        if(toolSelector.drawingScreenListener.mouseOverElement)
+        if(toolSelector.drawingScreenListener.mouseOverElement || touchScreen)
             await toolSelector.renderDrawingScreenPreview();
         if(animationGroupSelector.animationGroup())
             animationGroupSelector.draw();

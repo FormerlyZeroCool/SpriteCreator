@@ -7100,7 +7100,7 @@ async function main() {
         toolSelector.draw();
         field.update();
         field.draw(canvas, ctx, 0, 0, canvas.width, canvas.height);
-        if (toolSelector.drawingScreenListener.mouseOverElement)
+        if (toolSelector.drawingScreenListener.mouseOverElement || touchScreen)
             await toolSelector.renderDrawingScreenPreview();
         if (animationGroupSelector.animationGroup())
             animationGroupSelector.draw();
