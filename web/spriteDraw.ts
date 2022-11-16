@@ -8441,10 +8441,10 @@ window.addEventListener("resize", () => {
       );
     height = document.documentElement.innerHeight;
 });
-export function getWidth():number {
+function getWidth():number {
     return width;
 }
-export function getHeight():number {
+function getHeight():number {
     return height;
 }
   
