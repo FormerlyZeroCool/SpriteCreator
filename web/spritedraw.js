@@ -1,3 +1,4 @@
+"use strict";
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -6849,10 +6850,10 @@ window.addEventListener("resize", () => {
     width = Math.min(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
     height = document.documentElement.innerHeight;
 });
-export function getWidth() {
+function getWidth() {
     return width;
 }
-export function getHeight() {
+function getHeight() {
     return height;
 }
 async function main() {
