@@ -5338,10 +5338,22 @@ class DrawingScreen {
         {
             const min:number = Math.min(x1, x2);
             const max:number = Math.max(x1, x2);
-            for(let x = min; x < max; x+=delta)
+            let y:number = m*min + b;
+            let error:number = 0;
+            for(let x = min; x < max; x++)
             {
-                const y:number = m*x + b;
+                if(error > 0.5)
+                {
+                    y++;
+                    error--;
+                }
+                else if(error < -0.5)
+                {
+                    y--;
+                    error++;
+                }
                 drawPoint(x, y, this);
+                error += m;
             }
         }
         else
@@ -7172,6 +7184,7 @@ function findLeastUsedDoubleWord(buffer:Int32Array): number
     else
         return minUsedKey;
 }
+
 function rleEncode(buffer:Int32Array):Int32Array 
 {
     const flag:number = findLeastUsedDoubleWord(buffer);
@@ -8404,15 +8417,30 @@ function saveBlob(blob:Blob, fileName:string){
         a.click();
     }
 }
-function getWidth() {
-    return Math.max(
-      document.body.scrollWidth,
-      document.documentElement.scrollWidth,
-      document.body.offsetWidth,
-      document.documentElement.offsetWidth,
-      document.documentElement.clientWidth
-    );
-  }
+let width:number = Math.min(
+    document.body.scrollWidth,
+    document.documentElement.scrollWidth,
+    document.body.offsetWidth,
+    document.documentElement.offsetWidth,
+    document.documentElement.clientWidth
+  );
+let height:number = Math.min(
+    //document.body.scrollHeight,
+    //document.documentElement.scrollHeight,
+    //document.body.offsetHeight,
+    //document.documentElement.offsetHeight//,
+    document.body.clientHeight
+  );
+window.addEventListener("resize", () => {
+    width = Math.min(
+        document.body.scrollWidth,
+        document.documentElement.scrollWidth,
+        document.body.offsetWidth,
+        document.documentElement.offsetWidth,
+        document.body.clientWidth
+      );
+    height = document.documentElement.clientHeight;
+});
   
 async function main()
 {
@@ -8541,6 +8569,7 @@ async function main()
         {
             field.layer().state.color = pallette.selectedPixelColor; 
             field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA()); 
+            field.layer()!.toolSelector.colorPickerTool!.btUpdate.callback();
         }
         else
         {

@@ -1,3 +1,4 @@
+"use strict";
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -4355,9 +4356,19 @@ class DrawingScreen {
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
             const min = Math.min(x1, x2);
             const max = Math.max(x1, x2);
-            for (let x = min; x < max; x += delta) {
-                const y = m * x + b;
+            let y = m * min + b;
+            let error = 0;
+            for (let x = min; x < max; x++) {
+                if (error > 0.5) {
+                    y++;
+                    error--;
+                }
+                else if (error < -0.5) {
+                    y--;
+                    error++;
+                }
                 drawPoint(x, y, this);
+                error += m;
             }
         }
         else {
@@ -6828,9 +6839,17 @@ function saveBlob(blob, fileName) {
         a.click();
     }
 }
-function getWidth() {
-    return Math.max(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
-}
+let width = Math.min(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
+let height = Math.min(
+//document.body.scrollHeight,
+//document.documentElement.scrollHeight,
+//document.body.offsetHeight,
+//document.documentElement.offsetHeight//,
+document.body.clientHeight);
+window.addEventListener("resize", () => {
+    width = Math.min(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.body.clientWidth);
+    height = document.documentElement.clientHeight;
+});
 async function main() {
     const canvas = document.getElementById("screen");
     let maybectx = canvas.getContext("2d");
@@ -6942,6 +6961,7 @@ async function main() {
         if (!e.button) {
             field.layer().state.color = pallette.selectedPixelColor;
             field.layer().toolSelector.colorPickerTool.tbColor.setText(pallette.selectedPixelColor.htmlRBGA());
+            field.layer().toolSelector.colorPickerTool.btUpdate.callback();
         }
         else {
             field.layer().state.color = pallette.selectedBackColor;
