@@ -13,10 +13,10 @@ function changeFavicon(src:string): void
     }
     document.head.appendChild(link);
 }
-fetchImage('/web/images/favicon.ico').then((value) =>
-changeFavicon('/web/images/favicon.ico'));
-fetchImage('images/favicon.ico').then((value) =>
-changeFavicon('images/favicon.ico'));
+fetchImage('/web/images/ThePixelSlime1Icons/penSprite.png').then((value) =>
+changeFavicon('/web/images/ThePixelSlime1Icons/penSprite.png'));
+fetchImage('images/ThePixelSlime1Icons/penSprite.png').then((value) =>
+changeFavicon('images/ThePixelSlime1Icons/penSprite.png'));
 const dim = [128,128];
 
 interface FilesHaver{

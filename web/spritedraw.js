@@ -12,8 +12,8 @@ function changeFavicon(src) {
     }
     document.head.appendChild(link);
 }
-fetchImage('/web/images/favicon.ico').then((value) => changeFavicon('/web/images/favicon.ico'));
-fetchImage('images/favicon.ico').then((value) => changeFavicon('images/favicon.ico'));
+fetchImage('/web/images/ThePixelSlime1Icons/penSprite.png').then((value) => changeFavicon('/web/images/ThePixelSlime1Icons/penSprite.png'));
+fetchImage('images/ThePixelSlime1Icons/penSprite.png').then((value) => changeFavicon('images/ThePixelSlime1Icons/penSprite.png'));
 const dim = [128, 128];
 ;
 function threeByThreeMat(a, b) {
@@ -2656,6 +2656,14 @@ class LayerManagerTool extends Tool {
 }
 ;
 class ScreenTransformationTool extends ExtendedTool {
+    setZoom(zoom) {
+        const bias = 0.1;
+        let ratio = 1;
+        ratio = zoom / this.field.zoom.zoomX;
+        this.field.zoom.zoomX = zoom;
+        this.field.zoom.zoomY = this.field.zoom.zoomY * ratio;
+        this.textBoxZoom.setState(zoom / this.maxZoom);
+    }
     constructor(toolName, toolImagePath, optionPanes, field) {
         super(toolName, toolImagePath, optionPanes, [200, 115], [20, 60], [1, 40]);
         this.field = field;
@@ -2688,14 +2696,6 @@ class ScreenTransformationTool extends ExtendedTool {
         this.localLayout.addElement(new GuiButton(() => { field.zoom.offsetX = 0; field.zoom.offsetY = 0; }, "Center", 90, 35, 16));
         this.getOptionPanel().addElement(this.buttonFlipHorizonally);
         this.getOptionPanel().addElement(this.buttonFlipVertically);
-    }
-    setZoom(zoom) {
-        const bias = 0.1;
-        let ratio = 1;
-        ratio = zoom / this.field.zoom.zoomX;
-        this.field.zoom.zoomX = zoom;
-        this.field.zoom.zoomY = this.field.zoom.zoomY * ratio;
-        this.textBoxZoom.setState(zoom / this.maxZoom);
     }
 }
 ;
@@ -6845,10 +6845,10 @@ let height = Math.min(
 //document.documentElement.scrollHeight,
 //document.body.offsetHeight,
 //document.documentElement.offsetHeight//,
-document.documentElement.innerHeight);
+document.body.innerHeight);
 window.addEventListener("resize", () => {
     width = Math.min(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
-    height = document.documentElement.innerHeight;
+    height = document.body.innerHeight;
 });
 function getWidth() {
     return width;
