@@ -1,6 +1,4 @@
-function sleep(ms:number):Promise<void> {
-    return new Promise<void>((resolve:any) => setTimeout(resolve, ms));
-}
+import { sleep } from './utils.js'
 function changeFavicon(src:string): void
 {
     let link = document.createElement('link'),
@@ -19,9 +17,6 @@ fetchImage('images/ThePixelSlime1Icons/penSprite.png').then((value) =>
 changeFavicon('images/ThePixelSlime1Icons/penSprite.png'));
 const dim = [128,128];
 
-interface FilesHaver{
-    files:FileList;
-};
 function threeByThreeMat(a:number[], b:number[]):number[]
 {
     return [a[0]*b[0]+a[1]*b[3]+a[2]*b[6], 
@@ -222,7 +217,6 @@ class RollingStack<T> {
         return this.data[(this.start + index) % this.reserve];
     }
 };
-
 function blendAlphaCopy(color0:RGB, color:RGB):void
 {
     const alphant:number = color0.alphaNormal();
@@ -8417,6 +8411,7 @@ function saveBlob(blob:Blob, fileName:string){
         a.click();
     }
 }
+
 let width:number = Math.min(
     document.body.scrollWidth,
     document.documentElement.scrollWidth,
@@ -8425,11 +8420,7 @@ let width:number = Math.min(
     document.documentElement.clientWidth
   );
 let height:number = Math.min(
-    //document.body.scrollHeight,
-    //document.documentElement.scrollHeight,
-    //document.body.offsetHeight,
-    //document.documentElement.offsetHeight//,
-    document.body.innerHeight
+    document.body.clientHeight
   );
 window.addEventListener("resize", () => {
     width = Math.min(
@@ -8437,15 +8428,24 @@ window.addEventListener("resize", () => {
         document.documentElement.scrollWidth,
         document.body.offsetWidth,
         document.documentElement.offsetWidth,
-        document.documentElement.clientWidth
+        document.body.clientWidth
       );
-    height = document.body.innerHeight;
+    height = document.body.clientHeight;
 });
-function getWidth():number {
-    return width;
+let landscape = true;
+setInterval(() => {
+    if (screen.orientation.type === "landscape-primary") {
+        landscape = true;
+      } else if (screen.orientation.type === "portrait-primary") {
+        landscape = false;
+      }
+}, 500);
+
+export function getWidth():number {
+    return !landscape ? Math.min(width, height) : Math.max(width, height);
 }
-function getHeight():number {
-    return height;
+export function getHeight():number {
+    return !landscape ? Math.max(width, height) : Math.min(width, height);
 }
   
 async function main()

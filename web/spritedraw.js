@@ -15,7 +15,6 @@ function changeFavicon(src) {
 fetchImage('/web/images/ThePixelSlime1Icons/penSprite.png').then((value) => changeFavicon('/web/images/ThePixelSlime1Icons/penSprite.png'));
 fetchImage('images/ThePixelSlime1Icons/penSprite.png').then((value) => changeFavicon('images/ThePixelSlime1Icons/penSprite.png'));
 const dim = [128, 128];
-;
 function threeByThreeMat(a, b) {
     return [a[0] * b[0] + a[1] * b[3] + a[2] * b[6],
         a[0] * b[1] + a[1] * b[4] + a[2] * b[7],
