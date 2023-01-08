@@ -1,7 +1,4 @@
-"use strict";
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { isTouchSupported, SingleTouchListener, MultiTouchListener } from './io.js';
 function changeFavicon(src) {
     let link = document.createElement('link'), oldLink = document.getElementById('dynamic-favicon');
     link.id = 'dynamic-favicon';
@@ -5384,275 +5381,6 @@ class ListenerTypes {
 }
 ;
 ;
-function isTouchSupported() {
-    return (('ontouchstart' in window) ||
-        (navigator.maxTouchPoints > 0));
-}
-class MouseDownTracker {
-    constructor() {
-        const component = document;
-        this.mouseDown = false;
-        this.count = null;
-        if (isTouchSupported()) {
-            this.count = 0;
-            component.addEventListener('touchstart', event => { this.mouseDown = true; this.count++; }, false);
-            component.addEventListener('touchend', event => { this.mouseDown = false; this.count--; }, false);
-        }
-        if (!isTouchSupported()) {
-            component.addEventListener('mousedown', event => this.mouseDown = true);
-            component.addEventListener('mouseup', event => this.mouseDown = false);
-        }
-    }
-    getTouchCount() { return this.count; }
-}
-class SingleTouchListener {
-    constructor(component, preventDefault, mouseEmulation, stopRightClick = false) {
-        this.lastTouchTime = Date.now();
-        this.offset = [];
-        this.moveCount = 0;
-        this.touchMoveEvents = [];
-        this.translateEvent = (e, dx, dy) => e.touchPos = [e.touchPos[0] + dx, e.touchPos[1] + dy];
-        this.scaleEvent = (e, dx, dy) => e.touchPos = [e.touchPos[0] * dx, e.touchPos[1] * dy];
-        this.startTouchPos = [0, 0];
-        this.component = component;
-        this.preventDefault = preventDefault;
-        this.touchStart = null;
-        this.registeredTouch = false;
-        this.touchPos = [0, 0];
-        this.touchVelocity = 0;
-        this.touchMoveCount = 0;
-        this.deltaTouchPos = 0;
-        this.listenerTypeMap = {
-            touchstart: [],
-            touchmove: [],
-            touchend: []
-        };
-        this.mouseOverElement = false;
-        if (component) {
-            if (isTouchSupported()) {
-                component.addEventListener('touchstart', (event) => { this.touchStartHandler(event); }, false);
-                component.addEventListener('touchmove', (event) => this.touchMoveHandler(event), false);
-                component.addEventListener('touchend', (event) => this.touchEndHandler(event), false);
-            }
-            if (mouseEmulation && !isTouchSupported()) {
-                if (stopRightClick)
-                    component.addEventListener("contextmenu", (e) => {
-                        e.preventDefault();
-                        return false;
-                    });
-                component.addEventListener("mouseover", (event) => { this.mouseOverElement = true; });
-                component.addEventListener("mouseleave", (event) => { this.mouseOverElement = false; });
-                component.addEventListener('mousedown', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchStartHandler(event); });
-                component.addEventListener('mousemove', (event) => {
-                    event.changedTouches = {};
-                    event.changedTouches.item = (x) => event;
-                    this.touchMoveHandler(event);
-                });
-                component.addEventListener('mouseup', (event) => { event.changedTouches = {}; event.changedTouches.item = (x) => event; this.touchEndHandler(event); });
-            }
-        }
-    }
-    registerCallBack(listenerType, predicate, callBack) {
-        this.listenerTypeMap[listenerType].push(new TouchHandler(predicate, callBack));
-    }
-    callHandler(type, event) {
-        const handlers = this.listenerTypeMap[type];
-        const touchSupported = isTouchSupported();
-        if (SingleTouchListener.mouseDown.getTouchCount() < 2)
-            handlers.forEach((handler) => {
-                if ((!event.defaultPrevented || touchSupported) && handler.pred(event)) {
-                    handler.callBack(event);
-                }
-            });
-    }
-    touchStartHandler(event) {
-        this.registeredTouch = true;
-        this.moveCount = 0;
-        event.timeSinceLastTouch = Date.now() - (this.lastTouchTime ? this.lastTouchTime : 0);
-        this.lastTouchTime = Date.now();
-        this.touchStart = event.changedTouches.item(0);
-        this.touchPos = [this.touchStart["offsetX"], this.touchStart["offsetY"]];
-        if (!this.touchPos[0]) {
-            this.touchPos = [this.touchStart["clientX"] - this.component.getBoundingClientRect().left, this.touchStart["clientY"] - this.component.getBoundingClientRect().top];
-        }
-        this.startTouchPos = [this.touchPos[0], this.touchPos[1]];
-        event.touchPos = this.touchPos ? [this.touchPos[0], this.touchPos[1]] : [0, 0];
-        event.translateEvent = this.translateEvent;
-        event.scaleEvent = this.scaleEvent;
-        this.touchMoveEvents = [];
-        this.touchVelocity = 0;
-        this.touchMoveCount = 0;
-        this.deltaTouchPos = 0;
-        this.callHandler("touchstart", event);
-        if (this.preventDefault)
-            event.preventDefault();
-    }
-    touchMoveHandler(event) {
-        if (this.registeredTouch !== SingleTouchListener.mouseDown.mouseDown) {
-            this.touchEndHandler(event);
-        }
-        let touchMove = event.changedTouches.item(0);
-        for (let i = 0; i < event.changedTouches["length"]; i++) {
-            if (event.changedTouches.item(i).identifier == this.touchStart.identifier) {
-                touchMove = event.changedTouches.item(i);
-            }
-        }
-        if (touchMove) {
-            try {
-                if (!touchMove["offsetY"]) {
-                    touchMove.offsetY = touchMove["clientY"] - this.component.getBoundingClientRect().top;
-                }
-                if (!touchMove["offsetX"]) {
-                    touchMove.offsetX = touchMove["clientX"] - this.component.getBoundingClientRect().left;
-                }
-            }
-            catch (error) {
-                console.log(error);
-            }
-            const deltaY = touchMove["offsetY"] - this.touchPos[1];
-            const deltaX = touchMove["offsetX"] - this.touchPos[0];
-            this.touchPos[1] += deltaY;
-            this.touchPos[0] += deltaX;
-            if (!this.registeredTouch)
-                return false;
-            ++this.moveCount;
-            const mag = this.mag([deltaX, deltaY]);
-            this.touchMoveCount++;
-            this.deltaTouchPos += Math.abs(mag);
-            this.touchVelocity = 100 * this.deltaTouchPos / (Date.now() - this.lastTouchTime);
-            const a = this.normalize([deltaX, deltaY]);
-            const b = [1, 0];
-            const dotProduct = this.dotProduct(a, b);
-            const angle = Math.acos(dotProduct) * (180 / Math.PI) * (deltaY < 0 ? 1 : -1);
-            event.deltaX = deltaX;
-            event.startTouchPos = this.startTouchPos;
-            event.deltaY = deltaY;
-            event.mag = mag;
-            event.angle = angle;
-            event.avgVelocity = this.touchVelocity;
-            event.touchPos = this.touchPos ? [this.touchPos[0], this.touchPos[1]] : [0, 0];
-            event.startTouchTime = this.lastTouchTime;
-            event.eventTime = Date.now();
-            event.moveCount = this.moveCount;
-            event.translateEvent = this.translateEvent;
-            event.scaleEvent = this.scaleEvent;
-            this.touchMoveEvents.push(event);
-            this.callHandler("touchmove", event);
-        }
-        return true;
-    }
-    touchEndHandler(event) {
-        if (this.registeredTouch) {
-            let touchEnd = event.changedTouches.item(0);
-            for (let i = 0; i < event.changedTouches["length"]; i++) {
-                if (event.changedTouches.item(i).identifier === this.touchStart.identifier) {
-                    touchEnd = event.changedTouches.item(i);
-                }
-            }
-            if (touchEnd) {
-                if (!touchEnd["offsetY"]) {
-                    touchEnd.offsetY = touchEnd["clientY"] - this.component.getBoundingClientRect().top;
-                }
-                if (!touchEnd["offsetX"]) {
-                    touchEnd.offsetX = touchEnd["clientX"] - this.component.getBoundingClientRect().left;
-                }
-                const deltaY = touchEnd["offsetY"] - this.startTouchPos[1];
-                const deltaX = touchEnd["offsetX"] - this.startTouchPos[0];
-                this.touchPos = [touchEnd["offsetX"], touchEnd["offsetY"]];
-                const mag = this.mag([deltaX, deltaY]);
-                const a = this.normalize([deltaX, deltaY]);
-                const b = [1, 0];
-                const dotProduct = this.dotProduct(a, b);
-                const angle = Math.acos(dotProduct) * (180 / Math.PI) * (deltaY < 0 ? 1 : -1);
-                const delay = Date.now() - this.lastTouchTime; // from start tap to finish
-                this.touchVelocity = 100 * mag / (Date.now() - this.lastTouchTime);
-                event.deltaX = deltaX;
-                event.deltaY = deltaY;
-                event.mag = mag;
-                event.angle = angle;
-                event.avgVelocity = this.touchVelocity;
-                event.touchPos = this.touchPos ? [this.touchPos[0], this.touchPos[1]] : [0, 0];
-                event.timeDelayFromStartToEnd = delay;
-                event.startTouchTime = this.lastTouchTime;
-                event.eventTime = Date.now();
-                event.moveCount = this.moveCount;
-                event.translateEvent = this.translateEvent;
-                event.scaleEvent = this.scaleEvent;
-                try {
-                    this.callHandler("touchend", event);
-                }
-                catch (error) {
-                    console.log(error);
-                    this.registeredTouch = false;
-                }
-            }
-            this.touchMoveEvents = [];
-            this.registeredTouch = false;
-        }
-    }
-    mag(a) {
-        return Math.sqrt(a[0] * a[0] + a[1] * a[1]);
-    }
-    normalize(a) {
-        const magA = this.mag(a);
-        a[0] /= magA;
-        a[1] /= magA;
-        return a;
-    }
-    dotProduct(a, b) {
-        return a[0] * b[0] + a[1] * b[1];
-    }
-}
-SingleTouchListener.mouseDown = new MouseDownTracker();
-;
-class MultiTouchListenerTypes {
-    constructor() {
-        this.pinchIn = [];
-        this.pinchOut = [];
-    }
-}
-;
-class MultiTouchListener {
-    constructor(component) {
-        this.lastDistance = 0;
-        this.listenerTypeMap = new MultiTouchListenerTypes();
-        this.registeredMultiTouchEvent = false;
-        if (isTouchSupported()) {
-            component.addEventListener('touchmove', event => this.touchMoveHandler(event), false);
-            component.addEventListener('touchend', event => { this.registeredMultiTouchEvent = false; event.preventDefault(); }, false);
-        }
-    }
-    registerCallBack(listenerType, predicate, callBack) {
-        this.listenerTypeMap[listenerType].push(new TouchHandler(predicate, callBack));
-    }
-    callHandler(type, event) {
-        const handlers = this.listenerTypeMap[type];
-        handlers.forEach((handler) => {
-            if (!event.defaultPrevented && handler.pred(event)) {
-                handler.callBack(event);
-            }
-        });
-    }
-    touchMoveHandler(event) {
-        const touch1 = event.changedTouches.item(0);
-        const touch2 = event.changedTouches.item(1);
-        if (SingleTouchListener.mouseDown.getTouchCount() > 1) {
-            this.registeredMultiTouchEvent = true;
-        }
-        if (this.registeredMultiTouchEvent) {
-            const newDist = Math.sqrt(Math.pow((touch1.clientX - touch2.clientX), 2) + Math.pow(touch1.clientY - touch2.clientY, 2));
-            if (this.lastDistance > newDist) {
-                this.callHandler("pinchOut", event);
-            }
-            else {
-                this.callHandler("pinchIn", event);
-            }
-            event.preventDefault();
-            this.lastDistance = newDist;
-        }
-    }
-}
-;
 class Pallette {
     constructor(canvas, keyboardHandler, colorCount = 10, colors = null) {
         this.repaint = true;
@@ -6839,21 +6567,25 @@ function saveBlob(blob, fileName) {
     }
 }
 let width = Math.min(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
-let height = Math.min(
-//document.body.scrollHeight,
-//document.documentElement.scrollHeight,
-//document.body.offsetHeight,
-//document.documentElement.offsetHeight//,
-document.body.innerHeight);
+let height = Math.min(document.body.clientHeight);
 window.addEventListener("resize", () => {
-    width = Math.min(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth);
-    height = document.body.innerHeight;
+    width = Math.min(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.body.clientWidth);
+    height = document.body.clientHeight;
 });
+let landscape = true;
+setInterval(() => {
+    if (screen.orientation.type === "landscape-primary") {
+        landscape = true;
+    }
+    else if (screen.orientation.type === "portrait-primary") {
+        landscape = false;
+    }
+}, 500);
 function getWidth() {
-    return width;
+    return !landscape ? Math.min(width, height) : Math.max(width, height);
 }
 function getHeight() {
-    return height;
+    return !landscape ? Math.max(width, height) : Math.min(width, height);
 }
 async function main() {
     const canvas = document.getElementById("screen");
