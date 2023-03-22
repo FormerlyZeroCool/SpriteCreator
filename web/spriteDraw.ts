@@ -1,11 +1,11 @@
-import { GuiButton, GuiCheckBox, GuiColoredSpacer, GuiElement, GuiLabel, GuiListItem, GuiSlider, GuiSpacer, GuiTextBox, GuiToolBar, ImageContainer, Pair, RGB, RowRecord, SimpleGridLayoutManager, SlideEvent, TextBoxEvent, VerticalLayoutManager, blendAlphaCopy, horizontal_group, vertical_group } from './gui.js';
+import { GuiButton, GuiCheckBox, GuiColoredSpacer, GuiElement, GuiLabel, GuiListItem, GuiSlider, GuiSpacer, GuiTextBox, GuiToolBar, ImageContainer, Pair, RGB, RowRecord, SimpleGridLayoutManager, SlideEvent, Sprite, TextBoxEvent, VerticalLayoutManager, blendAlphaCopy, horizontal_group, vertical_group } from './gui.js';
 import {
     KeyboardHandler,
     TouchMoveEvent,
     isTouchSupported,
      SingleTouchListener,
      MultiTouchListener} from './io.js'
-import { FilesHaver, Queue, RollingStack, matByVec, sleep, threeByThreeMat } from './utils.js';
+import { FilesHaver, Queue, RollingStack, matByVec, rleDecode, rleEncode, sleep, threeByThreeMat } from './utils.js';
 function changeFavicon(src:string): void
 {
     let link = document.createElement('link'),
@@ -93,7 +93,8 @@ abstract class Tool extends ToolBarItem{
     abstract drawOptionPanel(ctx:CanvasRenderingContext2D, x:number, y:number):void;
     abstract handle_touch_events(type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field:LayeredDrawingScreen, toolBar:ToolSelector):void;
 };
-abstract class ViewLayoutTool extends Tool {
+class ViewLayoutTool extends Tool {
+    handle_touch_events(type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector): void {}
     layoutManager:SimpleGridLayoutManager;
     constructor(layoutManager:SimpleGridLayoutManager, name:string, path:string[])
     {
@@ -428,7 +429,8 @@ class FillTool extends ExtendedTool {
         this.localLayout.addElement(horizontal_group([ new GuiLabel("Non\nContiguous:", 130, 16, 35), this.checkNonContiguous ]));
     }
 };
-abstract class PenViewTool extends ViewLayoutTool {
+class PenViewTool extends ViewLayoutTool {
+    handle_touch_events(type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector): void {}
     pen:PenTool;
     constructor(pen:PenTool, name:string, path:string[])
     {
@@ -4687,130 +4689,6 @@ class Pallette {
         }
     }
 };
-class DynamicInt32Array {
-    data:Int32Array;
-    len:number;
-    constructor(size:number = 4096)
-    {
-        this.data = new Int32Array(size);
-        this.len = 0;
-    }
-    length(): number
-    {
-        return this.len;
-    }
-    push(value:number):void
-    {
-        if(this.data.length <= this.length())
-        {
-            const temp:Int32Array = new Int32Array(this.data.length * 2);
-            for(let i = 0; i < this.data.length; i++)
-            {
-                temp[i] = this.data[i];
-            }
-            this.data = temp;
-        }
-        this.data[this.len++] = value;
-    }
-    trimmed(): Int32Array
-    {
-        const data:Int32Array = new Int32Array(this.length());
-        for(let i = 0; i < data.length; i++)
-            data[i] = this.data[i];
-        return data;
-    }
-};
-function toInt32Array(data:number[]): Int32Array
-{
-    const newData:Int32Array = new Int32Array(data.length);
-    for(let i = 0; i < data.length; i++)
-    {
-        newData[i] = data[i];
-    }
-    return newData;
-}
-function findLeastUsedDoubleWord(buffer:Int32Array): number
-{
-    const useCount:Map<number, number> = new Map();
-    for(let i = 0; i < buffer.length; i++)
-    {
-        if(useCount.get(buffer[i]))
-            useCount.set(buffer[i], useCount.get(buffer[i]) + 1);
-        else
-            useCount.set(buffer[i], 1);
-    }
-    let minValue:number = useCount.values().next().value;
-    let minUsedKey:number = useCount.keys().next().value;
-    for(const [key, value] of useCount.entries())
-    {
-        if(value < minValue)
-        {
-            minUsedKey = key;
-            minValue = value;
-        }
-    }
-    let random:number = Math.floor(Math.random() * 1000000000);
-    for(let i = 0; i < 1000; i++)
-    {
-        if(!useCount.get(random))
-            break;
-        const newRandom:number = Math.floor(random * Math.random() * (1 + 10 * (i % 2)));
-        if(useCount.get(newRandom) < useCount.get(random))
-            random = newRandom;
-    }
-    if(!useCount.get(random) || useCount.get(random) < useCount.get(minUsedKey))
-        return random;
-    else
-        return minUsedKey;
-}
-
-function rleEncode(buffer:Int32Array):Int32Array 
-{
-    const flag:number = findLeastUsedDoubleWord(buffer);
-    const data:number[] = [];
-    data.push(flag);
-    for(let i = 0; i < buffer.length;)
-    {
-        const value:number = buffer[i];
-        let currentCount:number = 1;
-        while(buffer[i + currentCount] === value)
-            currentCount++;
-        
-        if(currentCount > 2 || value === flag)
-        {
-            data.push(flag);
-            data.push(value);
-            data.push(currentCount);
-            i += currentCount;
-        }
-        else
-        {
-            data.push(value);
-            i++;
-        }
-    }
-    return toInt32Array(data);
-}
-function rleDecode(encodedBuffer:Int32Array): Int32Array
-{
-    const data:number[] = [];
-    const flag:number = encodedBuffer[0];
-    for(let i = 1; i < encodedBuffer.length;)
-    {
-        if(encodedBuffer[i] !== flag)
-            data.push(encodedBuffer[i]);
-        else
-        {
-            const value:number = encodedBuffer[++i];
-            const count:number = encodedBuffer[++i];
-            for(let j = 0; j < count; j++)
-                data.push(value);
-        }
-        i++;
-        
-    }
-    return toInt32Array(data);
-}
 function buildSpriteFromBuffer(buffer:Int32Array, index:number):Pair<Sprite, number>
 {
     const size:number = buffer[index++];
@@ -4895,188 +4773,6 @@ function buildGroupsFromBuffer(buffer:Int32Array, groupsSelector:AnimationGroups
     return size;
 }
 
-class Sprite {
-    pixels:Uint8ClampedArray;
-    imageData:ImageData;
-    image:HTMLCanvasElement;
-    ctx:CanvasRenderingContext2D;
-    fillBackground:boolean;
-    width:number;
-    height:number;
-    constructor(pixels:Array<RGB>, width:number, height:number, fillBackground:boolean = true)
-    {
-        this.fillBackground = fillBackground;
-        this.imageData = <any> null;
-        this.pixels = <any> null;
-        this.image = document.createElement("canvas");
-        this.ctx = this.image.getContext("2d")!;
-        this.width = width;
-        this.height = height;
-        this.copy(pixels, width, height);
-    }
-    
-    createImageData():ImageData {
-
-        const canvas = this.image;
-        if(canvas.width !== this.width || canvas.height !== this.height)
-        {
-            canvas.width = this.width;
-            canvas.height = this.height;
-        }
-        this.ctx = canvas.getContext('2d')!;
-        this.ctx.imageSmoothingEnabled = false;
-
-        return this.ctx.createImageData(this.width, this.height);
-    }
-    copy(pixels:Array<RGB>, width:number, height:number):void
-    {
-
-        this.width = width;
-        this.height = height;
-        if(width !== 0 && height !== 0)
-        {
-            if(!this.pixels || this.pixels.length !== pixels.length || this.pixels.length > 0){
-                this.imageData = this.createImageData();
-                this.pixels = this.imageData.data;
-            }
-            const view:Int32Array = new Int32Array(this.pixels.buffer)
-            for(let i = 0; i < pixels.length; i++)
-            {
-                view[i] = pixels[i].color;
-            }
-            if(pixels.length)
-                this.refreshImage();
-        }
-    }
-    putPixels(ctx:CanvasRenderingContext2D):void
-    {
-        ctx.putImageData(this.imageData, 0, 0);
-    }
-    fillRect(color:RGB, x:number, y:number, width:number, height:number, view:Int32Array = new Int32Array(this.pixels.buffer))
-    {
-        for(let yi = y; yi < y+height; yi++)
-        {
-            const yiIndex:number = (yi*this.width);
-            const rowLimit:number = x + width + yiIndex;
-            for(let xi = x + yiIndex; xi < rowLimit; xi++)
-            {
-                view[xi] = color.color;
-            }
-        }
-    }
-    fillRectAlphaBlend(source:RGB, color:RGB, x:number, y:number, width:number, height:number, view:Int32Array = new Int32Array(this.pixels.buffer))
-    {
-        for(let yi = y; yi < y+height; yi++)
-        {
-            for(let xi = x; xi < x+width; xi++)
-            {
-                let index:number = (xi) + (yi*this.width);
-                source.color = view[index];
-                source.blendAlphaCopy(color);
-                view[index] = source.color;
-            }
-        }
-    }
-    copyToBuffer(buf:Array<RGB>, width:number, height:number, view:Int32Array = new Int32Array(this.pixels.buffer))
-    {
-        if(width * height !== buf.length)
-        {
-            console.log("error invalid dimensions supplied");
-            return;
-        }
-        for(let y = 0; y < this.height && y < height; y++)
-        {
-            for(let x = 0; x < this.width && x < width; x++)
-            {
-                const i:number = (x + y * width);
-                const vi:number = x + y * this.width;
-                buf[i].color = view[vi];
-            }
-        }
-    }
-    binaryFileSize():number
-    {
-        return 3 + this.width * this.height;
-    }
-    saveToUint32Buffer(buf:Int32Array, index:number, view:Int32Array = new Int32Array(this.pixels.buffer)):number
-    {
-        buf[index++] = this.binaryFileSize();
-        buf[index++] = 3;
-        buf[index] |= this.height << 16; 
-        buf[index++] |= this.width; 
-        for(let i = 0; i < view.length; i++)
-        {
-            buf[index] = view[i];
-            index++;
-        }
-        return index;
-    }
-    refreshImage():void 
-    {
-        const canvas = this.image;
-        if(canvas.width !== this.width || canvas.height !== this.height)
-        {
-            canvas.width = this.width;
-            canvas.height = this.height;
-            this.ctx = canvas.getContext("2d")!;
-        }
-        this.putPixels(this.ctx);
-    }
-    copySprite(sprite:Sprite):void
-    {
-        this.width = sprite.width;
-        this.height = sprite.height;
-        if(!this.pixels || this.pixels.length !== sprite.pixels.length)
-        {
-            this.imageData = this.createImageData();
-            this.pixels = this.imageData.data;
-        }
-        for(let i = 0; i < this.pixels.length;)
-        {
-            this.pixels[i] = sprite.pixels[i++];
-            this.pixels[i] = sprite.pixels[i++];
-            this.pixels[i] = sprite.pixels[i++];
-            this.pixels[i] = sprite.pixels[i++];
-        }
-    }
-    copySpriteBlendAlpha(sprite:Sprite):void
-    {
-        if(this.pixels.length !== sprite.pixels.length){
-            this.imageData = this.createImageData();
-            this.pixels = this.imageData.data;
-        }
-        this.width = sprite.width;
-        this.height = sprite.height;
-        const o:RGB = new RGB(0, 0, 0, 0);
-        const t:RGB = new RGB(0, 0, 0, 0);
-
-        for(let i = 0; i < this.pixels.length; i += 4)
-        {
-            o.setRed(sprite.pixels[i]);
-            o.setGreen(sprite.pixels[i+1]);
-            o.setBlue(sprite.pixels[i+2]);
-            o.setAlpha(sprite.pixels[i+3]);
-            t.setRed(this.pixels[i]);
-            t.setGreen(this.pixels[i+1]);
-            t.setBlue(this.pixels[i+2]);
-            t.setAlpha(this.pixels[i+3]);
-            t.blendAlphaCopy(o);
-            this.pixels[i] = t.red();
-            this.pixels[i+1] = t.green();
-            this.pixels[i+2] = t.blue();
-            this.pixels[i+3] = t.alpha();
-        }
-    }
-    draw(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void
-    {
-        if(this.pixels){ 
-            if(this.fillBackground){
-                ctx.clearRect(x, y, width, height);
-            }
-            ctx.drawImage(this.image, x, y, width, height);
-        }
-    }
-};
 class SpriteAnimation {
     sprites:Sprite[];
     x:number;
