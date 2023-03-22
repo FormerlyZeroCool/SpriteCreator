@@ -6,9 +6,17 @@ export function sign(val:number):number
 {
     return val < 0 ? -1 : 1;
 }
-export function clamp(num:number, min:number, max:number):number 
+function min(a:number, b:number):number
+{
+    return a < b ? a : b;
+}
+function max(a:number, b:number):number
+{
+    return a > b ? a : b;
+}
+export function clamp(num:number, min_val:number, max_val:number):number 
 { 
-    return Math.min(Math.max(num, min), max);
+    return min(max(num, min_val), max_val);
 }
 export function round_with_precision(value:number, precision:number):number
 {
@@ -32,7 +40,7 @@ export function get_angle(deltaX:number, deltaY:number, unit_vectorX:number = 1,
     const a:Array<number> = normalize([deltaX, deltaY]);
     const b:Array<number> = [unit_vectorX, unit_vectorY];
     const dotProduct:number = scalarDotProduct(a, b);
-    return Math.acos(dotProduct)*(deltaY<0?1:-1);
+    return Math.acos(dotProduct)*(deltaY<0?-1:1);
 }
 export function threeByThreeMat(a:number[], b:number[]):number[]
 {
@@ -92,8 +100,9 @@ export class PriorityQueue<T> {
         let index = 0;
         
         while(left(index) < this.size() && right(index) < this.size() && 
-            ( this.comparator(this.data[left(index)], this.data[index]) < 0 ||
-             this.comparator(this.data[right(index)], this.data[index]) < 0)
+            ( 
+                this.comparator(this.data[left(index)], this.data[index]) < 0 ||
+                this.comparator(this.data[right(index)], this.data[index]) < 0)
             )
         {
             const lesser_child = this.comparator(this.data[left(index)], this.data[right(index)]) < 0? left(index) : right(index);
@@ -102,9 +111,7 @@ export class PriorityQueue<T> {
             this.data[index] = temp;
             index = lesser_child;
         }
-        if(
-            left(index) < this.size() && this.comparator(this.data[left(index)], this.data[index]) < 0
-          )
+        if(left(index) < this.size() && this.comparator(this.data[left(index)], this.data[index]) < 0)
         {
             const lesser_child = left(index);
             const temp = this.data[lesser_child];
@@ -352,35 +359,45 @@ export class RollingStack<T> {
         return this.data[(this.start + index) % this.reserve];
     }
 };
-
-export class DynamicInt32Array {
-    data:Int32Array;
-    len:number;
+class NativeArrayView {
+    length:number;
+    constructor(size:number){}
+}
+export class DynamicFloat64Array {
+    data:Float64Array;
+    length:number;
     constructor(size:number = 4096)
     {
-        this.data = new Int32Array(size);
-        this.len = 0;
+        this.data = new Float64Array(size);
+        this.length = 0;
     }
-    length(): number
+    get(index:number):number
     {
-        return this.len;
+        return this.data[index];
     }
     push(value:number):void
     {
-        if(this.data.length <= this.length())
+        if(this.data.length <= this.length)
         {
-            const temp:Int32Array = new Int32Array(this.data.length * 2);
+            const temp:Float64Array = new Float64Array(this.data.length * 2);
             for(let i = 0; i < this.data.length; i++)
             {
                 temp[i] = this.data[i];
             }
             this.data = temp;
         }
-        this.data[this.len++] = value;
+        this.data[this.length++] = value;
     }
-    trimmed(): Int32Array
+    reserve(minimum:number):void
     {
-        const data:Int32Array = new Int32Array(this.length());
+        if(this.data.length < minimum)
+        {
+            this.data = new Float64Array(minimum);
+        }
+    }
+    trimmed(): DynamicFloat64Array
+    {
+        const data:DynamicFloat64Array = new DynamicFloat64Array(this.length);
         for(let i = 0; i < data.length; i++)
             data[i] = this.data[i];
         return data;
@@ -553,3 +570,150 @@ export function changeFavicon(src:string): void
     }
     document.head.appendChild(link);
 }
+export interface Process_Module {
+    path:string;
+    fields:string[];
+};
+export interface Process_Message <INPUT_TYPE> {
+    process_id:number;
+    data:INPUT_TYPE;
+}
+export class ProcessPool <INPUT_TYPE, RESULT_TYPE> {
+    workers:Worker[];
+    worker_promises:Promise<RESULT_TYPE>[];
+    worker_free_list:number[];
+    code_url:string;
+    modules:Process_Module[];
+    processes_enqueued_or_running:number;
+    last_enqueued_id:number;
+    constructor(poolSize:number, main:(input:INPUT_TYPE) => RESULT_TYPE, library_code:Function[] = [], modules:Process_Module[] = [], return_buffer_keys:string[] | null)
+    {
+        this.workers = [];
+        this.worker_promises = [];
+        this.worker_free_list = [];
+        this.processes_enqueued_or_running = 0;
+        this.last_enqueued_id = 0;
+        this.modules = modules;
+        const stringified_code = modules.map((pm) => {
+            return `import {${pm.fields.join(',')}} from '${pm.path}'\n`
+        }).concat(
+        library_code.map(foo => `const ${foo.name} = ${foo.toString()}`).concat(
+            ["\nconst main = ", main.toString(), ";\n", `self.onmessage = (event) => {const data = main(event.data.data); postMessage({process_id:event.data.process_id, data:data}${return_buffer_keys ? ", [" + return_buffer_keys.map(return_buffer_key => `data.${return_buffer_key}`).join() + "]":""}); }`]));
+        console.log(stringified_code.join(''));
+        this.code_url = window.URL.createObjectURL(new Blob(stringified_code, {
+          type: "text/javascript"
+        }));
+        for(let i = 0; i < poolSize; i++)
+        {
+            this.worker_free_list.push(i);
+            this.workers.push(this.createWorker());
+        }
+        this.worker_promises.length = poolSize;
+    }
+    createWorker():Worker 
+    {
+        const worker = new Worker(this.code_url, { type:'module' });
+        return worker;
+    }
+    async call_parallel(data:INPUT_TYPE, transfer:Transferable[] = []):Promise<RESULT_TYPE>
+    {
+        this.processes_enqueued_or_running++;
+        return await this._call_parallel(data, transfer);
+    }
+    async _call_parallel(data:INPUT_TYPE, transfer:Transferable[] = []):Promise<RESULT_TYPE>
+    {
+        let process_id = this.worker_free_list.pop();
+        while(process_id === undefined)
+        {
+            process_id = this.last_enqueued_id++;
+            this.last_enqueued_id %= this.workers.length;
+            await this.worker_promises[process_id];
+            const index_of_process_in_free_list = this.worker_free_list.indexOf(process_id);
+            if(index_of_process_in_free_list === -1)
+            {
+                if(this.worker_free_list.length)
+                    return this.call_parallel(data);
+                process_id = undefined;
+            }
+            else
+                this.worker_free_list.splice(index_of_process_in_free_list, 1);
+        }
+        const executor = (resolve:(value:RESULT_TYPE) => void) => {
+            worker.onmessage = (event:MessageEvent<Process_Message<RESULT_TYPE>>) => {
+                this.worker_free_list.push(event.data.process_id);
+                this.processes_enqueued_or_running--;
+                //console.log("thread id:", event.data.process_id);
+                resolve(event.data.data);
+            }
+        };
+        const worker = this.workers[process_id];
+        //return promise that will resolve to worker result
+        const promise = new Promise<RESULT_TYPE>(executor);
+        this.worker_promises[process_id] = promise;
+        worker.postMessage({
+            data:data, 
+            process_id:process_id
+        }, transfer);
+        return promise;
+    }
+    async batch_call_parallel(data:INPUT_TYPE[]):Promise<RESULT_TYPE[]>
+    {
+        const input_queue = new Queue<Promise<RESULT_TYPE>>();
+        for(let i = 0; i < data.length; i++)
+        {
+            const rec = data[i];
+            input_queue.push(this.call_parallel(rec));
+        }
+        const promise = new Promise<RESULT_TYPE[]>(async (resolve:(value:RESULT_TYPE[]) => void) => {
+            const final_result:RESULT_TYPE[] = [];
+            while(input_queue.length)
+            {
+                const result = await input_queue.pop()!;
+                final_result.push(result);
+            }
+            resolve(final_result);
+        });
+        return promise;
+    }
+
+};
+export class ProcessPoolUnordered <INPUT_TYPE, RESULT_TYPE> {
+    pool:ProcessPool<INPUT_TYPE, RESULT_TYPE>;
+    input_queue:Queue<INPUT_TYPE>;
+    constructor(poolSize:number, main:(input:INPUT_TYPE) => RESULT_TYPE, library_code:Function[] = [], modules:Process_Module[] = [], return_buffer_key:string[] | null)
+    {
+        this.pool = new ProcessPool<INPUT_TYPE, RESULT_TYPE>(poolSize, main, library_code, modules, return_buffer_key);
+        this.input_queue = new Queue<INPUT_TYPE>();
+    }
+    processing():boolean
+    {
+        return this.input_queue.length > 0;
+    }
+    add_job(data:INPUT_TYPE):void
+    {
+        this.input_queue.push(data);
+    }
+    async process_jobs(apply:(result:RESULT_TYPE) => void):Promise<void>
+    {
+        while(this.input_queue.length)
+        {
+            let last_thread_id = 
+                    this.pool.workers.findIndex((worker:Worker, index:number) => {
+                        return this.pool.worker_free_list.indexOf(index) === -1;
+                    });
+            while(this.pool.processes_enqueued_or_running < this.pool.workers.length && this.input_queue.length)
+            {
+                const apply_and_exec_next = (result:RESULT_TYPE) => {
+                    apply(result);
+                    if(this.input_queue.length)
+                    {
+                        this.pool.call_parallel(this.input_queue.pop()!).then(apply_and_exec_next);
+                    }
+                };
+                this.pool.call_parallel(this.input_queue.pop()!).then(apply_and_exec_next);
+            }
+            if(last_thread_id != -1)
+                await this.pool.worker_promises[last_thread_id];
+        }
+    }
+};

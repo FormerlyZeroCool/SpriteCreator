@@ -2,8 +2,14 @@
 export function sign(val) {
     return val < 0 ? -1 : 1;
 }
-export function clamp(num, min, max) {
-    return Math.min(Math.max(num, min), max);
+function min(a, b) {
+    return a < b ? a : b;
+}
+function max(a, b) {
+    return a > b ? a : b;
+}
+export function clamp(num, min_val, max_val) {
+    return min(max(num, min_val), max_val);
 }
 export function round_with_precision(value, precision) {
     if (Math.abs(value) < Math.pow(2, -35))
@@ -23,7 +29,7 @@ export function get_angle(deltaX, deltaY, unit_vectorX = 1, unit_vectorY = 0) {
     const a = normalize([deltaX, deltaY]);
     const b = [unit_vectorX, unit_vectorY];
     const dotProduct = scalarDotProduct(a, b);
-    return Math.acos(dotProduct) * (deltaY < 0 ? 1 : -1);
+    return Math.acos(dotProduct) * (deltaY < 0 ? -1 : 1);
 }
 export function threeByThreeMat(a, b) {
     return [a[0] * b[0] + a[1] * b[3] + a[2] * b[6],
@@ -274,26 +280,34 @@ export class RollingStack {
     }
 }
 ;
-export class DynamicInt32Array {
+class NativeArrayView {
+    constructor(size) { }
+}
+export class DynamicFloat64Array {
     constructor(size = 4096) {
-        this.data = new Int32Array(size);
-        this.len = 0;
+        this.data = new Float64Array(size);
+        this.length = 0;
     }
-    length() {
-        return this.len;
+    get(index) {
+        return this.data[index];
     }
     push(value) {
-        if (this.data.length <= this.length()) {
-            const temp = new Int32Array(this.data.length * 2);
+        if (this.data.length <= this.length) {
+            const temp = new Float64Array(this.data.length * 2);
             for (let i = 0; i < this.data.length; i++) {
                 temp[i] = this.data[i];
             }
             this.data = temp;
         }
-        this.data[this.len++] = value;
+        this.data[this.length++] = value;
+    }
+    reserve(minimum) {
+        if (this.data.length < minimum) {
+            this.data = new Float64Array(minimum);
+        }
     }
     trimmed() {
-        const data = new Int32Array(this.length());
+        const data = new DynamicFloat64Array(this.length);
         for (let i = 0; i < data.length; i++)
             data[i] = this.data[i];
         return data;
@@ -439,3 +453,115 @@ export function changeFavicon(src) {
     }
     document.head.appendChild(link);
 }
+;
+export class ProcessPool {
+    constructor(poolSize, main, library_code = [], modules = [], return_buffer_keys) {
+        this.workers = [];
+        this.worker_promises = [];
+        this.worker_free_list = [];
+        this.processes_enqueued_or_running = 0;
+        this.last_enqueued_id = 0;
+        this.modules = modules;
+        const stringified_code = modules.map((pm) => {
+            return `import {${pm.fields.join(',')}} from '${pm.path}'\n`;
+        }).concat(library_code.map(foo => `const ${foo.name} = ${foo.toString()}`).concat(["\nconst main = ", main.toString(), ";\n", `self.onmessage = (event) => {const data = main(event.data.data); postMessage({process_id:event.data.process_id, data:data}${return_buffer_keys ? ", [" + return_buffer_keys.map(return_buffer_key => `data.${return_buffer_key}`).join() + "]" : ""}); }`]));
+        console.log(stringified_code.join(''));
+        this.code_url = window.URL.createObjectURL(new Blob(stringified_code, {
+            type: "text/javascript"
+        }));
+        for (let i = 0; i < poolSize; i++) {
+            this.worker_free_list.push(i);
+            this.workers.push(this.createWorker());
+        }
+        this.worker_promises.length = poolSize;
+    }
+    createWorker() {
+        const worker = new Worker(this.code_url, { type: 'module' });
+        return worker;
+    }
+    async call_parallel(data, transfer = []) {
+        this.processes_enqueued_or_running++;
+        return await this._call_parallel(data, transfer);
+    }
+    async _call_parallel(data, transfer = []) {
+        let process_id = this.worker_free_list.pop();
+        while (process_id === undefined) {
+            process_id = this.last_enqueued_id++;
+            this.last_enqueued_id %= this.workers.length;
+            await this.worker_promises[process_id];
+            const index_of_process_in_free_list = this.worker_free_list.indexOf(process_id);
+            if (index_of_process_in_free_list === -1) {
+                if (this.worker_free_list.length)
+                    return this.call_parallel(data);
+                process_id = undefined;
+            }
+            else
+                this.worker_free_list.splice(index_of_process_in_free_list, 1);
+        }
+        const executor = (resolve) => {
+            worker.onmessage = (event) => {
+                this.worker_free_list.push(event.data.process_id);
+                this.processes_enqueued_or_running--;
+                //console.log("thread id:", event.data.process_id);
+                resolve(event.data.data);
+            };
+        };
+        const worker = this.workers[process_id];
+        //return promise that will resolve to worker result
+        const promise = new Promise(executor);
+        this.worker_promises[process_id] = promise;
+        worker.postMessage({
+            data: data,
+            process_id: process_id
+        }, transfer);
+        return promise;
+    }
+    async batch_call_parallel(data) {
+        const input_queue = new Queue();
+        for (let i = 0; i < data.length; i++) {
+            const rec = data[i];
+            input_queue.push(this.call_parallel(rec));
+        }
+        const promise = new Promise(async (resolve) => {
+            const final_result = [];
+            while (input_queue.length) {
+                const result = await input_queue.pop();
+                final_result.push(result);
+            }
+            resolve(final_result);
+        });
+        return promise;
+    }
+}
+;
+export class ProcessPoolUnordered {
+    constructor(poolSize, main, library_code = [], modules = [], return_buffer_key) {
+        this.pool = new ProcessPool(poolSize, main, library_code, modules, return_buffer_key);
+        this.input_queue = new Queue();
+    }
+    processing() {
+        return this.input_queue.length > 0;
+    }
+    add_job(data) {
+        this.input_queue.push(data);
+    }
+    async process_jobs(apply) {
+        while (this.input_queue.length) {
+            let last_thread_id = this.pool.workers.findIndex((worker, index) => {
+                return this.pool.worker_free_list.indexOf(index) === -1;
+            });
+            while (this.pool.processes_enqueued_or_running < this.pool.workers.length && this.input_queue.length) {
+                const apply_and_exec_next = (result) => {
+                    apply(result);
+                    if (this.input_queue.length) {
+                        this.pool.call_parallel(this.input_queue.pop()).then(apply_and_exec_next);
+                    }
+                };
+                this.pool.call_parallel(this.input_queue.pop()).then(apply_and_exec_next);
+            }
+            if (last_thread_id != -1)
+                await this.pool.worker_promises[last_thread_id];
+        }
+    }
+}
+;
