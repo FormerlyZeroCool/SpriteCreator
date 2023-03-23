@@ -1542,13 +1542,13 @@ class FilesManagerTool extends ExtendedTool {
         this.pngName.setText("myFirst.png");
         this.projectName.setText("myFirst.proj");
         this.localLayout.addElement(new GuiLabel("Save Screen as:", 200, 16));
-        this.localLayout.addElement(horizontal_group([ this.pngName, this.savePng ]));
+        this.localLayout.addElement(vertical_group([ this.pngName, this.savePng ]));
         this.localLayout.addElement(new GuiSpacer([150, 20]));
         this.localLayout.addElement(new GuiLabel("Save selected\nanimation as gif:", 200, 16));
-        this.localLayout.addElement(horizontal_group([ this.gifName, this.saveGif ]));
+        this.localLayout.addElement(vertical_group([ this.gifName, this.saveGif ]));
         this.localLayout.addElement(new GuiSpacer([150, 10]));
         this.localLayout.addElement(new GuiLabel("Save project to a file:", 200, 16));
-        this.localLayout.addElement(horizontal_group([ this.projectName, this.saveProject ]));
+        this.localLayout.addElement(vertical_group([ this.projectName, this.saveProject ]));
         this.localLayout.addElement(new GuiSpacer([150, 20]));
         this.localLayout.addElement(new GuiLabel("Save screen as grid\nto sprites:", 200, 16));
         this.localLayout.addElement(horizontal_group([ this.tbXPartitions, this.tbYPartitions ]));
