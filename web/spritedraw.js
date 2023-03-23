@@ -328,12 +328,14 @@ class UndoRedoTool extends ExtendedTool {
     }
     constructor(toolSelector, name, imagePath, callback) {
         super(name, imagePath, [], [200, 100]);
-        this.localLayout.addElement(horizontal_group([
-            new GuiLabel("Slow mode(undo/redo):", 200),
-            new GuiCheckBox(callback, 40, 40)
-        ]));
         this.stackFrameCountLabel = new GuiLabel(`Redo: ${0}\nUndo: ${0}`, 100, 16, 40);
-        this.localLayout.addElement(this.stackFrameCountLabel);
+        const chbx = new GuiCheckBox(callback, 40, 40);
+        chbx.activate();
+        chbx.refresh();
+        this.localLayout.addElement(vertical_group([
+            new GuiLabel("Slow mode(undo/redo):", 200),
+            horizontal_group([chbx, this.stackFrameCountLabel])
+        ]));
     }
     updateLabel(redo, undo) {
         this.stackFrameCountLabel.setText(`Redo: ${redo}\nUndo: ${undo}`);
