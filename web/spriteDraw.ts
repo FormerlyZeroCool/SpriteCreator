@@ -1,4 +1,4 @@
-import { GuiButton, GuiCheckBox, GuiColoredSpacer, GuiElement, GuiLabel, GuiListItem, GuiSlider, GuiSpacer, GuiTextBox, GuiToolBar, ImageContainer, Pair, RGB, RowRecord, SimpleGridLayoutManager, SlideEvent, Sprite, TextBoxEvent, VerticalLayoutManager, blendAlphaCopy, getWidth, horizontal_group, vertical_group } from './gui.js';
+import { GuiButton, GuiCheckBox, GuiColoredSpacer, GuiElement, GuiLabel, GuiListItem, GuiSlider, GuiSpacer, GuiTextBox, GuiToolBar, ImageContainer, Pair, RGB, RowRecord, SimpleGridLayoutManager, SlideEvent, Sprite, SpriteAnimation, TextBoxEvent, VerticalLayoutManager, blendAlphaCopy, buildSpriteFromBuffer, getWidth, horizontal_group, vertical_group } from './gui.js';
 import {
     KeyboardHandler,
     TouchMoveEvent,
@@ -144,9 +144,9 @@ abstract class GenericTool extends Tool {
 abstract class ExtendedTool extends ViewLayoutTool {
     localLayout:VerticalLayoutManager;
     optionPanels:VerticalLayoutManager[];
-    constructor(name:string, path:string[], optionPanes:VerticalLayoutManager[], dim:number[])
+    constructor(name:string, path:string[], optionPanes:VerticalLayoutManager[], dim:number[], event_handler: null | ((type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector) => void) = null)
     {
-        super(new VerticalLayoutManager([dim[0], dim[1]]), name, path);
+        super(new VerticalLayoutManager([dim[0], dim[1]]), name, path, event_handler);
         this.localLayout = new VerticalLayoutManager([dim[0], dim[1]]);
         const parentPanel:VerticalLayoutManager = this.getOptionPanel()!;
         parentPanel.addElement(this.localLayout);
@@ -4709,27 +4709,6 @@ class Pallette {
         }
     }
 };
-function buildSpriteFromBuffer(buffer:Int32Array, index:number):Pair<Sprite, number>
-{
-    const size:number = buffer[index++];
-    const type:number = buffer[index++];
-    const height:number = buffer[index] >> 16;
-    const width:number = buffer[index++] & ((1 << 17) - 1);
-    const sprite:Sprite = new Sprite([], width, height);
-    if(type !== 3)
-        throw new Error("Corrupted project file sprite type should be: 3, but is: " + type.toString());
-    if(width * height !== size - 3)
-        throw new Error("Corrupted project file, sprite width, and height are: (" + width.toString() +","+ height.toString() + "), but size is: " + size.toString());
-    const limit:number = width * height;
-    const view:Int32Array = new Int32Array(sprite.pixels.buffer);
-    for(let i = 0; i < limit; i++)
-    {
-        view[i] = buffer[index];
-        index++;
-    }
-    sprite.refreshImage();
-    return new Pair(sprite, size);
-}
 function buildSpriteAnimationFromBuffer(buffer:Int32Array, index:number):Pair<SpriteAnimation, number>
 {
     const size:number = buffer[index++];
@@ -4793,81 +4772,6 @@ function buildGroupsFromBuffer(buffer:Int32Array, groupsSelector:AnimationGroups
     return size;
 }
 
-class SpriteAnimation {
-    sprites:Sprite[];
-    x:number;
-    y:number;
-    width:number;
-    height:number;
-    animationIndex:number;
-
-    constructor(x:number, y:number, width:number, height:number)
-    {
-        this.sprites = [];
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.animationIndex = 0;
-    }
-    pushSprite(sprite:Sprite):void
-    {
-        this.sprites.push(sprite);
-    }
-    binaryFileSize():number
-    {
-        let size:number = 2;
-        this.sprites.forEach((sprite:Sprite) => size += sprite.binaryFileSize());
-        return size;
-    }
-    toGifBlob(callBack:(blob:Blob) => void, fps:number = 30):void
-    {
-        const frameTime:number = 1000/fps;
-        const gif = new GIF({
-            workers: 2,
-            quality: 10
-          });
-          // add an image element
-          for(let i = 0; i < this.sprites.length; i++)
-            gif.addFrame(this.sprites[i].image, {delay:Math.ceil(frameTime)});
-          
-          gif.on('finished', function(blob:Blob) {
-            callBack(blob);
-          });
-          
-          gif.render();
-    }
-    saveToUint32Buffer(buf:Int32Array, index:number):number
-    {
-        buf[index++] = this.binaryFileSize();
-        buf[index++] = 2;
-        this.sprites.forEach((sprite:Sprite) => index = sprite.saveToUint32Buffer(buf, index));
-        return index;
-    }
-    cloneAnimation():SpriteAnimation
-    {
-        
-        const cloned:SpriteAnimation = new SpriteAnimation(0, 0, this.width, this.height);
-        const original:SpriteAnimation = this;
-        original.sprites.forEach((sprite:Sprite) => {
-            const clonedSprite:Sprite = new Sprite([], sprite.width, sprite.height);
-            clonedSprite.copySprite(sprite);
-            clonedSprite.refreshImage();
-            cloned.sprites.push(clonedSprite);
-        });
-        return cloned;
-    }
-    draw(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void
-    {
-        if(this.sprites.length){
-            ++this.animationIndex;
-            this.sprites[this.animationIndex %= this.sprites.length].draw(ctx, x, y, width, height);
-        }
-        else{
-            this.animationIndex = -1;
-        }
-    }
-};
 class SpriteSelector {
     canvas:HTMLCanvasElement;
     ctx:any;
