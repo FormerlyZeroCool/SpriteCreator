@@ -1063,7 +1063,7 @@ class LayerManagerTool extends Tool {
             }
         });
         this.buttonAddLayer = new GuiButton(() => { this.pushList(`l${this.runningId++}`); }, "Add Layer", 99, 40, 16);
-        this.layoutManager.addElement(horizontal_group([new GuiLabel("Layers list:", 200), this.list]));
+        this.layoutManager.addElement(vertical_group([new GuiLabel("Layers list:", 200), this.list]));
         this.layoutManager.addElement(horizontal_group([this.buttonAddLayer, new GuiButton(() => this.deleteItem(), "Delete", 99, 40, 16)]));
         for (let i = 0; i < field.layers.length; i++) {
             this.pushList(`l${i}`);
