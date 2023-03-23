@@ -1,4 +1,4 @@
-import { GuiButton, GuiCheckBox, GuiColoredSpacer, GuiElement, GuiLabel, GuiListItem, GuiSlider, GuiSpacer, GuiTextBox, GuiToolBar, ImageContainer, Pair, RGB, RowRecord, SimpleGridLayoutManager, SlideEvent, Sprite, TextBoxEvent, VerticalLayoutManager, blendAlphaCopy, horizontal_group, vertical_group } from './gui.js';
+import { GuiButton, GuiCheckBox, GuiColoredSpacer, GuiElement, GuiLabel, GuiListItem, GuiSlider, GuiSpacer, GuiTextBox, GuiToolBar, ImageContainer, Pair, RGB, RowRecord, SimpleGridLayoutManager, SlideEvent, Sprite, TextBoxEvent, VerticalLayoutManager, blendAlphaCopy, getWidth, horizontal_group, vertical_group } from './gui.js';
 import {
     KeyboardHandler,
     TouchMoveEvent,
@@ -94,12 +94,18 @@ abstract class Tool extends ToolBarItem{
     abstract handle_touch_events(type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field:LayeredDrawingScreen, toolBar:ToolSelector):void;
 };
 class ViewLayoutTool extends Tool {
-    handle_touch_events(type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector): void {}
+    handle_touch_events(type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector): void 
+    {
+        if(this.event_handler)
+            this.event_handler(type, event, touchPos, gx, gy, deltaX, deltaY, field, toolBar);
+    }
     layoutManager:SimpleGridLayoutManager;
-    constructor(layoutManager:SimpleGridLayoutManager, name:string, path:string[])
+    event_handler:null | ((type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector) => void);
+    constructor(layoutManager:SimpleGridLayoutManager, name:string, path:string[], event_handler: null | ((type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector) => void))
     {
         super(name, path);
         this.layoutManager = layoutManager;
+        this.event_handler = event_handler;
     }
 
     activateOptionPanel():void { this.layoutManager.activate(); }
@@ -430,11 +436,10 @@ class FillTool extends ExtendedTool {
     }
 };
 class PenViewTool extends ViewLayoutTool {
-    handle_touch_events(type: string, event: any, touchPos: number[], gx: number, gy: number, deltaX: number, deltaY: number, field: LayeredDrawingScreen, toolBar: ToolSelector): void {}
     pen:PenTool;
-    constructor(pen:PenTool, name:string, path:string[])
+    constructor(pen:PenTool, name:string, path:string[], event_handler:null | ((type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field) => void))
     {
-        super(pen.getOptionPanel()!, name, path);
+        super(pen.getOptionPanel()!, name, path, event_handler);
         this.pen = pen;
     }
 };
@@ -1871,23 +1876,6 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                     field.layer().state.color.copy(field.layer().noColor);
                 }
                 break;
-                case("drag"):
-                    field.layer().saveDragDataToScreen();
-                if(this.dragTool.checkboxAutoSelect.checked)
-                {
-                    if(field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                        field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair<number>(gx,gy), true);
-                    else
-                        field.layer().dragData = field.layer().getSelectedPixelGroupAuto(new Pair<number>(gx,gy), false);
-                }
-                else
-                {
-                    if(field.layer().state.dragOnlyOneColor || this.keyboardHandler.keysHeld["AltLeft"])
-                        field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), true);
-                    else
-                        field.layer().dragData = field.layer().getSelectedPixelGroupBitMask(new Pair<number>(gx,gy), false);
-                }
-                break;
                 case("oval"):
                 case("rect"):
                 case("copy"):
@@ -1987,8 +1975,7 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             const deltaX:number = this.field.zoom.invJustZoomX(e.deltaX);
             const deltaY:number = this.field.zoom.invJustZoomY(e.deltaY);
             const touchPos:number[] = [this.field.zoom.invZoomX(e.touchPos[0]),this.field.zoom.invZoomY(e.touchPos[1])];
-            const x1:number = touchPos[0] - deltaX;
-            const y1:number = touchPos[1] - deltaY;
+            
             const gx:number = Math.floor((touchPos[0])/field.layer().bounds.first*field.layer().dimensions.first);
             const gy:number = Math.floor((touchPos[1])/field.layer().bounds.second*field.layer().dimensions.second);
             let repaint:boolean = true;
@@ -2002,33 +1989,11 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
             {
             switch (this.selectedToolName())
             {
-                case("oval"):
-                const start_x:number = Math.min(touchPos[0] - deltaX, touchPos[0]);
-                const end_x:number = Math.max(touchPos[0] - deltaX, touchPos[0]);
-                const min_y:number = Math.min(touchPos[1] - deltaY, touchPos[1]);
-                const max_y:number = Math.max(touchPos[1] - deltaY, touchPos[1]);
-                field.state.selectionRect = [0,0,0,0];
-                if(this.penTool.checkboxPixelPerfect.checked)
-                    field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapPixelPerfect(x, y));
-                else
-                    field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                break;
                 case("eraser"):
                 if(deltaX === 0 && deltaY === 0 && this.eraserTool.checkboxPixelPerfect)
                     field.layer().handleTap(touchPos[0], touchPos[1]);
 
                 field.state.color.copy(colorBackup);
-                break;
-                case("line"):
-                    if(deltaX === 0 && deltaY === 0)
-                    {
-                        field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
-                    }
-                    if(this.penTool.checkboxPixelPerfect.checked)
-                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
-                    else
-                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                    field.state.selectionRect = [0,0,0,0];
                 break;
                 case("copy"):
                     const clipBoardSprite:Sprite = field.layer().selectionToSprite(field.state.selectionRect);
@@ -2039,16 +2004,9 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
                 case("paste"):
                     field.layer().paste();
                 break;
-                case("rect"):
-                if(this.penTool.checkboxPixelPerfect.checked)
-                    field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0]+field.state.selectionRect[2], field.state.selectionRect[1]+ field.state.selectionRect[3]], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
-                else
-                    field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0]+field.state.selectionRect[2], field.state.selectionRect[1]+ field.state.selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
-                field.state.selectionRect = [0,0,0,0];
-                break;
             }
 
-            if(this.tool() && this.tool()!.handle_touch_events)
+            if(this.tool())
                 this.tool()?.handle_touch_events("touchend", e, touchPos, gx, gy, deltaX, deltaY, field, this);
     
             }
@@ -2095,13 +2053,73 @@ class ToolSelector {// clean up class code remove fields made redundant by GuiTo
         this.toolBar.tools.push(this.penTool);
         //this.toolBar.tools.push(this.sprayCanTool);
         this.toolBar.tools.push(this.fillTool);
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "line", ["images/ThePixelSlime1Icons/LineDrawSprite.png", "images/LineDrawSprite.png"]));
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", ["images/ThePixelSlime1Icons/rectSprite.png", "images/rectSprite.png"]));
-        this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", ["images/ThePixelSlime1Icons/ovalSprite.png", "images/ovalSprite.png"]));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "line", ["images/ThePixelSlime1Icons/LineDrawSprite.png", "images/LineDrawSprite.png"], 
+        (type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field) => {
+            const x1:number = touchPos[0] - deltaX;
+            const y1:number = touchPos[1] - deltaY;
+            switch(type)
+            {
+                
+                case("touchend"):
+                    if(deltaX === 0 && deltaY === 0)
+                    {
+                        field.layer().handleTapSprayPaint(touchPos[0], touchPos[1]);
+                    }
+                    if(this.penTool.checkboxPixelPerfect.checked)
+                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                    else
+                        field.layer().handleDraw(x1, touchPos[0], y1, touchPos[1], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                    field.state.selectionRect = [0,0,0,0];
+                break;
+            }
+        }));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "rect", ["images/ThePixelSlime1Icons/rectSprite.png", "images/rectSprite.png"], 
+        (type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field) => {
+            switch(type)
+            {
+
+                case("touchend"):
+                if(this.penTool.checkboxPixelPerfect.checked)
+                    field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0]+field.state.selectionRect[2], field.state.selectionRect[1]+ field.state.selectionRect[3]], (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                else
+                    field.layer().drawRect([field.state.selectionRect[0], field.state.selectionRect[1]], [field.state.selectionRect[0]+field.state.selectionRect[2], field.state.selectionRect[1]+ field.state.selectionRect[3]], (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                field.state.selectionRect = [0,0,0,0];
+                break;
+            }
+        }));
+        this.toolBar.tools.push(new PenViewTool(this.penTool, "oval", ["images/ThePixelSlime1Icons/ovalSprite.png", "images/ovalSprite.png"], 
+        (type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field) => {
+            switch(type)
+            {
+
+                case("touchend"):
+                const start_x:number = Math.min(touchPos[0] - deltaX, touchPos[0]);
+                const end_x:number = Math.max(touchPos[0] - deltaX, touchPos[0]);
+                const min_y:number = Math.min(touchPos[1] - deltaY, touchPos[1]);
+                const max_y:number = Math.max(touchPos[1] - deltaY, touchPos[1]);
+                field.state.selectionRect = [0,0,0,0];
+                if(this.penTool.checkboxPixelPerfect.checked)
+                    field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapPixelPerfect(x, y));
+                else
+                    field.layer().handleEllipse(start_x, end_x, min_y, max_y, (x, y, screen) => screen.handleTapSprayPaint(x, y));
+                break;
+            }
+        }));
         this.toolBar.tools.push(this.copyTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel()!, "paste", ["images/ThePixelSlime1Icons/pasteSprite.png", "images/pasteSprite.png"]));
+        this.toolBar.tools.push(new ViewLayoutTool(this.copyTool.getOptionPanel()!, "paste", ["images/ThePixelSlime1Icons/pasteSprite.png", "images/pasteSprite.png"], 
+        (type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field) => {
+            switch(type)
+            {
+
+            }
+        }));
         this.toolBar.tools.push(this.dragTool);
-        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", ["images/ThePixelSlime1Icons/redoSprite.png", "images/redoSprite.png"]));
+        this.toolBar.tools.push(new ViewLayoutTool(this.undoTool.localLayout, "redo", ["images/ThePixelSlime1Icons/redoSprite.png", "images/redoSprite.png"], (type:string, event:any, touchPos:number[], gx:number, gy:number, deltaX:number, deltaY:number, field) => {
+            switch(type)
+            {
+                
+            }
+        }));
         this.toolBar.tools.push(this.undoTool);
         this.toolBar.tools.push(this.colorPickerTool);
         this.toolBar.tools.push(this.eraserTool);
@@ -5672,17 +5690,6 @@ async function fetchImage(url:string):Promise<HTMLImageElement>
     img.src =  URL.createObjectURL(await (await fetch(url)).blob());
     return img;
 }
-function logToServer(data:any):void
-{
-    fetch("/data", {
-        method: "POST", 
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-      }).then(res => {console.log("Request complete! response:", data);});
-
-}
 function saveBlob(blob:Blob, fileName:string){
     const a:HTMLAnchorElement = document.createElement("a");
     if(blob)
@@ -5693,41 +5700,6 @@ function saveBlob(blob:Blob, fileName:string){
     }
 }
 
-let width:number = Math.min(
-    document.body.scrollWidth,
-    document.documentElement.scrollWidth,
-    document.body.offsetWidth,
-    document.documentElement.offsetWidth,
-    document.documentElement.clientWidth
-  );
-let height:number = Math.min(
-    document.body.clientHeight
-  );
-window.addEventListener("resize", () => {
-    width = Math.min(
-        document.body.scrollWidth,
-        document.documentElement.scrollWidth,
-        document.body.offsetWidth,
-        document.documentElement.offsetWidth,
-        document.body.clientWidth
-      );
-    height = document.body.clientHeight;
-});
-let landscape = true;
-setInterval(() => {
-    if (screen.orientation.type === "landscape-primary") {
-        landscape = true;
-      } else if (screen.orientation.type === "portrait-primary") {
-        landscape = false;
-      }
-}, 500);
-
-function getWidth():number {
-    return !landscape ? Math.min(width, height) : Math.max(width, height);
-}
-function getHeight():number {
-    return !landscape ? Math.max(width, height) : Math.min(width, height);
-}
   
 async function main()
 {
