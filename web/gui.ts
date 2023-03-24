@@ -3342,7 +3342,8 @@ export class Sprite {
     }
     copySpriteBlendAlpha(sprite:Sprite):void
     {
-        if(this.pixels.length !== sprite.pixels.length){
+        if(this.pixels.length !== sprite.pixels.length)
+        {
             this.imageData = this.createImageData();
             this.pixels = this.imageData.data;
         }
@@ -3370,8 +3371,10 @@ export class Sprite {
     }
     draw(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number):void
     {
-        if(this.pixels){ 
-            if(this.fillBackground){
+        if(this.pixels)
+        { 
+            if(this.fillBackground)
+            {
                 ctx.clearRect(x, y, width, height);
             }
             ctx.drawImage(this.image, x, y, width, height);
@@ -3392,7 +3395,6 @@ interface UIGroup {
     h?:UIGroup[] | UIGroup | GuiElement[];
     e?:GuiElement;
 };
-groupify({v:{h:{},v:[{h:{}, v:{}}]}});
 export function groupify(layout:UIGroup, layout_manager:SimpleGridLayoutManager = new HorizontalLayoutManager([0, 0])):SimpleGridLayoutManager
 {
     const build_group = (sub_layout, type) => {

@@ -2696,7 +2696,6 @@ function sum(elements) {
     return sum;
 }
 ;
-groupify({ v: { h: {}, v: [{ h: {}, v: {} }] } });
 export function groupify(layout, layout_manager = new HorizontalLayoutManager([0, 0])) {
     const build_group = (sub_layout, type) => {
         if (sub_layout) {

@@ -3358,7 +3358,7 @@ class DrawingScreen {
         const deltaX = x2 - x1;
         const m:number = deltaY/deltaX;
         const b:number = y2-m*x2;
-        const delta:number = this.state.lineWidth <= 4? 1 :(this.state.drawCircular ? (this.state.lineWidth < 16? 2 : this.state.lineWidth / 16) : 1);
+        const delta:number = this.state.lineWidth <= 4? 0.9 :(this.state.drawCircular ? (this.state.lineWidth < 16? 2 : this.state.lineWidth / 16) : 1);
         if(Math.abs(deltaX) > Math.abs(deltaY))
         {
             const min:number = Math.min(x1, x2);
@@ -5887,12 +5887,7 @@ async function main()
             pallette.draw();
         
         const adjustment:number = Date.now() - start < 30 ? Date.now() - start : 30;
-        //await sleep(goalSleep - adjustment);
-        /*if(1000/(Date.now() - start) < fps - 5){
-            console.log("avgfps:",Math.floor(1000/(Date.now() - start)))
-            if(1000/(Date.now() - start) < 1)
-                console.log("frame time:",(Date.now() - start) / 1000);
-        }*/
+        
         requestAnimationFrame(drawLoop);
         start = Date.now();
     }
